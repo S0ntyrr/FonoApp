@@ -1,4 +1,4 @@
-@startuml FonoApp - Diagrama de Casos de Uso Extendido
+@startuml FonoApp - Diagrama de Casos de Uso
 
 left to right direction
 
@@ -12,49 +12,65 @@ actor "Sistema\nMongoDB" as sistema
 ' Paquetes de casos de uso
 package "Autenticación" {
   usecase UC01 as "Iniciar Sesión"
-  usecase UC02 as "Registrarse"
+  usecase UC02 as "Registrarse\n(solo pacientes)"
   usecase UC03 as "Validar Credenciales" <<include>>
   usecase UC04 as "Verificar Email Existente" <<include>>
   usecase UC05 as "Redirigir según Rol" <<extend>>
 }
 
 package "Gestión Admin" {
-  usecase UC10 as "Ver Dashboard"
+  usecase UC10 as "Ver Dashboard\n(estadísticas)"
   usecase UC11 as "Listar Pacientes"
   usecase UC12 as "Crear Paciente"
   usecase UC13 as "Eliminar Paciente"
-  usecase UC14 as "Gestionar Actividades"
-  usecase UC15 as "Gestionar Contenido"
-  usecase UC16 as "Ver Asignaciones"
-  usecase UC17 as "Ver Historial de Actividades"
+  usecase UC14 as "Gestionar Médicos\n(CRUD completo)"
+  usecase UC15 as "Gestionar Contenido\n(imágenes/videos)"
+  usecase UC16 as "Ver Asignaciones\n(global)"
+  usecase UC17 as "Ver Historial\nde Actividades"
+  usecase UC18 as "Ver Resultados\nde Juegos"
+  usecase UC19 as "Crear Asignación\nAutomática"
 }
 
 package "Gestión Doctor" {
-  usecase UC20 as "Ver Home"
+  usecase UC20 as "Ver Panel Doctor\n(home)"
   usecase UC21 as "Ver Pacientes"
-  usecase UC22 as "Ver Actividades Disponibles"
-  usecase UC23 as "Ver Asignaciones"
-  usecase UC24 as "Ver Historial de Pacientes"
+  usecase UC22 as "Ver Actividades\nDisponibles"
+  usecase UC23 as "Ver Asignaciones\nPropias"
+  usecase UC24 as "Ver Historial\nde Pacientes"
+  usecase UC25 as "Ver Resultados\nde Juegos"
+  usecase UC26 as "Ver Evaluaciones\nPendientes"
+  usecase UC27 as "Aceptar/Cancelar\nAsignación"
+  usecase UC28 as "Cambiar Estado\n(activo/ocupado/consulta)"
 }
 
 package "Gestión Paciente" {
-  usecase UC30 as "Ver Perfil"
+  usecase UC30 as "Ver Dashboard\n(perfil + actividades)"
   usecase UC31 as "Editar Perfil"
-  usecase UC32 as "Ver Calendario de Uso"
+  usecase UC32 as "Ver Calendario\nde Uso"
   usecase UC33 as "Guardar Perfil" <<include>>
 }
 
+package "Juegos Fonoaudiológicos" {
+  usecase UC40 as "Ver Hub de Juegos"
+  usecase UC41 as "Juegos de Respiración\n(globo, molino)"
+  usecase UC42 as "Juegos de Fonación\n(gol, escala musical)"
+  usecase UC43 as "Juegos de Resonancia\n(escaleras, piano, veo-veo)"
+  usecase UC44 as "Juegos de Articulación\n(letras B, D, F, R)"
+  usecase UC45 as "Practica Conmigo\n(rompecabezas, cara, asociación)"
+  usecase UC46 as "Guardar Resultado\nde Juego" <<include>>
+}
+
 package "Gestión Emisor" {
-  usecase UC40 as "Ver Home"
+  usecase UC50 as "Ver Home Emisor"
 }
 
 package "Operaciones del Sistema" {
-  usecase UC50 as "Conectar Base de Datos" <<include>>
-  usecase UC51 as "Guardar Sesión" <<include>>
-  usecase UC52 as "Consultar Colección" <<include>>
+  usecase UC60 as "Conectar Base de Datos" <<include>>
+  usecase UC61 as "Guardar Sesión" <<include>>
+  usecase UC62 as "Consultar Colección" <<include>>
 }
 
-' Relaciones de Actores con Casos de Uso
+' Relaciones Admin
 admin --> UC01
 admin --> UC10
 admin --> UC11
@@ -64,123 +80,120 @@ admin --> UC14
 admin --> UC15
 admin --> UC16
 admin --> UC17
+admin --> UC18
+admin --> UC19
+admin --> UC40
 
+' Relaciones Doctor
 doctor --> UC01
 doctor --> UC20
 doctor --> UC21
 doctor --> UC22
 doctor --> UC23
 doctor --> UC24
+doctor --> UC25
+doctor --> UC26
+doctor --> UC27
+doctor --> UC28
+doctor --> UC40
 
+' Relaciones Paciente
 paciente --> UC01
 paciente --> UC02
 paciente --> UC30
 paciente --> UC31
 paciente --> UC32
+paciente --> UC40
+paciente --> UC41
+paciente --> UC42
+paciente --> UC43
+paciente --> UC44
+paciente --> UC45
 
+' Relaciones Emisor
 emisor --> UC01
-emisor --> UC40
+emisor --> UC50
 
 ' Relaciones de Inclusión (include)
 UC01 ..> UC03 : <<include>>
-UC01 ..> UC50 : <<include>>
+UC01 ..> UC60 : <<include>>
 UC02 ..> UC04 : <<include>>
-UC02 ..> UC50 : <<include>>
-UC10 ..> UC50 : <<include>>
-UC10 ..> UC52 : <<include>>
-UC11 ..> UC50 : <<include>>
-UC11 ..> UC52 : <<include>>
-UC12 ..> UC50 : <<include>>
-UC12 ..> UC52 : <<include>>
-UC13 ..> UC50 : <<include>>
-UC13 ..> UC52 : <<include>>
-UC14 ..> UC50 : <<include>>
-UC14 ..> UC52 : <<include>>
-UC15 ..> UC50 : <<include>>
-UC15 ..> UC52 : <<include>>
-UC16 ..> UC50 : <<include>>
-UC16 ..> UC52 : <<include>>
-UC17 ..> UC50 : <<include>>
-UC17 ..> UC52 : <<include>>
-UC20 ..> UC50 : <<include>>
-UC21 ..> UC50 : <<include>>
-UC21 ..> UC52 : <<include>>
-UC22 ..> UC50 : <<include>>
-UC22 ..> UC52 : <<include>>
-UC23 ..> UC50 : <<include>>
-UC23 ..> UC52 : <<include>>
-UC24 ..> UC50 : <<include>>
-UC24 ..> UC52 : <<include>>
-UC30 ..> UC50 : <<include>>
-UC30 ..> UC52 : <<include>>
+UC02 ..> UC60 : <<include>>
+UC10 ..> UC60 : <<include>>
+UC10 ..> UC62 : <<include>>
+UC11 ..> UC62 : <<include>>
+UC12 ..> UC62 : <<include>>
+UC13 ..> UC62 : <<include>>
+UC14 ..> UC62 : <<include>>
+UC15 ..> UC62 : <<include>>
+UC16 ..> UC62 : <<include>>
+UC17 ..> UC62 : <<include>>
+UC18 ..> UC62 : <<include>>
+UC19 ..> UC62 : <<include>>
+UC21 ..> UC62 : <<include>>
+UC22 ..> UC62 : <<include>>
+UC23 ..> UC62 : <<include>>
+UC24 ..> UC62 : <<include>>
+UC25 ..> UC62 : <<include>>
+UC26 ..> UC62 : <<include>>
+UC27 ..> UC62 : <<include>>
+UC30 ..> UC60 : <<include>>
+UC30 ..> UC62 : <<include>>
 UC31 ..> UC33 : <<include>>
-UC31 ..> UC50 : <<include>>
-UC31 ..> UC52 : <<include>>
-UC32 ..> UC50 : <<include>>
-UC32 ..> UC52 : <<include>>
-UC40 ..> UC50 : <<include>>
+UC32 ..> UC62 : <<include>>
+UC41 ..> UC46 : <<include>>
+UC42 ..> UC46 : <<include>>
+UC43 ..> UC46 : <<include>>
+UC44 ..> UC46 : <<include>>
+UC45 ..> UC46 : <<include>>
+UC46 ..> UC62 : <<include>>
 
 ' Relaciones de Extensión (extend)
 UC05 ..> UC01 : <<extend>>
-UC05 ..> UC51 : <<extend>>
+UC05 ..> UC61 : <<extend>>
 
 ' Relaciones del Sistema
-sistema --> UC50
-sistema --> UC52
+sistema --> UC60
+sistema --> UC62
 
 ' Notas explicativas
 note right of UC01
-  Todos los usuarios deben
-  autenticarse para acceder
-  al sistema
-end note
-
-note right of UC05
-  Se ejecuta después de
-  validar credenciales
-  exitosamente
-end note
-
-note right of UC10
-  Muestra resumen de:
-  - Total usuarios
-  - Total pacientes
-  - Total médicos
+  Redirige según rol:
+  - admin → /admin/dashboard
+  - medico → /doctor/home
+  - paciente → /paciente/perfil
+  - emisor → /emisor/home
 end note
 
 note right of UC14
-  Permite ver y gestionar
-  categorías de actividades:
-  respiración, fonación,
-  resonancia, articulación,
-  prosodia, discriminación
-  auditiva
+  CRUD completo de médicos:
+  - Crear, editar, eliminar
+  - Cambiar estado
+  - Ver consultas asignadas
 end note
 
-note right of UC15
-  Gestiona contenido
-  multimedia del sistema:
-  imágenes, videos, audios,
-  textos e instrucciones
+note right of UC26
+  Actividades del historial
+  sin feedback del doctor
+  (feedback = null)
 end note
 
-note right of UC30
-  Muestra información del
-  perfil del paciente y
-  calendario de uso de la app
+note right of UC40
+  Categorías de juegos:
+  - Respiración
+  - Fonación
+  - Resonancia
+  - Articulación
+  - Practica Conmigo
 end note
 
-note right of UC32
-  Muestra días en que el
-  paciente ha usado la app
-  basado en sesiones_app
-end note
-
-note right of UC50
-  Operación común a todos
-  los casos de uso que
-  requieren acceso a datos
+note right of UC46
+  Guarda en colección
+  'resultados_juegos':
+  - paciente_email
+  - categoria, juego
+  - paso_completado
+  - completado (bool)
 end note
 
 @enduml
-

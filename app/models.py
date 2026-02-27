@@ -7,9 +7,10 @@ class UsuarioBase(BaseModel):
     """
     Datos de un usuario del sistema.
     """
+    nombre: str = Field(default="", description="Nombre completo del usuario")
     email: EmailStr
     activo: bool = True
-    rol: str = Field(default="emisor", description="Rol del usuario: admin, doctor, emisor")
+    rol: str = Field(default="emisor", description="Rol del usuario: admin, doctor, emisor, paciente")
     estado: str = Field(default="activo", description="Estado del usuario: activo, ocupado, consulta")
 
 

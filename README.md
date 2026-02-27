@@ -1,18 +1,18 @@
-```markdown
-## FonoApp – Backend (FastAPI + MongoDB Atlas)
+# FonoApp – Backend (FastAPI + MongoDB Atlas)
 
-Aplicación para apoyo en fonoaudiología con:
+Aplicación web/móvil para apoyo en fonoaudiología con:
 
-- **Panel Admin (web)**: gestión de pacientes, actividades, asignaciones, historial y contenido del sistema.
-- **Panel Doctor (web)**: acceso rápido a pacientes, actividades, asignaciones y al historial de uso.
-- **App Paciente (web/móvil)**: registro/login, perfil del paciente y calendario de uso.
+- **Panel Admin (web)**: gestión de pacientes, médicos, actividades, asignaciones, historial, resultados de juegos y contenido del sistema.
+- **Panel Doctor (web)**: revisión de pacientes, asignaciones, historial, resultados de juegos y evaluaciones pendientes.
+- **App Paciente (web/móvil)**: registro/login, perfil del paciente, calendario de uso y acceso a juegos fonoaudiológicos.
+- **Juegos Fonoaudiológicos**: respiración, fonación, resonancia, articulación y practica conmigo.
 - **App Emisor (móvil / webview)**: pantalla básica de inicio (lista para extender).
 
 ---
 
 ## Tecnologías
 
-- **Backend**: Python 3 + FastAPI
+- **Backend**: Python 3.11+ + FastAPI
 - **Base de datos**: MongoDB Atlas (cluster remoto)
 - **Driver**: Motor (async, sobre PyMongo)
 - **Templates**: Jinja2
@@ -20,292 +20,339 @@ Aplicación para apoyo en fonoaudiología con:
 
 ---
 
-## Estructura de carpetas principal
+## Estructura de carpetas
 
 ```text
 FonoApp/
 ├─ app/
-│  ├─ main.py              # Punto de entrada FastAPI
+│  ├─ main.py              # Punto de entrada FastAPI (incluye ruta raíz /)
 │  ├─ config.py            # Configuración (MongoDB URI, nombre BD, .env)
-│  ├─ database.py          # Conexión a MongoDB (Motor)
+│  ├─ database.py          # Conexión a MongoDB (Motor async)
 │  ├─ models.py            # Modelos Pydantic (usuarios, actividades, etc.)
 │  ├─ routers/             # Rutas tipo API / vistas app
-│  │  ├─ auth.py           # Login y registro
-│  │  ├─ emisor.py         # Home emisor (placeholder)
-│  │  ├─ paciente.py       # Perfil y calendario de uso del paciente
-│  ├─ web/                 # Rutas web (HTML) para admin/doctor
-│  │  ├─ routes_admin.py   # Panel admin
-│  │  ├─ routes_doctor.py  # Panel doctor
+│  │  ├─ auth.py           # Login y registro (/auth/*)
+│  │  ├─ emisor.py         # Home emisor (/emisor/*)
+│  │  └─ paciente.py       # Perfil y calendario del paciente (/paciente/*)
+│  ├─ web/                 # Rutas web (HTML) para admin/doctor/juegos
+│  │  ├─ routes_admin.py   # Panel admin (/admin/*)
+│  │  ├─ routes_doctor.py  # Panel doctor (/doctor/*)
+│  │  └─ routes_juegos.py  # Juegos fonoaudiológicos (/juegos/*)
 │  ├─ templates/           # Vistas HTML (Jinja2)
 │  │  ├─ base.html
 │  │  ├─ auth/             # login / registro
-│  │  ├─ admin/            # dashboard, pacientes, actividades, etc.
-│  │  ├─ doctor/           # home doctor, pacientes, actividades, etc.
+│  │  ├─ admin/            # dashboard, pacientes, médicos, actividades, etc.
+│  │  ├─ doctor/           # home, pacientes, actividades, resultados, etc.
 │  │  ├─ paciente/         # perfil + calendario
 │  │  ├─ emisor/           # home emisor
-│  ├─ static/
+│  │  └─ juegos/           # hub + categorías (respiracion, fonacion, etc.)
+│  └─ static/
 │     ├─ css/estilos.css   # paleta rojo/blanco y layout móvil
+│     ├─ img/              # imágenes estáticas
+│     └─ js/               # scripts del cliente
+├─ DOCS/                   # Diagramas PlantUML
+│  ├─ actores_roles.puml
+│  ├─ diagrama_casos_uso.puml
+│  ├─ diagrama_clases.puml
+│  └─ diagrama_estados.puml
 ├─ requirements.txt
-├─ .env                    # Configuración sensible (no se sube al repo)
+├─ .env                    # Configuración sensible (NO subir al repo)
 └─ README.md
 ```
 
 ---
 
-## Configuración de entorno
+## Cómo ejecutar el proyecto localmente
 
-### 1. Dependencias
+### 1. Requisitos previos
+
+- Python 3.11 o superior instalado
+- Acceso a MongoDB Atlas (o MongoDB local)
+
+### 2. Clonar el repositorio
 
 ```bash
+git clone https://github.com/S0ntyrr/FonoApp.git
+cd FonoApp
+```
+
+### 3. Crear entorno virtual (recomendado)
+
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 4. Instalar dependencias
+
+```bash
+# Windows
 py -m pip install -r requirements.txt
+
+# Linux / macOS
+python3 -m pip install -r requirements.txt
 ```
 
-Contenido de `requirements.txt`:
+### 5. Configurar variables de entorno
 
-```txt
-fastapi
-uvicorn[standard]
-motor
-python-dotenv
-jinja2
-pydantic-settings
-python-multipart
-email-validator
-pydantic
-```
-
-### 2. Variables de entorno (`.env`)
-
-Crear un archivo `.env` en la raíz del proyecto:
+Crear (o editar) el archivo `.env` en la raíz del proyecto:
 
 ```env
 MONGODB_URI="mongodb+srv://USUARIO:CONTRASENA@cluster0.op2ne2d.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-MONGODB_DB_NAME="fono_app"
+MONGODB_DB_NAME="tesis"
 ```
 
-- `USUARIO` y `CONTRASENA` deben corresponder a un **Database User** de MongoDB Atlas.
-- `MONGODB_DB_NAME` debe ser el nombre de la base de datos que estás usando.
+> **Nota**: Reemplaza `USUARIO` y `CONTRASENA` con las credenciales de tu Database User en MongoDB Atlas.
+
+### 6. Levantar el servidor de desarrollo
+
+```bash
+# Windows
+py -m uvicorn app.main:app --reload
+
+# Linux / macOS
+python3 -m uvicorn app.main:app --reload
+```
+
+### 7. Abrir en el navegador
+
+| URL | Descripción |
+|-----|-------------|
+| `http://127.0.0.1:8000/` | Redirige automáticamente al login |
+| `http://127.0.0.1:8000/auth/login` | Pantalla de inicio de sesión |
+| `http://127.0.0.1:8000/auth/registro` | Registro de nuevo paciente |
+| `http://127.0.0.1:8000/admin/dashboard` | Panel admin (requiere rol admin) |
+| `http://127.0.0.1:8000/doctor/home` | Panel doctor (requiere rol medico) |
+| `http://127.0.0.1:8000/paciente/perfil` | Dashboard paciente |
+| `http://127.0.0.1:8000/juegos/` | Hub de juegos fonoaudiológicos |
+| `http://127.0.0.1:8000/docs` | Documentación automática de la API (Swagger) |
 
 ---
 
-## Esquema de base de datos (colecciones principales)
+## Usuarios de prueba (insertar en MongoDB)
 
-### Colección `usuarios`
-
-Ejemplos:
+Insertar en la colección `usuarios` de la base de datos `tesis`:
 
 ```json
-{
-  "nombre": "Admin General",
-  "email": "admin@tesis.com",
-  "password": "admin123",
-  "rol": "admin",
-  "estado": "activo"
-}
+{ "nombre": "Admin General", "email": "admin@tesis.com", "password": "admin123", "rol": "admin", "estado": "activo" }
+{ "nombre": "Dra. Ana Gómez", "email": "medico@tesis.com", "password": "medico123", "rol": "medico", "estado": "activo" }
+{ "nombre": "Paciente Ejemplo", "email": "paciente@tesis.com", "password": "paciente123", "rol": "paciente", "nivel": 1, "puntos": 0, "estado": "activo" }
 ```
 
-```json
-{
-  "nombre": "Dra. Ana Gómez",
-  "email": "medico@tesis.com",
-  "password": "medico123",
-  "rol": "medico",
-  "especialidad": "Fonoaudiología",
-  "estado": "activo"
-}
+---
+
+## Flujo principal de la aplicación
+
+```
+1. Usuario accede a / → redirige a /auth/login
+2. Login exitoso → redirige según rol:
+   - admin   → /admin/dashboard
+   - medico  → /doctor/home
+   - paciente→ /paciente/perfil?email=...
+   - emisor  → /emisor/home
+
+3. Paciente:
+   - Completa su perfil en /paciente/perfil
+   - Accede a juegos en /juegos/
+   - Los resultados se guardan en 'resultados_juegos'
+
+4. Admin:
+   - Crea asignación automática (POST /admin/asignaciones/auto)
+   - Asigna un médico disponible al paciente
+
+5. Doctor:
+   - Acepta la asignación (POST /doctor/asignaciones/{id}/aceptar)
+   - Revisa resultados de juegos en /doctor/resultados
+   - Ve evaluaciones pendientes en /doctor/evaluaciones-pendientes
+   - Proporciona feedback al historial de actividades
 ```
 
+---
+
+## Esquema de base de datos (colecciones)
+
+### `usuarios`
 ```json
 {
-  "nombre": "Paciente Ejemplo",
-  "email": "paciente@tesis.com",
-  "password": "paciente123",
-  "rol": "paciente",
+  "nombre": "string",
+  "email": "string",
+  "password": "string (texto plano - encriptar en producción)",
+  "rol": "admin | medico | paciente | emisor",
   "nivel": 1,
   "puntos": 0,
-  "estado": "activo"
+  "estado": "activo | ocupado | consulta"
 }
 ```
 
-- Los **nuevos pacientes** creados por registro o panel admin se guardan con:
-  - `rol: "paciente"`, `nivel: 1`, `puntos: 0`, `estado: "activo"`.
-
-### Colección `actividades`
-
+### `perfiles_pacientes`
 ```json
 {
-  "categoria": "respiracion",
-  "actividades": [
-    "ejercicio 1",
-    "ejercicio 2",
-    "ejercicio 3"
-  ]
-}
-```
-
-Categorías esperadas (según tu BD):
-
-- `respiracion`
-- `fonacion`
-- `resonancia`
-- `articulacion`
-- `prosodia`
-- `discriminacion_auditiva`
-
-### Colección `asignaciones`
-
-```json
-{
-  "paciente_email": "paciente@tesis.com",
-  "medico_email": "medico@tesis.com",
-  "actividades_asignadas": [
-    { "categoria": "respiracion", "actividad": "soplar velas" },
-    { "categoria": "articulacion", "actividad": "completar palabras" }
-  ],
-  "dificultad": "medio",
-  "fecha_asignacion": { "$date": "2025-01-15T00:00:00.000Z" }
-}
-```
-
-- En el código, `actividades_asignadas` se trata como `list[dict]` para aceptar estos objetos.
-
-### Colección `contenido_admin`
-
-```json
-{
-  "imagenes": ["url1.png", "url2.png"],
-  "videos": ["video1.mp4"],
-  "audios_referencia": ["audio1.mp3"],
-  "textos_sistema": ["Texto de ejemplo"],
-  "instrucciones": {
-    "nota": "Instrucciones generales para el sistema"
-  }
-}
-```
-
-### Colección `historial_actividades`
-
-```json
-{
-  "paciente_email": "paciente@tesis.com",
-  "categoria": "articulacion",
-  "actividad": "completar palabras",
-  "puntos_obtenidos": 10,
-  "nivel": 1,
-  "fecha": { "$date": "2025-01-15T05:00:00.000Z" },
-  "feedback": "Excelente pronunciación"
-}
-```
-
-### Colección `perfiles_pacientes` (creada por el propio paciente)
-
-```json
-{
-  "paciente_email": "paciente@tesis.com",
-  "nombre": "Paciente Ejemplo",
+  "paciente_email": "string",
+  "nombre": "string",
   "edad": 8,
   "escolaridad": "Primaria",
   "genero": "Femenino",
-  "fecha_registro": { "$date": "2025-01-10T00:00:00.000Z" },
-  "tutor": "María Pérez",
+  "fecha_registro": "datetime",
+  "tutor": "string",
   "parentesco": "Madre"
 }
 ```
 
-- Esta colección se llena/actualiza desde la pantalla `/paciente/perfil`.
-
-### Colección `sesiones_app`
-
+### `actividades`
 ```json
 {
-  "paciente_email": "paciente@tesis.com",
-  "fecha": { "$date": "2025-01-15T00:00:00.000Z" },
+  "categoria": "respiracion | fonacion | resonancia | articulacion | prosodia",
+  "actividades": ["ejercicio 1", "ejercicio 2"]
+}
+```
+
+### `asignaciones`
+```json
+{
+  "paciente_email": "string",
+  "medico_email": "string",
+  "actividades_asignadas": [{"categoria": "respiracion", "actividad": "soplar velas"}],
+  "dificultad": "facil | media | dificil",
+  "fecha_asignacion": "datetime",
+  "estado": "pendiente | aceptada | cancelada"
+}
+```
+
+### `historial_actividades`
+```json
+{
+  "paciente_email": "string",
+  "categoria": "string",
+  "actividad": "string",
+  "puntos_obtenidos": 10,
+  "nivel": 1,
+  "fecha": "datetime",
+  "feedback": "string | null"
+}
+```
+
+### `resultados_juegos`
+```json
+{
+  "paciente_email": "string",
+  "categoria": "articulacion | resonancia | respiracion | fonacion | practica",
+  "juego": "letra_b | veoveo | globo | gol | ...",
+  "paso_completado": 3,
+  "total_pasos": 5,
+  "completado": true,
+  "fecha": "datetime",
+  "notas": "string | null"
+}
+```
+
+### `sesiones_app`
+```json
+{
+  "paciente_email": "string",
+  "fecha": "datetime",
   "minutos_conectado": 25
 }
 ```
 
-- Un documento por día y paciente, usado para el **calendario de uso**.
-
----
-
-## Rutas principales
-
-### Autenticación
-
-- `GET /auth/login` – pantalla de inicio de sesión.
-- `GET /auth/registro` – registro de nuevo paciente.
-- `POST /auth/registro` – crea usuario `rol = "paciente"`.
-- `POST /auth/login` – redirige según **rol**:
-
-  - `admin`   → `/admin/dashboard`
-  - `medico`  → `/doctor/home`
-  - `paciente`→ `/paciente/perfil?email=...`
-  - otros / emisor → `/emisor/home`
-
-### Panel Admin (web)
-
-- `GET /admin/dashboard` – resumen (usuarios, pacientes, médicos) + accesos.
-- `GET /admin/pacientes` – listado y creación de pacientes.
-- `POST /admin/pacientes/crear` – crear paciente.
-- `POST /admin/pacientes/{id}/eliminar` – eliminar paciente.
-- `GET /admin/actividades` – ver categorías y actividades (`actividades`).
-- `GET /admin/asignaciones` – ver todas las asignaciones (`asignaciones`).
-- `GET /admin/historial` – historial de actividades (`historial_actividades`).
-- `GET /admin/contenido` – contenido multimedia y textos (`contenido_admin`).
-
-### Panel Doctor (web)
-
-- `GET /doctor/home` – home del doctor con menú.
-- `GET /doctor/pacientes` – lista de pacientes (`usuarios.rol = "paciente"`).
-- `GET /doctor/actividades` – ver categorías/actividades (`actividades`).
-- `GET /doctor/asignaciones` – ver asignaciones (`asignaciones`).
-- `GET /doctor/historial` – historial (`historial_actividades`).
-
-### App Paciente
-
-- `GET /paciente/perfil?email=correo`  
-  - Muestra/edita perfil (nombre, edad, escolaridad, género, tutor, parentesco).  
-  - Muestra calendario de uso usando `sesiones_app`.
-- `POST /paciente/perfil`  
-  - Crea o actualiza documento en `perfiles_pacientes`.
-
-### App Emisor (placeholder)
-
-- `GET /emisor/home` – pantalla simple de bienvenida, lista para extender (por ejemplo, envío de evaluaciones).
-
----
-
-## Estilos (diseño)
-
-- Paleta principal:
-  - Fondo: blanco
-  - Títulos y botones: rojo
-- Archivo de estilos: `app/static/css/estilos.css`  
-  - Define layout móvil (`pantalla-movil`), botones (`boton-rojo`, `boton-rojo-borde`), menú lateral del paciente (`layout-lateral`, `menu-lateral`), calendario (`calendario-grid`, etc.).
-
----
-
-## Cómo ejecutar el proyecto
-
-1. Instalar dependencias:
-
-```bash
-py -m pip install -r requirements.txt
+### `contenido_admin`
+```json
+{
+  "imagenes": ["ruta/imagen.png"],
+  "videos": ["ruta/video.mp4"],
+  "audios_referencia": ["ruta/audio.mp3"],
+  "textos_sistema": ["Texto de ejemplo"],
+  "instrucciones": {}
+}
 ```
 
-2. Configurar `.env` con la URI de MongoDB Atlas y el nombre de la base.
+---
 
-3. Levantar el servidor de desarrollo:
+## Rutas disponibles
 
-```bash
-py -m uvicorn app.main:app --reload
-```
+### Autenticación (`/auth`)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/auth/login` | Pantalla de login |
+| POST | `/auth/login` | Procesar login → redirige según rol |
+| GET | `/auth/registro` | Pantalla de registro |
+| POST | `/auth/registro` | Crear nuevo paciente |
 
-4. Probar desde el navegador:
+### Panel Admin (`/admin`)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/admin/dashboard` | Dashboard con estadísticas |
+| GET | `/admin/pacientes` | Listar pacientes |
+| POST | `/admin/pacientes/crear` | Crear paciente |
+| POST | `/admin/pacientes/{id}/eliminar` | Eliminar paciente |
+| GET | `/admin/medicos` | Listar médicos |
+| POST | `/admin/medicos/crear` | Crear médico |
+| POST | `/admin/medicos/{id}/eliminar` | Eliminar médico |
+| POST | `/admin/medicos/{id}/cambiar_estado` | Cambiar estado médico |
+| GET | `/admin/medicos/{id}/editar` | Formulario editar médico |
+| POST | `/admin/medicos/{id}/editar` | Guardar edición médico |
+| GET | `/admin/medicos/{id}/consultas` | Ver consultas de un médico |
+| GET | `/admin/actividades` | Ver categorías de actividades |
+| GET | `/admin/asignaciones` | Ver todas las asignaciones |
+| POST | `/admin/asignaciones/auto` | Crear asignación automática |
+| GET | `/admin/historial` | Historial de actividades |
+| GET | `/admin/resultados` | Resultados de juegos |
+| GET | `/admin/contenido` | Contenido multimedia |
+| POST | `/admin/contenido` | Subir imagen/video |
 
-- Login: `http://127.0.0.1:8000/auth/login`
-- Panel admin: se entra con usuario `rol = "admin"`.
-- Panel doctor: se entra con usuario `rol = "medico"`.
-- Paciente: se entra con usuario `rol = "paciente"` y se redirige a su perfil.
+### Panel Doctor (`/doctor`)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/doctor/home` | Panel principal del doctor |
+| POST | `/doctor/estado` | Cambiar estado del doctor |
+| GET | `/doctor/pacientes` | Ver pacientes |
+| GET | `/doctor/actividades` | Ver actividades disponibles |
+| GET | `/doctor/asignaciones` | Ver asignaciones |
+| POST | `/doctor/asignaciones/{id}/aceptar` | Aceptar asignación |
+| POST | `/doctor/asignaciones/{id}/cancelar` | Cancelar asignación |
+| GET | `/doctor/historial` | Historial de actividades |
+| GET | `/doctor/resultados` | Resultados de juegos |
+| GET | `/doctor/evaluaciones-pendientes` | Actividades sin feedback |
+
+### App Paciente (`/paciente`)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/paciente/perfil` | Dashboard del paciente |
+| POST | `/paciente/perfil` | Guardar/actualizar perfil |
+
+### Juegos (`/juegos`)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/juegos/` | Hub principal de juegos |
+| GET | `/juegos/respiracion` | Hub respiración |
+| GET | `/juegos/respiracion/globo` | Juego: infla el globo |
+| GET | `/juegos/respiracion/molino` | Juego: el molino de Pepe |
+| GET | `/juegos/fonacion` | Hub fonación |
+| GET | `/juegos/fonacion/gol` | Juego: haz un gol |
+| GET | `/juegos/fonacion/escala` | Juego: escala musical |
+| GET | `/juegos/resonancia` | Hub resonancia |
+| GET | `/juegos/resonancia/escaleras` | Juego: escaleras |
+| GET | `/juegos/resonancia/piano` | Juego: piano Estrellita |
+| GET | `/juegos/resonancia/veoveo` | Juego: veo veo |
+| GET | `/juegos/articulacion` | Hub articulación |
+| GET | `/juegos/articulacion/letra-b` | Juego: letra B |
+| GET | `/juegos/articulacion/letra-d` | Juego: letra D |
+| GET | `/juegos/articulacion/letra-f` | Juego: letra F |
+| GET | `/juegos/articulacion/letra-r` | Juego: letra R |
+| GET | `/juegos/practica` | Hub practica conmigo |
+| GET | `/juegos/practica/rompecabezas` | Juego: rompecabezas |
+| GET | `/juegos/practica/cara` | Juego: crea tu personaje |
+| GET | `/juegos/practica/asociacion` | Juego: asociación de imágenes |
+| POST | `/juegos/resultado` | Guardar resultado de juego |
 
 ---
+
+## Notas de desarrollo
+
+- **Autenticación**: Actualmente usa sesión simple por query param (`?email=...`). En producción se debe implementar JWT o sesiones con cookies.
+- **Contraseñas**: Se guardan en texto plano. En producción usar `bcrypt` o similar.
+- **Estado del doctor**: Hardcodeado como `doctor@tesis.com`. En producción debe venir del usuario logueado.
+- **Diagramas**: Ver carpeta `DOCS/` con diagramas PlantUML (casos de uso, clases, estados, actores).

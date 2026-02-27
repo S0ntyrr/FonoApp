@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -21,6 +22,13 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.get("/", include_in_schema=False)
+async def raiz():
+    """Redirige la raíz al login."""
+    return RedirectResponse(url="/auth/login")
+
 
 app.include_router(auth.router)
 app.include_router(emisor.router)

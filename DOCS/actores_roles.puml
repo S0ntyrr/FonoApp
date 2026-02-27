@@ -1,14 +1,108 @@
-@startuml
+@startuml FonoApp - Actores y Roles
+
 title Diagrama de Actores y Roles en FonoApp
 
 actor "Administrador" as Admin
-actor "Médico" as Medico
+actor "Médico / Doctor" as Medico
 actor "Paciente" as Paciente
 actor "Emisor" as Emisor
 
-note right of Admin : Rol: admin\n- Gestiona usuarios (pacientes y médicos)\n- Administra asignaciones\n- Controla contenido del sistema\n- Ve estadísticas y reportes
-note right of Medico : Rol: medico\n- Gestiona evaluaciones de pacientes\n- Valora el avance del paciente mediante las actividades/juegos realizados\n- Acepta/cancela asignaciones\n- Cambia su estado (activo/ocupado/consulta)\n- Ve historial de actividades
-note right of Paciente : Rol: paciente\n- Realiza actividades asignadas (juegos)\n- Las actividades son evaluadas por el médico para determinar su avance\n- Ve su perfil y progreso\n- Selecciona actividades desde móvil
-note right of Emisor : Rol: emisor\n- Gestiona contenido multimedia\n- Envía instrucciones o recursos
+note right of Admin
+  Rol: admin
+  Acceso: /admin/*
+  ─────────────────────────────
+  Gestión de usuarios:
+  - Crear, editar y eliminar pacientes
+  - Crear, editar y eliminar médicos
+  - Cambiar estado de médicos
+  - Ver consultas por médico
+  
+  Gestión de contenido:
+  - Subir imágenes y videos al sistema
+  - Gestionar contenido multimedia
+  
+  Supervisión global:
+  - Ver dashboard con estadísticas
+  - Ver todas las asignaciones
+  - Crear asignaciones automáticas
+  - Ver historial de actividades
+  - Ver resultados de todos los juegos
+  
+  Acceso a juegos:
+  - Puede acceder a /juegos/* para revisión
+end note
+
+note right of Medico
+  Rol: medico
+  Acceso: /doctor/*
+  ─────────────────────────────
+  Gestión de pacientes:
+  - Ver lista de pacientes asignados
+  - Aceptar o cancelar asignaciones
+  
+  Evaluación y seguimiento:
+  - Ver historial de actividades de pacientes
+  - Ver resultados de juegos completados
+  - Ver evaluaciones pendientes (sin feedback)
+  - Proporcionar feedback a actividades
+  
+  Estado personal:
+  - Cambiar estado: activo / ocupado / en consulta
+  
+  Acceso a juegos:
+  - Puede acceder a /juegos/* para revisión
+end note
+
+note right of Paciente
+  Rol: paciente
+  Acceso: /paciente/*, /juegos/*
+  ─────────────────────────────
+  Perfil y sesión:
+  - Registrarse con email y contraseña
+  - Ver y editar su perfil personal
+  - Ver calendario de uso mensual
+  
+  Actividades y juegos:
+  - Ver actividades disponibles asignadas
+  - Acceder al hub de juegos fonoaudiológicos
+  
+  Categorías de juegos disponibles:
+  - Respiración: globo, molino
+  - Fonación: gol, escala musical
+  - Resonancia: escaleras, piano, veo-veo
+  - Articulación: letras B, D, F, R
+  - Practica Conmigo: rompecabezas, cara, asociación
+  
+  Los resultados de juegos son evaluados
+  por el médico para determinar el avance
+  terapéutico del paciente
+end note
+
+note right of Emisor
+  Rol: emisor
+  Acceso: /emisor/*
+  ─────────────────────────────
+  Funcionalidad básica:
+  - Ver pantalla de inicio del emisor
+  
+  Nota: Rol reservado para futuras
+  funcionalidades de gestión de
+  contenido multimedia externo
+end note
+
+' Jerarquía de permisos
+Admin -[hidden]-> Medico
+Medico -[hidden]-> Paciente
+Paciente -[hidden]-> Emisor
+
+note bottom
+  Flujo principal de la aplicación:
+  1. Paciente se registra/inicia sesión → /paciente/perfil (dashboard)
+  2. Paciente realiza juegos fonoaudiológicos → resultados guardados en DB
+  3. Admin crea asignación automática → asigna médico disponible al paciente
+  4. Médico acepta asignación → revisa historial y resultados del paciente
+  5. Médico proporciona feedback → evaluación registrada en historial
+  6. Admin supervisa todo el proceso desde el dashboard
+end note
 
 @enduml

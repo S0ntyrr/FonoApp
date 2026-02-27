@@ -8,26 +8,25 @@
 ' ============================================
 state "Usuario" as UsuarioState {
   [*] --> NoRegistrado : inicio
-  
-  NoRegistrado --> Registrado : registrarse()\n/crear usuario
-  
+
+  NoRegistrado --> Registrado : registrarse()\n/crear usuario en DB
+
   Registrado --> Activo : activar()\nactivo = true
-  Registrado --> Inactivo : desactivar()\nactivo = false
-  
+
   Activo --> Inactivo : desactivar()\nactivo = false
   Inactivo --> Activo : activar()\nactivo = true
-  
+
   Activo --> [*] : eliminar()
   Inactivo --> [*] : eliminar()
-  
+
   note right of Registrado
-    Estados según rol:
+    Roles disponibles:
     - admin
-    - doctor/medico
+    - medico (doctor)
     - paciente
     - emisor
   end note
-  
+
   note right of Activo
     Usuario puede:
     - Iniciar sesión
@@ -38,33 +37,63 @@ state "Usuario" as UsuarioState {
 }
 
 ' ============================================
-' DIAGRAMA DE ESTADO: Paciente (extendido)
+' DIAGRAMA DE ESTADO: Médico (Doctor)
+' ============================================
+state "Médico" as MedicoState {
+  [*] --> Activo : creado por admin
+
+  Activo --> Ocupado : cambiar_estado("ocupado")\nPOST /doctor/estado
+  Activo --> EnConsulta : cambiar_estado("consulta")\nPOST /doctor/estado
+
+  Ocupado --> Activo : cambiar_estado("activo")
+  EnConsulta --> Activo : cambiar_estado("activo")
+  Ocupado --> EnConsulta : cambiar_estado("consulta")
+  EnConsulta --> Ocupado : cambiar_estado("ocupado")
+
+  Activo --> [*] : eliminar por admin
+  Ocupado --> [*] : eliminar por admin
+  EnConsulta --> [*] : eliminar por admin
+
+  note right of Activo
+    Disponible para recibir
+    nuevas asignaciones
+    automáticas del admin
+  end note
+
+  note right of EnConsulta
+    En sesión activa con
+    un paciente
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: Paciente
 ' ============================================
 state "Paciente" as PacienteState {
-  [*] --> SinPerfil : inicio
-  
-  SinPerfil --> PerfilIncompleto : crear perfil parcial
-  SinPerfil --> PerfilCompleto : crear perfil completo
-  
-  PerfilIncompleto --> PerfilCompleto : completar datos\n(edad, tutor, etc.)
-  PerfilCompleto --> PerfilCompleto : actualizar perfil
-  
-  PerfilCompleto --> ConActividades : asignar actividades
-  ConActividades --> ConActividades : realizar actividad
-  
+  [*] --> SinPerfil : registro exitoso
+
+  SinPerfil --> PerfilCompleto : crear perfil\nPOST /paciente/perfil
+
+  PerfilCompleto --> PerfilCompleto : actualizar perfil\nPOST /paciente/perfil
+
+  PerfilCompleto --> ConActividades : asignación aceptada\npor doctor
+
+  ConActividades --> ConActividades : realizar juego\n→ guarda ResultadoJuego
+
   ConActividades --> [*] : eliminar paciente
-  
+
   note right of PerfilCompleto
-    Atributos:
+    Atributos del usuario:
     - nivel: 1
     - puntos: 0
     - estado: activo
   end note
-  
+
   note right of ConActividades
     Puede tener:
     - Asignaciones activas
     - Historial de actividades
+    - Resultados de juegos
     - Sesiones de uso
   end note
 }
@@ -73,33 +102,58 @@ state "Paciente" as PacienteState {
 ' DIAGRAMA DE ESTADO: Asignacion
 ' ============================================
 state "Asignacion" as AsignacionState {
-  [*] --> Creada : crear asignación\n(doctor asigna actividades)
-  
-  Creada --> Activa : asignación confirmada\nfecha_asignacion establecida
-  
-  Activa --> EnProgreso : paciente inicia actividad
-  
-  EnProgreso --> Completada : paciente completa actividad\nregistro en historial
-  EnProgreso --> Activa : paciente pausa actividad
-  
-  Activa --> Vencida : fecha límite superada
-  EnProgreso --> Vencida : fecha límite superada
-  
-  Completada --> [*] : finalizar
-  Vencida --> [*] : finalizar
-  
-  note right of Creada
+  [*] --> Pendiente : crear asignación automática\nPOST /admin/asignaciones/auto
+
+  Pendiente --> Aceptada : doctor acepta\nPOST /doctor/asignaciones/{id}/aceptar
+
+  Pendiente --> Cancelada : doctor cancela\nPOST /doctor/asignaciones/{id}/cancelar
+
+  Aceptada --> Cancelada : doctor cancela\nPOST /doctor/asignaciones/{id}/cancelar
+
+  Aceptada --> [*] : finalizada
+  Cancelada --> [*] : finalizada
+
+  note right of Pendiente
     Contiene:
     - paciente_email
     - medico_email
     - actividades_asignadas[]
     - dificultad
+    - fecha_asignacion
   end note
-  
-  note right of Completada
-    Se registra en:
-    historial_actividades
-    con puntos obtenidos
+
+  note right of Aceptada
+    Doctor disponible para
+    revisar actividades del
+    paciente asignado
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: ResultadoJuego
+' ============================================
+state "ResultadoJuego" as ResultadoState {
+  [*] --> EnProgreso : paciente inicia juego
+
+  EnProgreso --> EnProgreso : avanza pasos\npaso_completado++
+
+  EnProgreso --> Completado : paso_completado == total_pasos\ncompletado = true
+
+  EnProgreso --> Parcial : paciente abandona\ncompletado = false
+
+  Completado --> [*] : guardado en DB
+  Parcial --> [*] : guardado en DB
+
+  note right of EnProgreso
+    Se guarda via:
+    POST /juegos/resultado
+    desde el frontend JS
+  end note
+
+  note right of Completado
+    Doctor puede ver en:
+    - /doctor/resultados
+    - /admin/resultados
   end note
 }
 
@@ -107,37 +161,30 @@ state "Asignacion" as AsignacionState {
 ' DIAGRAMA DE ESTADO: HistorialActividad
 ' ============================================
 state "HistorialActividad" as HistorialState {
-  [*] --> Iniciada : paciente inicia actividad
-  
-  Iniciada --> EnProgreso : paciente trabaja en actividad
-  
-  EnProgreso --> Completada : actividad finalizada\npuntos_obtenidos asignados
-  EnProgreso --> Abandonada : paciente abandona actividad
-  
-  Completada --> Evaluada : doctor proporciona feedback\nfeedback != null
-  
+  [*] --> Registrada : actividad completada\nregistro creado
+
+  Registrada --> Evaluada : doctor proporciona feedback\nfeedback != null
+
+  Registrada --> [*] : sin evaluar (queda en historial)
   Evaluada --> [*] : registro finalizado
-  Abandonada --> [*] : registro finalizado
-  
-  note right of EnProgreso
+
+  note right of Registrada
     Atributos:
     - categoria
     - actividad
+    - puntos_obtenidos
     - nivel
     - fecha
+    - feedback = null
   end note
-  
-  note right of Completada
-    Se registra:
-    - puntos_obtenidos
-    - fecha de finalización
-  end note
-  
+
   note right of Evaluada
     Feedback del doctor:
     - Comentarios
     - Evaluación
     - Recomendaciones
+    Visible en /doctor/evaluaciones-pendientes
+    mientras feedback = null
   end note
 }
 
@@ -146,69 +193,29 @@ state "HistorialActividad" as HistorialState {
 ' ============================================
 state "SesionApp" as SesionState {
   [*] --> Iniciada : paciente abre app\nfecha establecida
-  
+
   Iniciada --> Activa : paciente usa la app\nminutos_conectado > 0
-  
+
   Activa --> Activa : paciente continúa usando\nminutos_conectado incrementa
-  
+
   Activa --> Finalizada : paciente cierra app\nminutos_conectado registrado
-  
+
   Iniciada --> Finalizada : paciente cierra inmediatamente\nminutos_conectado = 0
-  
-  Finalizada --> [*] : sesión guardada
-  
+
+  Finalizada --> [*] : sesión guardada\nvisible en calendario
+
   note right of Iniciada
     Se crea registro con:
     - paciente_email
     - fecha (datetime)
   end note
-  
-  note right of Activa
-    Se actualiza:
-    - minutos_conectado
-    (incrementa mientras
-    está activa)
-  end note
-  
+
   note right of Finalizada
     Registro completo:
     - fecha
     - minutos_conectado
-    (usado para calendario)
-  end note
-}
-
-' ============================================
-' DIAGRAMA DE ESTADO: PerfilPaciente
-' ============================================
-state "PerfilPaciente" as PerfilState {
-  [*] --> NoCreado : paciente sin perfil
-  
-  NoCreado --> Creado : crear perfil\nPOST /paciente/perfil
-  
-  Creado --> Actualizado : editar perfil\nactualizar datos
-  
-  Actualizado --> Actualizado : seguir editando
-  
-  Creado --> [*] : eliminar perfil
-  Actualizado --> [*] : eliminar perfil
-  
-  note right of Creado
-    Datos iniciales:
-    - nombre
-    - edad
-    - escolaridad
-    - genero
-    - tutor
-    - parentesco
-    - fecha_registro
-  end note
-  
-  note right of Actualizado
-    Puede actualizar:
-    - Cualquier campo
-    - Mantiene fecha_registro
-    original
+    Usado para calendario
+    en /paciente/perfil
   end note
 }
 
@@ -217,49 +224,30 @@ state "PerfilPaciente" as PerfilState {
 ' ============================================
 state "Database Connection" as DatabaseState {
   [*] --> Desconectada : inicio aplicación
-  
+
   Desconectada --> Conectando : connect_to_mongo()\non_startup()
-  
+
   Conectando --> Conectada : conexión exitosa\nmongo_client inicializado
-  
+
   Conectada --> Conectada : operaciones CRUD\nget_db()
-  
+
   Conectada --> Desconectando : close_mongo_connection()\non_shutdown()
-  
+
   Desconectando --> Desconectada : conexión cerrada
-  
+
   Conectando --> Error : error de conexión
   Error --> Desconectada : reintentar
-  
+
   note right of Conectada
     Estado operativo:
     - mongo_client activo
-    - Colecciones accesibles
-    - Operaciones disponibles
-  end note
-  
-  note right of Error
-    Manejo de errores:
-    - Log de error
-    - Reintento automático
-    - Fallback si es necesario
+    - Colecciones accesibles:
+      usuarios, perfiles_pacientes,
+      asignaciones, actividades,
+      historial_actividades,
+      resultados_juegos,
+      sesiones_app, contenido_admin
   end note
 }
 
-' ============================================
-' NOTAS SOBRE RELACIONES ENTRE CLASES
-' ============================================
-' Nota: Las relaciones entre clases se muestran
-' en el diagrama de clases (diagrama_clases.puml)
-' 
-' Relaciones conceptuales:
-' - Usuario puede ser Paciente
-' - Paciente tiene PerfilPaciente
-' - Paciente recibe Asignaciones
-' - Paciente genera SesionesApp
-' - Asignacion genera HistorialActividad
-' - Database soporta todas las operaciones
-
 @enduml
-
-

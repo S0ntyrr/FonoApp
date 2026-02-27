@@ -16,10 +16,25 @@ class database {
 
 ' Modelos Pydantic
 class UsuarioBase {
+  + nombre: str
   + email: EmailStr
   + activo: bool
   + rol: str
+  + estado: str
 }
+
+note right of UsuarioBase
+  Roles disponibles:
+  - admin
+  - medico (doctor)
+  - paciente
+  - emisor
+  
+  Estados disponibles:
+  - activo
+  - ocupado
+  - consulta
+end note
 
 class UsuarioCreate {
   + password: str
@@ -43,7 +58,15 @@ class Asignacion {
   + actividades_asignadas: list[dict]
   + dificultad: str
   + fecha_asignacion: datetime
+  + estado: str
 }
+
+note right of Asignacion
+  Estados:
+  - pendiente
+  - aceptada
+  - cancelada
+end note
 
 class ContenidoAdmin {
   + id: str
@@ -84,60 +107,112 @@ class SesionApp {
   + minutos_conectado: int
 }
 
-' Routers
+class ResultadoJuego {
+  + id: str
+  + paciente_email: EmailStr
+  + categoria: str
+  + juego: str
+  + paso_completado: int
+  + total_pasos: int
+  + completado: bool
+  + fecha: datetime
+  + notas: str
+}
+
+note right of ResultadoJuego
+  Categorías de juegos:
+  - articulacion
+  - resonancia
+  - respiracion
+  - fonacion
+  - practica
+end note
+
+' Routers activos (registrados en main.py)
 class AuthRouter {
-  + router: APIRouter
-  + mostrar_pantalla_login()
-  + mostrar_pantalla_registro()
-  + procesar_registro()
-  + procesar_login()
+  + prefix: "/auth"
+  + mostrar_pantalla_login() GET
+  + mostrar_pantalla_registro() GET
+  + procesar_registro() POST
+  + procesar_login() POST
 }
 
 class PacienteRouter {
-  + router: APIRouter
-  + vista_perfil_paciente()
-  + guardar_perfil_paciente()
-}
-
-class DoctorRouter {
-  + router: APIRouter
-  + home_doctor()
-  + vista_pacientes_doctor()
-  + vista_actividades_doctor()
-  + vista_asignaciones_doctor()
-  + vista_historial_doctor()
-}
-
-class AdminRouter {
-  + router: APIRouter
-  + vista_dashboard_admin()
-  + listar_pacientes_admin()
-  + crear_paciente_admin()
-  + eliminar_paciente_admin()
-  + vista_actividades_admin()
-  + vista_contenido_admin()
-  + vista_asignaciones_admin()
-  + vista_historial_admin()
+  + prefix: "/paciente"
+  + vista_perfil_paciente() GET
+  + guardar_perfil_paciente() POST
 }
 
 class EmisorRouter {
-  + router: APIRouter
-  + home_emisor()
+  + prefix: "/emisor"
+  + home_emisor() GET
 }
 
 class RoutesAdmin {
-  + router: APIRouter
+  + prefix: "/admin"
+  + vista_dashboard_admin() GET
+  + listar_pacientes_admin() GET
+  + crear_paciente_admin() POST
+  + eliminar_paciente_admin() POST
+  + listar_medicos_admin() GET
+  + crear_medico_admin() POST
+  + eliminar_medico_admin() POST
+  + cambiar_estado_medico_admin() POST
+  + editar_medico_form_admin() GET
+  + editar_medico_admin() POST
+  + ver_consultas_medico_admin() GET
+  + vista_actividades_admin() GET
+  + vista_contenido_admin() GET
+  + vista_asignaciones_admin() GET
+  + vista_historial_admin() GET
+  + vista_resultados_admin() GET
 }
 
 class RoutesDoctor {
-  + router: APIRouter
+  + prefix: "/doctor"
+  + home_doctor() GET
+  + vista_pacientes_doctor() GET
+  + vista_actividades_doctor() GET
+  + vista_asignaciones_doctor() GET
+  + aceptar_asignacion() POST
+  + cancelar_asignacion() POST
+  + vista_historial_doctor() GET
+  + vista_resultados_doctor() GET
+  + vista_evaluaciones_pendientes() GET
+  + cambiar_estado_doctor() POST
+}
+
+class RoutesJuegos {
+  + prefix: "/juegos"
+  + hub_juegos() GET
+  + juego_practica() GET
+  + juego_rompecabezas() GET
+  + juego_cara() GET
+  + juego_asociacion() GET
+  + juego_respiracion() GET
+  + juego_globo() GET
+  + juego_molino() GET
+  + juego_fonacion() GET
+  + juego_gol() GET
+  + juego_escala() GET
+  + juego_resonancia() GET
+  + juego_escaleras() GET
+  + juego_piano() GET
+  + juego_veoveo() GET
+  + juego_articulacion() GET
+  + articulacion_letra_b() GET
+  + articulacion_letra_d() GET
+  + articulacion_letra_f() GET
+  + articulacion_letra_r() GET
+  + guardar_resultado_juego() POST
 }
 
 ' Aplicación Principal
-class FastAPI {
-  + app: FastAPI
-  + on_startup()
-  + on_shutdown()
+class FastAPIApp {
+  + title: "FonoApp"
+  + version: "1.0.0"
+  + lifespan()
+  + raiz() GET "/"
 }
 
 ' Relaciones de Herencia
@@ -150,50 +225,43 @@ AuthRouter ..> database : usa
 PacienteRouter ..> database : usa
 PacienteRouter ..> PerfilPaciente : usa
 PacienteRouter ..> SesionApp : usa
-DoctorRouter ..> database : usa
-DoctorRouter ..> ActividadCategoria : usa
-DoctorRouter ..> Asignacion : usa
-DoctorRouter ..> HistorialActividad : usa
-AdminRouter ..> database : usa
-AdminRouter ..> ActividadCategoria : usa
-AdminRouter ..> ContenidoAdmin : usa
-AdminRouter ..> Asignacion : usa
-AdminRouter ..> HistorialActividad : usa
-FastAPI ..> database : usa
-FastAPI ..> AuthRouter : incluye
-FastAPI ..> PacienteRouter : incluye
-FastAPI ..> DoctorRouter : incluye
-FastAPI ..> AdminRouter : incluye
-FastAPI ..> EmisorRouter : incluye
-FastAPI ..> RoutesAdmin : incluye
-FastAPI ..> RoutesDoctor : incluye
+RoutesDoctor ..> database : usa
+RoutesDoctor ..> ActividadCategoria : usa
+RoutesDoctor ..> Asignacion : usa
+RoutesDoctor ..> HistorialActividad : usa
+RoutesAdmin ..> database : usa
+RoutesAdmin ..> ActividadCategoria : usa
+RoutesAdmin ..> ContenidoAdmin : usa
+RoutesAdmin ..> Asignacion : usa
+RoutesAdmin ..> HistorialActividad : usa
+RoutesJuegos ..> database : usa
+RoutesJuegos ..> ResultadoJuego : usa
+FastAPIApp ..> database : usa
+FastAPIApp ..> AuthRouter : incluye
+FastAPIApp ..> PacienteRouter : incluye
+FastAPIApp ..> EmisorRouter : incluye
+FastAPIApp ..> RoutesAdmin : incluye
+FastAPIApp ..> RoutesDoctor : incluye
+FastAPIApp ..> RoutesJuegos : incluye
 
 ' Relaciones con Base de Datos
 Asignacion ..> UsuarioBase : referencia
 HistorialActividad ..> UsuarioBase : referencia
 PerfilPaciente ..> UsuarioBase : referencia
 SesionApp ..> UsuarioBase : referencia
-
-note right of UsuarioBase
-  Modelo base para usuarios
-  del sistema con roles:
-  admin, doctor, emisor, paciente
-end note
-
-note right of Asignacion
-  Relaciona pacientes con médicos
-  y actividades asignadas
-end note
+ResultadoJuego ..> UsuarioBase : referencia
 
 note right of HistorialActividad
   Registra las actividades
-  completadas por pacientes
+  completadas por pacientes.
+  feedback=null indica
+  evaluación pendiente
 end note
 
 note right of database
   Maneja la conexión
   a MongoDB usando Motor
+  (async)
 end note
 
 @enduml
-

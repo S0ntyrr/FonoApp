@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Evaluaciones Pendientes</h1>
+
+    <div class="nav-links" style="margin-bottom:1rem;">
+        <a href="/doctor/home" class="boton-rojo-borde" style="display:inline-block;padding:0.4rem 1rem;text-decoration:none;">← Panel Doctor</a>
+    </div>
+
+    {% if evaluaciones %}
+        <div class="lista-actividades">
+            {% for ev in evaluaciones %}
+                <div class="actividad-item" style="flex-direction:column; align-items:flex-start; padding:1rem;">
+                    <p><strong>Paciente:</strong> {{ ev.paciente_email }}</p>
+                    <p><strong>Categoría:</strong> {{ ev.categoria }}</p>
+                    <p><strong>Actividad:</strong> {{ ev.actividad }}</p>
+                    <p><strong>Puntos:</strong> {{ ev.puntos_obtenidos }}</p>
+                    <p><strong>Nivel:</strong> {{ ev.nivel }}</p>
+                    <p><strong>Fecha:</strong> {{ ev.fecha }}</p>
+                    {% if ev.feedback %}
+                        <p><strong>Feedback:</strong> {{ ev.feedback }}</p>
+                    {% else %}
+                        <p style="color:#e63946;"><em>Sin feedback aún</em></p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="centrado texto-pequeño">No hay evaluaciones pendientes en este momento.</p>
+    {% endif %}
+
+    <div style="margin-top:1.5rem;">
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/doctor/historial'">
+            Ver historial completo
+        </button>
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/doctor/resultados'">
+            📊 Ver resultados de juegos
+        </button>
+    </div>
+</section>
+{% endblock %}

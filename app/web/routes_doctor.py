@@ -193,6 +193,30 @@ async def vista_resultados_doctor(
     )
 
 
+@router.get("/evaluaciones-pendientes", response_class=HTMLResponse)
+async def vista_evaluaciones_pendientes(
+    request: Request,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    El doctor ve las actividades del historial que aún no tienen feedback (evaluaciones pendientes).
+    """
+    cursor = db["historial_actividades"].find({"feedback": None}).sort("fecha", -1)
+    evaluaciones: list[HistorialActividad] = []
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        evaluaciones.append(HistorialActividad(**doc))
+
+    return templates.TemplateResponse(
+        "doctor/evaluaciones_pendientes.html",
+        {
+            "request": request,
+            "titulo_pagina": "Evaluaciones Pendientes",
+            "evaluaciones": evaluaciones,
+        },
+    )
+
+
 @router.post("/estado", response_class=RedirectResponse)
 async def cambiar_estado_doctor(
     estado: str = Form(...),
