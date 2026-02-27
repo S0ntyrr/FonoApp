@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>{{ titulo_pagina }}</title>
+  <link rel="stylesheet" href="/static/css/estilos.css">
+  <style>
+    body{margin:0;background:#fff;font-family:'Segoe UI',sans-serif;}
+    .screen{max-width:430px;margin:0 auto;min-height:100vh;padding:16px;box-sizing:border-box;}
+    h1.cat{color:#e63946;text-align:center;font-size:1.4rem;border-bottom:2px solid #e63946;padding-bottom:8px;margin-bottom:16px;}
+    .step{display:none;} .step.active{display:block;}
+    .btn-next{background:#e63946;color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:1rem;cursor:pointer;display:block;margin:20px auto 0;width:100%;}
+    .mic-btn{background:#e63946;color:#fff;border:none;border-radius:50%;width:56px;height:56px;font-size:1.6rem;cursor:pointer;display:block;margin:12px auto;}
+    .feedback{color:#27ae60;font-weight:bold;text-align:center;display:none;margin:8px 0;}
+    .big-letter{font-size:5rem;text-align:center;color:#e63946;font-weight:900;}
+    .video-placeholder{background:#1a1a2e;color:#fff;border-radius:12px;padding:24px;text-align:center;margin:12px 0;font-size:1rem;}
+    .step-instruction{font-size:1rem;margin:10px 0;line-height:1.5;}
+    .syllable-row{display:flex;align-items:center;justify-content:space-between;margin:10px 0;padding:8px;border:1px solid #eee;border-radius:8px;}
+    .syl-label{font-size:1.3rem;font-weight:bold;color:#333;width:40px;}
+    .sound-btn{background:#3498db;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:1rem;cursor:pointer;}
+    .sound-btn.done{background:#27ae60;}
+    .progress-bars{margin:16px 0;}
+    .pbar{height:14px;border-radius:7px;margin:4px 0;transition:width .4s;}
+    .words-grid{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0;}
+    .word-chip{padding:8px 14px;border:2px solid #ccc;border-radius:20px;cursor:pointer;font-size:0.95rem;transition:all .2s;}
+    .word-chip.b-word{border-color:#e63946;}
+    .word-chip.found{background:#c8f7c5;border-color:#27ae60;color:#27ae60;}
+    .word-chip.wrong{background:#ffd6d6;border-color:#e63946;}
+    .progress-fill{height:16px;background:#e63946;border-radius:8px;transition:width .4s;}
+    .progress-track{background:#eee;border-radius:8px;margin:12px 0;}
+  </style>
+</head>
+<body>
+<div class="screen">
+  <h1 class="cat">Articulación</h1>
+
+  <!-- STEP 1: Identify -->
+  <div class="step active" id="s1">
+    <div class="big-letter">🐝 B</div>
+    <div class="video-placeholder">▶ APRENDE LAS LETRAS<br><small>Video de la letra B</small></div>
+    <p class="step-instruction">¿Qué letras estás viendo?</p>
+    <button class="mic-btn" id="mic-s1">🎤</button>
+    <div class="feedback" id="fb-s1">Muy bien es la letra B 🎉<br><small>Ahora mira cada imagen y sigue el paso a paso para pronunciar correctamente la letra B. Vamos, enciende tu cámara.</small></div>
+    <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 2: Pronunciation steps -->
+  <div class="step" id="s2">
+    <h2 style="color:#e63946;">Sigue estos pasos</h2>
+    <p class="step-instruction">1. Colocaremos los labios juntos</p>
+    <div style="text-align:center;font-size:3rem;">👄</div>
+    <p class="step-instruction">2. Después mete aire por nuestra nariz</p>
+    <div style="text-align:center;font-size:2rem;">👃💨</div>
+    <p class="step-instruction">3. Por último vamos a votar el aire por la boca y pronunciaremos <strong>B</strong>.</p>
+    <div style="text-align:center;font-size:2rem;">💨🗣️</div>
+    <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 3: Syllable matching -->
+  <div class="step" id="s3">
+    <h2 style="color:#e63946;">Muy bien</h2>
+    <p>Relaciona el sonido con la sílaba. Luego repítelo</p>
+    <div id="syllables">
+      <div class="syllable-row"><span class="syl-label">Ba</span><button class="sound-btn" onclick="playSound(this,'Ba')">🔊</button></div>
+      <div class="syllable-row"><span class="syl-label">Be</span><button class="sound-btn" onclick="playSound(this,'Be')">🔊</button></div>
+      <div class="syllable-row"><span class="syl-label">Bi</span><button class="sound-btn" onclick="playSound(this,'Bi')">🔊</button></div>
+      <div class="syllable-row"><span class="syl-label">Bo</span><button class="sound-btn" onclick="playSound(this,'Bo')">🔊</button></div>
+      <div class="syllable-row"><span class="syl-label">Bu</span><button class="sound-btn" onclick="playSound(this,'Bu')">🔊</button></div>
+    </div>
+    <div class="progress-bars">
+      <div class="pbar" style="width:100%;background:#27ae60;"></div>
+      <div class="pbar" style="width:80%;background:#8bc34a;"></div>
+      <div class="pbar" style="width:60%;background:#ffc107;"></div>
+      <div class="pbar" style="width:40%;background:#ff9800;"></div>
+      <div class="pbar" style="width:20%;background:#e63946;"></div>
+    </div>
+    <button class="btn-next" onclick="goStep(4)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 4: Word search -->
+  <div class="step" id="s4">
+    <p>Arrastra la lupa 🔍 sobre las palabras que tienen <strong>B</strong> pronunciadas. Completa la barra con las palabras encontradas</p>
+    <div class="words-grid" id="words-grid"></div>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%;"></div></div>
+    <p id="prog-text" style="text-align:center;color:#555;">0 / 7 palabras encontradas</p>
+    <button class="btn-next" id="btn-finish" onclick="goStep(5)" style="display:none;">Finalizar ✓</button>
+  </div>
+
+  <!-- STEP 5: Completion -->
+  <div class="step" id="s5">
+    <div style="text-align:center;padding:40px 0;">
+      <div style="font-size:4rem;">🏆</div>
+      <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
+      <p>Has completado los ejercicios de la letra <strong>B</strong></p>
+      <a href="/juegos/articulacion" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:20px;">Volver a Articulación</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('s'+n).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// Mic simulation
+document.getElementById('mic-s1').addEventListener('click', function() {
+  this.textContent = '⏹️'; this.style.background='#27ae60';
+  setTimeout(() => {
+    this.textContent='🎤'; this.style.background='#e63946';
+    document.getElementById('fb-s1').style.display='block';
+  }, 1800);
+});
+
+// Sound simulation with Web Audio
+function playSound(btn, syl) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.frequency.value = 440;
+  gain.gain.setValueAtTime(0.3, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+  osc.start(); osc.stop(ctx.currentTime + 0.5);
+  btn.classList.add('done');
+  btn.textContent = '✓ ' + syl;
+}
+
+// Word search
+const allWords = [
+  {w:'Beber',hasB:true},{w:'Nido',hasB:false},{w:'Diente',hasB:false},
+  {w:'Dedo',hasB:false},{w:'Bailar',hasB:true},{w:'Dado',hasB:false},
+  {w:'Vaca',hasB:false},{w:'Botas',hasB:true},{w:'Día',hasB:false},
+  {w:'Balón',hasB:true},{w:'Bebé',hasB:true},{w:'Ballena',hasB:true},
+  {w:'Volar',hasB:false},{w:'Bicicleta',hasB:true}
+];
+const totalB = allWords.filter(x=>x.hasB).length;
+let found = 0;
+const grid = document.getElementById('words-grid');
+allWords.forEach(item => {
+  const chip = document.createElement('div');
+  chip.className = 'word-chip' + (item.hasB ? ' b-word' : '');
+  chip.textContent = item.w;
+  chip.addEventListener('click', () => {
+    if (chip.classList.contains('found') || chip.classList.contains('wrong')) return;
+    if (item.hasB) {
+      chip.classList.add('found');
+      found++;
+      const pct = Math.round(found/totalB*100);
+      document.getElementById('prog-fill').style.width = pct+'%';
+      document.getElementById('prog-text').textContent = found+' / '+totalB+' palabras encontradas';
+      if (found === totalB) document.getElementById('btn-finish').style.display='block';
+    } else {
+      chip.classList.add('wrong');
+      setTimeout(()=>chip.classList.remove('wrong'),600);
+    }
+  });
+  grid.appendChild(chip);
+});
+</script>
+</body>
+</html>

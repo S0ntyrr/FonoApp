@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Editar Médico</h1>
+
+    <form method="post" action="/admin/medicos/{{ medico._id }}/editar" class="formulario-movil">
+        <label class="etiqueta-campo" for="nombre">Nombre</label>
+        <input type="text" id="nombre" name="nombre" class="campo-texto" value="{{ medico.nombre }}" required />
+
+        <label class="etiqueta-campo" for="email">Correo</label>
+        <input type="email" id="email" name="email" class="campo-texto" value="{{ medico.email }}" required />
+
+        <label class="etiqueta-campo" for="password">Contraseña (dejar vacío para no cambiar)</label>
+        <input type="password" id="password" name="password" class="campo-texto" />
+
+        <button type="submit" class="boton-rojo ancho-completo">Actualizar médico</button>
+    </form>
+
+    <div class="texto-inferior">
+        <button type="button" class="boton-enlace-rojo"
+                onclick="window.location.href='/admin/medicos'">
+            Volver a gestión de médicos
+        </button>
+    </div>
+</section>
+{% endblock %}

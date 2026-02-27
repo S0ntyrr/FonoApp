@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Historial de pacientes</h1>
+
+    <button class="boton-rojo-borde ancho-completo" onclick="window.location.href='/doctor/home'">
+        ← Volver al panel
+    </button>
+
+    {% if historial %}
+        <ul class="lista-pacientes">
+            {% for h in historial %}
+                <li class="item-paciente">
+                    <div>
+                        <strong>Paciente:</strong> {{ h.paciente_email }}<br>
+                        <strong>Categoría:</strong> {{ h.categoria }}<br>
+                        <strong>Actividad:</strong> {{ h.actividad }}<br>
+                        <strong>Puntos:</strong> {{ h.puntos_obtenidos }} | Nivel: {{ h.nivel }}<br>
+                        <strong>Fecha:</strong> {{ h.fecha }}<br>
+                        {% if h.feedback %}
+                            <strong>Comentario:</strong> {{ h.feedback }}
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="centrado">Aún no hay actividades registradas por los pacientes.</p>
+    {% endif %}
+</section>
+{% endblock %}

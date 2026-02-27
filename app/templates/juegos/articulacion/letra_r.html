@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>{{ titulo_pagina }}</title>
+  <link rel="stylesheet" href="/static/css/estilos.css">
+  <style>
+    body{margin:0;background:#fff;font-family:'Segoe UI',sans-serif;}
+    .screen{max-width:430px;margin:0 auto;min-height:100vh;padding:16px;box-sizing:border-box;}
+    h1.cat{color:#e63946;text-align:center;font-size:1.4rem;border-bottom:2px solid #e63946;padding-bottom:8px;margin-bottom:16px;}
+    .step{display:none;} .step.active{display:block;}
+    .btn-next{background:#e63946;color:#fff;border:none;border-radius:12px;padding:14px;font-size:1rem;cursor:pointer;display:block;margin:20px auto 0;width:100%;}
+    .mic-btn{background:#e63946;color:#fff;border:none;border-radius:50%;width:56px;height:56px;font-size:1.6rem;cursor:pointer;display:block;margin:12px auto;}
+    .feedback{color:#27ae60;font-weight:bold;text-align:center;display:none;margin:8px 0;}
+    .vowel-map{display:flex;flex-direction:column;gap:8px;margin:16px 0;}
+    .vowel-map-row{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid #eee;border-radius:8px;}
+    .vowel-map-row .r-letter{font-size:2rem;color:#e63946;font-weight:bold;width:30px;}
+    .vowel-map-row .arrow{font-size:1.2rem;color:#333;}
+    .vowel-map-row .vowel{font-size:1.5rem;font-weight:bold;color:#e63946;width:24px;}
+    .vowel-map-row .mouth{font-size:1.8rem;}
+    .moto-track{position:relative;height:120px;background:#f0f8ff;border-radius:12px;margin:16px 0;overflow:hidden;}
+    .moto{position:absolute;bottom:20px;left:10px;font-size:2.5rem;transition:left 1s ease;}
+    .finish-flags{position:absolute;right:10px;bottom:20px;font-size:2rem;}
+    .complete-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+    .complete-item{border:1px solid #eee;border-radius:8px;padding:10px;text-align:center;}
+    .complete-item .emoji{font-size:2rem;}
+    .complete-item .word{font-size:0.85rem;color:#555;margin-top:4px;}
+    .complete-item .mic-sm{background:#e63946;color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:0.9rem;cursor:pointer;margin-top:6px;}
+    .complete-item.done{background:#c8f7c5;border-color:#27ae60;}
+  </style>
+</head>
+<body>
+<div class="screen">
+  <h1 class="cat">Articulación</h1>
+
+  <!-- STEP 1: Pronunciation steps -->
+  <div class="step active" id="s1">
+    <p>Es hora de aprender a pronunciar la letra <strong>R</strong>, sigue los pasos.</p>
+    <ol style="line-height:2;">
+      <li><strong>Sube tu lengua al paladar.</strong></li>
+      <li><strong>Suelta el aire por tu boca dejándola salir por los lados.</strong></li>
+      <li><strong>Con tu lengua en el paladar hazla vibrar.</strong></li>
+    </ol>
+    <div style="text-align:center;font-size:3rem;">👅</div>
+    <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 2: Vowel positions -->
+  <div class="step" id="s2">
+    <p>Mira la imagen e imita, pide la ayuda de tu cuidador y mírate en un espejo</p>
+    <p style="color:#e63946;font-weight:bold;">Ten en cuenta los pasos anteriores.</p>
+    <div class="vowel-map">
+      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">a</span><span class="mouth">😮</span></div>
+      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">e</span><span class="mouth">😬</span></div>
+      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">i</span><span class="mouth">😁</span></div>
+      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">o</span><span class="mouth">😯</span></div>
+      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">u</span><span class="mouth">😙</span></div>
+    </div>
+    <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 3: Motorcycle game -->
+  <div class="step" id="s3">
+    <p>La moto se mueve cuando pronuncias.</p>
+    <p style="color:#e63946;font-weight:bold;text-align:center;font-size:1.3rem;">Run Run Run</p>
+    <p style="text-align:center;">Haz que la moto se mueva.</p>
+    <div style="text-align:center;font-size:1.5rem;">🏁🏁</div>
+    <div class="moto-track">
+      <div class="moto" id="moto">🏍️</div>
+      <div class="finish-flags">🏁</div>
+    </div>
+    <button class="mic-btn" id="mic-moto">🎤</button>
+    <div class="feedback" id="fb-moto">¡Muy bien! 🏆</div>
+    <button class="btn-next" onclick="goStep(4)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 4: Complete the word -->
+  <div class="step" id="s4">
+    <p><strong>Completa la palabra.</strong><br><span style="color:#555;">Graba un audio con la sílaba correspondiente</span></p>
+    <div class="complete-grid" id="complete-grid"></div>
+    <button class="btn-next" onclick="goStep(5)">Finalizar ✓</button>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="s5">
+    <div style="text-align:center;padding:40px 0;">
+      <div style="font-size:4rem;">🏆</div>
+      <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
+      <p>Has completado los ejercicios de la letra <strong>R</strong></p>
+      <a href="/juegos/articulacion" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:20px;">Volver a Articulación</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function goStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s'+n).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// Motorcycle mic
+let motoPos=10;
+document.getElementById('mic-moto').addEventListener('click',function(){
+  this.textContent='⏹️';this.style.background='#27ae60';
+  const interval=setInterval(()=>{
+    motoPos=Math.min(motoPos+15,80);
+    document.getElementById('moto').style.left=motoPos+'%';
+  },300);
+  setTimeout(()=>{
+    clearInterval(interval);
+    this.textContent='🎤';this.style.background='#e63946';
+    if(motoPos>=80)document.getElementById('fb-moto').style.display='block';
+  },2000);
+});
+
+// Complete the word
+const words=[
+  {emoji:'❤️',word:'co__azón'},
+  {emoji:'🏔️',word:'a__ena'},
+  {emoji:'🤕',word:'he__ida'},
+  {emoji:'🐂',word:'to__o'},
+  {emoji:'🧒',word:'cape__ucita'},
+  {emoji:'🐸',word:'__ana'},
+  {emoji:'🚣',word:'__emo'},
+  {emoji:'🏞️',word:'__ío'},
+  {emoji:'🪨',word:'__oca'},
+];
+const cgrid=document.getElementById('complete-grid');
+words.forEach(item=>{
+  const div=document.createElement('div');
+  div.className='complete-item';
+  div.innerHTML=`<div class="emoji">${item.emoji}</div><div class="word">${item.word}</div><button class="mic-sm">🎤</button>`;
+  div.querySelector('.mic-sm').addEventListener('click',function(){
+    this.textContent='⏹️';
+    setTimeout(()=>{this.textContent='✓';div.classList.add('done');},1500);
+  });
+  cgrid.appendChild(div);
+});
+</script>
+</body>
+</html>

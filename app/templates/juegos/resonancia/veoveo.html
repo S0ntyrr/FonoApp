@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>{{ titulo_pagina }}</title>
+  <link rel="stylesheet" href="/static/css/estilos.css">
+  <style>
+    /* mobile container */
+    body { margin:0; background:#fff; font-family: 'Segoe UI', sans-serif; }
+    .screen { max-width:430px; margin:0 auto; min-height:100vh; padding:16px; box-sizing:border-box; }
+    h1.cat-title { color:#e63946; text-align:center; font-size:1.4rem; border-bottom:2px solid #e63946; padding-bottom:8px; }
+    /* Phase 1 */
+    .target-box { text-align:center; margin:12px 0; }
+    .target-img { font-size:3rem; }
+    .grid { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:12px; }
+    .grid-item { font-size:2.2rem; cursor:pointer; padding:6px; border-radius:8px; transition:background .2s; }
+    .grid-item:hover { background:#ffeaea; }
+    .grid-item.correct { background:#c8f7c5; border:2px solid #27ae60; }
+    /* Phase 2 */
+    .phase2 { display:none; text-align:center; }
+    .phase2.active { display:block; }
+    .phase1.hidden { display:none; }
+    .word-label { font-size:2rem; font-weight:bold; color:#e63946; margin:16px 0; }
+    .mic-btn { background:#e63946; color:#fff; border:none; border-radius:50%; width:60px; height:60px; font-size:1.8rem; cursor:pointer; margin:12px auto; display:block; }
+    .feedback { color:#27ae60; font-size:1.3rem; font-weight:bold; margin-top:12px; display:none; }
+  </style>
+</head>
+<body>
+<div class="screen">
+  <h1 class="cat-title">Resonancia</h1>
+
+  <!-- PHASE 1 -->
+  <div class="phase1" id="phase1">
+    <h2 style="text-align:center;">¡Veo, veo!</h2>
+    <p>Encuentra la imagen que se muestra.</p>
+    <div class="target-box">
+      <div class="target-img">🪆</div>
+    </div>
+    <div class="grid" id="grid">
+      <!-- items injected by JS -->
+    </div>
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="phase2" id="phase2">
+    <h2 style="color:#e63946;">Muy bien</h2>
+    <p>¿cómo se llama?</p>
+    <button class="mic-btn" id="mic1" title="Grabar">🎤</button>
+    <p>Vamos, repite conmigo.<br>Es una:</p>
+    <div class="word-label">MUÑECA</div>
+    <div style="font-size:4rem;">🪆</div>
+    <button class="mic-btn" id="mic2" title="Grabar">🎤</button>
+    <div class="feedback" id="feedback">¡Muy bien! 🎉</div>
+    <div style="margin-top:24px;">
+      <a href="/juegos/resonancia" style="display:block;text-align:center;color:#e63946;">← Volver a Resonancia</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const items = ['🏔️','🎀','🏠','☀️','🕷️','🌸','🌳','👦','🎩','☂️','🌈','🐭','🍍','🪆','🌺'];
+const target = '🪆';
+const grid = document.getElementById('grid');
+
+// Shuffle
+items.sort(() => Math.random() - 0.5);
+items.forEach(em => {
+  const div = document.createElement('div');
+  div.className = 'grid-item';
+  div.textContent = em;
+  div.addEventListener('click', () => {
+    if (em === target) {
+      div.classList.add('correct');
+      setTimeout(() => {
+        document.getElementById('phase1').classList.add('hidden');
+        document.getElementById('phase2').classList.add('active');
+      }, 600);
+    } else {
+      div.style.background = '#ffd6d6';
+      setTimeout(() => div.style.background = '', 500);
+    }
+  });
+  grid.appendChild(div);
+});
+
+// Mic buttons (simulate recording)
+let recording = false;
+function toggleMic(btn) {
+  if (!recording) {
+    recording = true;
+    btn.textContent = '⏹️';
+    btn.style.background = '#27ae60';
+    setTimeout(() => {
+      recording = false;
+      btn.textContent = '🎤';
+      btn.style.background = '#e63946';
+      document.getElementById('feedback').style.display = 'block';
+    }, 2000);
+  }
+}
+document.getElementById('mic1').addEventListener('click', () => toggleMic(document.getElementById('mic1')));
+document.getElementById('mic2').addEventListener('click', () => toggleMic(document.getElementById('mic2')));
+</script>
+</body>
+</html>

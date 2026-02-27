@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Contenido del sistema</h1>
+
+    <h2 class="centrado">Agregar contenido</h2>
+    <form method="post"
+          action="/admin/contenido"
+          enctype="multipart/form-data"
+          class="formulario-movil">
+        <label class="etiqueta-campo" for="imagen">Imagen (opcional)</label>
+        <input type="file" id="imagen" name="imagen" accept="image/*" class="campo-texto" />
+
+        <label class="etiqueta-campo" for="video">Video (opcional)</label>
+        <input type="file" id="video" name="video" accept="video/*" class="campo-texto" />
+
+        <button type="submit" class="boton-rojo ancho-completo">
+            Guardar en la base de datos
+        </button>
+    </form>
+
+    {% if contenido %}
+        <h2>Imágenes</h2>
+        <ul>
+            {% for img in contenido.imagenes %}
+                <li>
+                    <a href="{{ img }}" target="_blank">{{ img }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <h2>Videos</h2>
+        <ul>
+            {% for v in contenido.videos %}
+                <li>
+                    <a href="{{ v }}" target="_blank">{{ v }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <h2>Audios de referencia</h2>
+        <ul>
+            {% for a in contenido.audios_referencia %}
+                <li>{{ a }}</li>
+            {% endfor %}
+        </ul>
+
+        <h2>Textos del sistema</h2>
+        <ul>
+            {% for t in contenido.textos_sistema %}
+                <li>{{ t }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="centrado">No hay contenido configurado.</p>
+    {% endif %}
+</section>
+{% endblock %}

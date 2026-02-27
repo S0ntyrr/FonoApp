@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+motor
+python-dotenv
+jinja2
+pydantic-settings
+python-multipart
+email-validator 
+pydantic

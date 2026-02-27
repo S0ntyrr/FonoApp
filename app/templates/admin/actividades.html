@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Actividades por categoría</h1>
+
+    {% if categorias %}
+        {% for c in categorias %}
+            <div class="tarjeta-resumen">
+                <h2>{{ c.categoria | replace("_", " ") | title }}</h2>
+                <ul>
+                    {% for act in c.actividades %}
+                        <li>{{ act }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="centrado">No hay actividades configuradas.</p>
+    {% endif %}
+</section>
+{% endblock %}

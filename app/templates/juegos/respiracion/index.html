@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Respiración</h1>
+    <p class="centrado" style="font-weight:bold; margin-bottom:0.5rem;">Vamos a practicar para tener<br>una respiración correcta.</p>
+    <p class="centrado texto-pequeño" style="margin-bottom:1.5rem;">
+        Con tus manos toca tu estómago, ahora toma aire y llévalo hasta tu abdomen,
+        debes sentir que tu barriga se mueve.
+        <em>(pide la ayuda de tu cuidador para ubicar las partes de tu cuerpo)</em>
+    </p>
+
+    <!-- Animación de respiración -->
+    <div class="respiracion-demo">
+        <div class="figura-respiracion" id="figura">
+            <svg viewBox="0 0 120 200" xmlns="http://www.w3.org/2000/svg" width="100" height="160">
+                <!-- Cuerpo -->
+                <circle cx="60" cy="30" r="22" fill="#FFDAB9" stroke="#e0a070" stroke-width="1.5"/>
+                <!-- Cabello -->
+                <ellipse cx="60" cy="15" rx="22" ry="12" fill="#c0392b"/>
+                <!-- Cuerpo torso -->
+                <rect x="35" y="52" width="50" height="60" rx="8" fill="#e74c3c"/>
+                <!-- Barriga (se anima) -->
+                <ellipse id="barriga" cx="60" cy="95" rx="18" ry="12" fill="#c0392b" opacity="0.6"/>
+                <!-- Piernas -->
+                <rect x="38" y="110" width="18" height="50" rx="6" fill="#2c3e50"/>
+                <rect x="64" y="110" width="18" height="50" rx="6" fill="#2c3e50"/>
+                <!-- Brazos -->
+                <rect x="10" y="55" width="25" height="12" rx="6" fill="#FFDAB9" transform="rotate(-15,22,61)"/>
+                <rect x="85" y="55" width="25" height="12" rx="6" fill="#FFDAB9" transform="rotate(15,98,61)"/>
+                <!-- Flechas de respiración -->
+                <g id="flechas-inhala" opacity="0">
+                    <line x1="5" y1="80" x2="30" y2="80" stroke="#3498db" stroke-width="2" marker-end="url(#arrow)"/>
+                    <line x1="115" y1="80" x2="90" y2="80" stroke="#3498db" stroke-width="2" marker-end="url(#arrow2)"/>
+                </g>
+                <g id="flechas-exhala" opacity="0">
+                    <line x1="30" y1="80" x2="5" y2="80" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow3)"/>
+                    <line x1="90" y1="80" x2="115" y2="80" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow4)"/>
+                </g>
+                <defs>
+                    <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                        <path d="M0,0 L6,3 L0,6 Z" fill="#3498db"/>
+                    </marker>
+                    <marker id="arrow2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                        <path d="M6,0 L0,3 L6,6 Z" fill="#3498db"/>
+                    </marker>
+                    <marker id="arrow3" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                        <path d="M6,0 L0,3 L6,6 Z" fill="#e74c3c"/>
+                    </marker>
+                    <marker id="arrow4" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                        <path d="M0,0 L6,3 L0,6 Z" fill="#e74c3c"/>
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+
+        <!-- Indicador de fase -->
+        <div class="fase-indicador" id="fase-texto">Toca "Comenzar" para practicar</div>
+
+        <!-- Barra de progreso de respiración -->
+        <div class="barra-respiracion">
+            <div class="barra-fill" id="barra-fill"></div>
+        </div>
+
+        <!-- Contador de ciclos -->
+        <div class="ciclos-contador">
+            Ciclos completados: <strong id="ciclos">0</strong> / 5
+        </div>
+    </div>
+
+    <p class="centrado" style="color:#d32f2f; font-weight:bold; margin-top:0.8rem;" id="mensaje-bien" style="display:none;">
+        Lo Haces genial sigue así
+    </p>
+
+    <!-- Botones -->
+    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+        <button id="btn-comenzar" class="boton-rojo" style="flex:1;" onclick="comenzarRespiracion()">▶ Comenzar</button>
+        <button id="btn-parar" class="boton-rojo-borde" style="flex:1; display:none;" onclick="pararRespiracion()">⏹ Parar</button>
+    </div>
+
+    <div class="juegos-grid" style="margin-top:1.2rem;">
+        <a href="/juegos/respiracion/globo" class="juego-card respiracion">
+            <div class="juego-icono">🎈</div>
+            <div class="juego-info">
+                <h2>Infla el globo</h2>
+                <p>Sopla para inflar el globo</p>
+            </div>
+        </a>
+        <a href="/juegos/respiracion/molino" class="juego-card respiracion">
+            <div class="juego-icono">🌀</div>
+            <div class="juego-info">
+                <h2>El molino de Pepe</h2>
+                <p>Ayuda a Pepe a arreglar el molino</p>
+            </div>
+        </a>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.respiracion-demo {
+    background: #f0f8ff;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid #b3d9f5;
+}
+.figura-respiracion {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+.fase-indicador {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #1976d2;
+    margin-bottom: 0.5rem;
+    min-height: 1.5rem;
+}
+.barra-respiracion {
+    height: 12px;
+    background: #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+.barra-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    border-radius: 6px;
+    transition: width 0.1s linear;
+}
+.ciclos-contador {
+    font-size: 0.9rem;
+    color: #555;
+}
+.juegos-grid { display:flex; flex-direction:column; gap:0.8rem; }
+.juego-card { display:flex; align-items:center; gap:1rem; padding:0.8rem 1rem; border-radius:12px; text-decoration:none; color:#333; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.juego-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.13); }
+.juego-card.respiracion { background:linear-gradient(135deg,#f0f8ff,#d0eaff); border-left:4px solid #1976d2; }
+.juego-icono { font-size:2rem; min-width:2.5rem; text-align:center; }
+.juego-info h2 { margin:0 0 0.2rem; font-size:1rem; color:#222; }
+.juego-info p  { margin:0; font-size:0.8rem; color:#555; }
+</style>
+
+<script>
+let fase = 'idle'; // idle, inhala, pausa, exhala
+let ciclos = 0;
+let animInterval = null;
+let progreso = 0;
+const DURACION_INHALA = 4000;
+const DURACION_PAUSA  = 2000;
+const DURACION_EXHALA = 4000;
+
+function comenzarRespiracion() {
+    ciclos = 0;
+    document.getElementById('ciclos').textContent = 0;
+    document.getElementById('btn-comenzar').style.display = 'none';
+    document.getElementById('btn-parar').style.display = 'block';
+    document.getElementById('mensaje-bien').style.display = 'none';
+    iniciarFaseInhala();
+}
+
+function pararRespiracion() {
+    clearTimeout(animInterval);
+    fase = 'idle';
+    document.getElementById('btn-comenzar').style.display = 'block';
+    document.getElementById('btn-parar').style.display = 'none';
+    document.getElementById('fase-texto').textContent = 'Toca "Comenzar" para practicar';
+    document.getElementById('barra-fill').style.width = '0%';
+    document.getElementById('barriga').setAttribute('ry', '12');
+    document.getElementById('flechas-inhala').setAttribute('opacity', '0');
+    document.getElementById('flechas-exhala').setAttribute('opacity', '0');
+}
+
+function iniciarFaseInhala() {
+    fase = 'inhala';
+    document.getElementById('fase-texto').textContent = '😮 INHALA... (4 segundos)';
+    document.getElementById('flechas-inhala').setAttribute('opacity', '1');
+    document.getElementById('flechas-exhala').setAttribute('opacity', '0');
+    animarBarra(0, 100, DURACION_INHALA, () => {
+        animarBarriga(12, 22, DURACION_INHALA);
+        animInterval = setTimeout(iniciarFasePausa, DURACION_INHALA);
+    });
+}
+
+function iniciarFasePausa() {
+    fase = 'pausa';
+    document.getElementById('fase-texto').textContent = '🤐 MANTÉN... (2 segundos)';
+    document.getElementById('flechas-inhala').setAttribute('opacity', '0');
+    animInterval = setTimeout(iniciarFaseExhala, DURACION_PAUSA);
+}
+
+function iniciarFaseExhala() {
+    fase = 'exhala';
+    document.getElementById('fase-texto').textContent = '💨 EXHALA... (4 segundos)';
+    document.getElementById('flechas-exhala').setAttribute('opacity', '1');
+    animarBarra(100, 0, DURACION_EXHALA, () => {
+        animarBarriga(22, 12, DURACION_EXHALA);
+        animInterval = setTimeout(() => {
+            ciclos++;
+            document.getElementById('ciclos').textContent = ciclos;
+            document.getElementById('flechas-exhala').setAttribute('opacity', '0');
+            if (ciclos >= 5) {
+                document.getElementById('fase-texto').textContent = '🎉 ¡Excelente trabajo!';
+                document.getElementById('mensaje-bien').style.display = 'block';
+                document.getElementById('btn-comenzar').style.display = 'block';
+                document.getElementById('btn-parar').style.display = 'none';
+            } else {
+                iniciarFaseInhala();
+            }
+        }, DURACION_EXHALA);
+    });
+}
+
+function animarBarra(desde, hasta, duracion, callback) {
+    const inicio = performance.now();
+    function step(now) {
+        const t = Math.min((now - inicio) / duracion, 1);
+        const val = desde + (hasta - desde) * t;
+        document.getElementById('barra-fill').style.width = val + '%';
+        if (t < 1) requestAnimationFrame(step);
+        else if (callback) callback();
+    }
+    requestAnimationFrame(step);
+}
+
+function animarBarriga(desde, hasta, duracion) {
+    const inicio = performance.now();
+    function step(now) {
+        const t = Math.min((now - inicio) / duracion, 1);
+        const val = desde + (hasta - desde) * t;
+        document.getElementById('barriga').setAttribute('ry', val);
+        if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+</script>
+{% endblock %}

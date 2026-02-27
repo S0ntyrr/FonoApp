@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Asignaciones realizadas</h1>
+
+    <button class="boton-rojo-borde ancho-completo" onclick="window.location.href='/doctor/home'">
+        ← Volver al panel
+    </button>
+
+    {% if asignaciones %}
+        <ul class="lista-pacientes">
+            {% for a in asignaciones %}
+                <li class="item-paciente">
+                    <div>
+                        <strong>Paciente:</strong> {{ a.paciente_email }}<br>
+                        <strong>Dificultad:</strong> {{ a.dificultad }}<br>
+                        <strong>Fecha:</strong> {{ a.fecha_asignacion }}<br>
+                        <strong>Estado:</strong> {{ a.estado or "pendiente" }}<br>
+                        <strong>Actividades asignadas:</strong>
+                        <ul>
+                            {% for act in a.actividades_asignadas %}
+                                <li>
+                                    {% if act.categoria %}<strong>{{ act.categoria }}:</strong>{% endif %}
+                                    {% if act.actividad %} {{ act.actividad }}{% else %} Actividad{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    {% if a.estado is none or a.estado == "pendiente" %}
+                        <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <form method="post" action="/doctor/asignaciones/{{ a.id }}/aceptar">
+                                <button type="submit" class="boton-rojo ancho-completo">
+                                    Aceptar asignación
+                                </button>
+                            </form>
+                            <form method="post"
+                                  action="/doctor/asignaciones/{{ a.id }}/cancelar"
+                                  onsubmit="return confirm('¿Cancelar esta asignación?');">
+                                <button type="submit" class="boton-rojo-borde ancho-completo">
+                                    Cancelar asignación
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="centrado">Todavía no tienes asignaciones.</p>
+    {% endif %}
+</section>
+{% endblock %}

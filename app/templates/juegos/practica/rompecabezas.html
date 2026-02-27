@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Practica Conmigo</h1>
+    <p class="centrado texto-pequeño" style="margin-bottom:0.3rem;">Lo haces muy bien <span style="color:#d32f2f;font-weight:bold;">continua</span></p>
+
+    <div id="juego-rompecabezas">
+        <!-- Temporizador y controles -->
+        <div class="rompecabezas-header">
+            <span class="tiempo-label">TIEMPO: <span id="timer">00:00</span></span>
+            <div class="rompecabezas-controles">
+                <button onclick="toggleSonido()" title="Sonido" class="ctrl-btn" id="btn-sonido">🔊</button>
+                <button onclick="reiniciarJuego()" title="Reiniciar" class="ctrl-btn">🔄</button>
+                <button onclick="window.location.href='/juegos/practica'" title="Salir" class="ctrl-btn">✖</button>
+            </div>
+        </div>
+
+        <!-- Área del rompecabezas -->
+        <div class="puzzle-area">
+            <div id="puzzle-board" class="puzzle-board">
+                <!-- Las piezas se generan con JS -->
+            </div>
+            <div id="puzzle-preview" class="puzzle-preview">
+                <!-- Vista previa de la imagen completa -->
+                <div class="preview-img" id="preview-img"></div>
+            </div>
+        </div>
+
+        <!-- Selector de nivel -->
+        <div class="nivel-selector">
+            <button class="nivel-btn activo" onclick="cambiarNivel(3,this)">3×3</button>
+            <button class="nivel-btn" onclick="cambiarNivel(4,this)">4×4</button>
+            <button class="nivel-btn" onclick="cambiarNivel(5,this)">5×5</button>
+        </div>
+
+        <!-- Puntuación -->
+        <div class="score-display">
+            SCORE: <span id="score">0</span>
+        </div>
+
+        <!-- Mensaje de éxito -->
+        <div id="mensaje-exito" class="mensaje-exito oculto">
+            <p>🎉 ¡Excelente! ¡Completaste el rompecabezas!</p>
+            <button class="boton-rojo" onclick="siguienteNivel()">Siguiente nivel →</button>
+        </div>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/practica" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.rompecabezas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a9fd4;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px 8px 0 0;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+.tiempo-label { font-family: monospace; font-size: 0.9rem; }
+.rompecabezas-controles { display: flex; gap: 0.4rem; }
+.ctrl-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+}
+.ctrl-btn:hover { background: rgba(255,255,255,0.35); }
+
+.puzzle-area {
+    display: flex;
+    gap: 0.5rem;
+    background: #e8f4f8;
+    padding: 0.8rem;
+    border-radius: 0 0 8px 8px;
+    min-height: 260px;
+}
+.puzzle-board {
+    flex: 1;
+    display: grid;
+    gap: 3px;
+    background: #c0d8e8;
+    padding: 4px;
+    border-radius: 6px;
+    position: relative;
+}
+.puzzle-preview {
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+.preview-img {
+    width: 75px;
+    height: 75px;
+    border-radius: 6px;
+    border: 2px solid #aaa;
+    background-size: cover;
+    background-position: center;
+}
+
+.pieza {
+    background-size: cover;
+    background-position: center;
+    border-radius: 3px;
+    cursor: grab;
+    border: 2px solid rgba(255,255,255,0.5);
+    transition: transform 0.1s, box-shadow 0.1s;
+    user-select: none;
+}
+.pieza:hover { transform: scale(1.04); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.pieza.dragging { opacity: 0.5; cursor: grabbing; }
+.pieza.correcta { border-color: #4caf50; box-shadow: 0 0 6px #4caf50; }
+
+.nivel-selector {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+.nivel-btn {
+    padding: 0.3rem 0.8rem;
+    border: 2px solid #1a9fd4;
+    border-radius: 20px;
+    background: white;
+    color: #1a9fd4;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.nivel-btn.activo { background: #1a9fd4; color: white; }
+
+.score-display {
+    text-align: center;
+    font-weight: bold;
+    color: #d32f2f;
+    margin-top: 0.4rem;
+    font-size: 1rem;
+}
+
+.mensaje-exito {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    margin-top: 0.8rem;
+}
+.oculto { display: none; }
+</style>
+
+<script>
+// ─── Configuración ────────────────────────────────────────────────────────────
+const IMAGENES = [
+    { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Cute_dog.jpg/320px-Cute_dog.jpg', nombre: 'Perro' },
+    { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Dog_Breeds.jpg/320px-Dog_Breeds.jpg', nombre: 'Animales' },
+    { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/320px-Cat03.jpg', nombre: 'Gato' },
+];
+
+let nivelActual = 3;
+let imagenActual = 0;
+let piezas = [];
+let piezaArrastrada = null;
+let score = 0;
+let timerInterval = null;
+let segundos = 0;
+let sonidoActivo = true;
+let piezasCorrectas = 0;
+
+function iniciarJuego() {
+    clearInterval(timerInterval);
+    segundos = 0;
+    piezasCorrectas = 0;
+    document.getElementById('mensaje-exito').classList.add('oculto');
+    document.getElementById('score').textContent = score;
+    actualizarTimer();
+    timerInterval = setInterval(() => {
+        segundos++;
+        actualizarTimer();
+    }, 1000);
+
+    const img = IMAGENES[imagenActual % IMAGENES.length];
+    document.getElementById('preview-img').style.backgroundImage = `url('${img.url}')`;
+
+    const board = document.getElementById('puzzle-board');
+    board.style.gridTemplateColumns = `repeat(${nivelActual}, 1fr)`;
+    board.innerHTML = '';
+
+    const total = nivelActual * nivelActual;
+    piezas = Array.from({length: total}, (_, i) => i);
+    // Mezclar
+    for (let i = piezas.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [piezas[i], piezas[j]] = [piezas[j], piezas[i]];
+    }
+
+    piezas.forEach((posOriginal, posActual) => {
+        const pieza = document.createElement('div');
+        pieza.className = 'pieza';
+        pieza.dataset.original = posOriginal;
+        pieza.dataset.actual = posActual;
+
+        const col = posOriginal % nivelActual;
+        const row = Math.floor(posOriginal / nivelActual);
+        const pct = 100 / (nivelActual - 1);
+        pieza.style.backgroundImage = `url('${img.url}')`;
+        pieza.style.backgroundSize = `${nivelActual * 100}%`;
+        pieza.style.backgroundPosition = `${col * pct}% ${row * pct}%`;
+        pieza.style.aspectRatio = '1';
+
+        // Drag & Drop
+        pieza.draggable = true;
+        pieza.addEventListener('dragstart', onDragStart);
+        pieza.addEventListener('dragover', onDragOver);
+        pieza.addEventListener('drop', onDrop);
+        pieza.addEventListener('dragend', onDragEnd);
+
+        // Touch
+        pieza.addEventListener('touchstart', onTouchStart, {passive:true});
+        pieza.addEventListener('touchmove', onTouchMove, {passive:false});
+        pieza.addEventListener('touchend', onTouchEnd);
+
+        if (posOriginal === posActual) {
+            pieza.classList.add('correcta');
+            piezasCorrectas++;
+        }
+        board.appendChild(pieza);
+    });
+}
+
+function actualizarTimer() {
+    const m = String(Math.floor(segundos / 60)).padStart(2,'0');
+    const s = String(segundos % 60).padStart(2,'0');
+    document.getElementById('timer').textContent = `${m}:${s}`;
+}
+
+// ─── Drag & Drop ─────────────────────────────────────────────────────────────
+function onDragStart(e) {
+    piezaArrastrada = e.currentTarget;
+    piezaArrastrada.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function onDrop(e) {
+    e.preventDefault();
+    const destino = e.currentTarget;
+    if (destino === piezaArrastrada) return;
+    intercambiarPiezas(piezaArrastrada, destino);
+}
+function onDragEnd(e) {
+    if (piezaArrastrada) piezaArrastrada.classList.remove('dragging');
+    piezaArrastrada = null;
+}
+
+// ─── Touch ────────────────────────────────────────────────────────────────────
+let touchPieza = null;
+let touchClone = null;
+function onTouchStart(e) {
+    touchPieza = e.currentTarget;
+    const t = e.touches[0];
+    touchClone = touchPieza.cloneNode(true);
+    touchClone.style.position = 'fixed';
+    touchClone.style.opacity = '0.7';
+    touchClone.style.pointerEvents = 'none';
+    touchClone.style.width = touchPieza.offsetWidth + 'px';
+    touchClone.style.height = touchPieza.offsetHeight + 'px';
+    touchClone.style.left = (t.clientX - touchPieza.offsetWidth/2) + 'px';
+    touchClone.style.top  = (t.clientY - touchPieza.offsetHeight/2) + 'px';
+    touchClone.style.zIndex = 9999;
+    document.body.appendChild(touchClone);
+}
+function onTouchMove(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    if (touchClone) {
+        touchClone.style.left = (t.clientX - parseInt(touchClone.style.width)/2) + 'px';
+        touchClone.style.top  = (t.clientY - parseInt(touchClone.style.height)/2) + 'px';
+    }
+}
+function onTouchEnd(e) {
+    if (touchClone) { document.body.removeChild(touchClone); touchClone = null; }
+    const t = e.changedTouches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (el && el.classList.contains('pieza') && el !== touchPieza) {
+        intercambiarPiezas(touchPieza, el);
+    }
+    touchPieza = null;
+}
+
+// ─── Lógica de intercambio ────────────────────────────────────────────────────
+function intercambiarPiezas(a, b) {
+    const board = document.getElementById('puzzle-board');
+    const piezasDOM = [...board.children];
+    const idxA = piezasDOM.indexOf(a);
+    const idxB = piezasDOM.indexOf(b);
+
+    // Intercambiar en DOM
+    const refA = a.nextSibling;
+    const refB = b.nextSibling;
+    board.insertBefore(b, refA);
+    board.insertBefore(a, refB);
+
+    // Actualizar dataset.actual
+    a.dataset.actual = idxB;
+    b.dataset.actual = idxA;
+
+    // Verificar correctas
+    verificarPiezas();
+}
+
+function verificarPiezas() {
+    const board = document.getElementById('puzzle-board');
+    const piezasDOM = [...board.children];
+    piezasCorrectas = 0;
+    piezasDOM.forEach((p, idx) => {
+        if (parseInt(p.dataset.original) === idx) {
+            p.classList.add('correcta');
+            piezasCorrectas++;
+        } else {
+            p.classList.remove('correcta');
+        }
+    });
+
+    const total = nivelActual * nivelActual;
+    if (piezasCorrectas === total) {
+        clearInterval(timerInterval);
+        const bonus = Math.max(0, 500 - segundos * 2);
+        score += 100 + bonus;
+        document.getElementById('score').textContent = score;
+        document.getElementById('mensaje-exito').classList.remove('oculto');
+        if (sonidoActivo) reproducirSonidoExito();
+    }
+}
+
+function siguienteNivel() {
+    imagenActual = (imagenActual + 1) % IMAGENES.length;
+    if (nivelActual < 5) nivelActual++;
+    document.querySelectorAll('.nivel-btn').forEach((b,i) => {
+        b.classList.toggle('activo', [3,4,5][i] === nivelActual);
+    });
+    iniciarJuego();
+}
+
+function cambiarNivel(n, btn) {
+    nivelActual = n;
+    document.querySelectorAll('.nivel-btn').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    iniciarJuego();
+}
+
+function reiniciarJuego() { iniciarJuego(); }
+
+function toggleSonido() {
+    sonidoActivo = !sonidoActivo;
+    document.getElementById('btn-sonido').textContent = sonidoActivo ? '🔊' : '🔇';
+}
+
+function reproducirSonidoExito() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [523, 659, 784, 1047].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.3);
+            osc.start(ctx.currentTime + i * 0.15);
+            osc.stop(ctx.currentTime + i * 0.15 + 0.3);
+        });
+    } catch(e) {}
+}
+
+// Iniciar al cargar
+window.addEventListener('DOMContentLoaded', iniciarJuego);
+</script>
+{% endblock %}

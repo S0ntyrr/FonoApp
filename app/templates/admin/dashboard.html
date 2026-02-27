@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Panel de administración</h1>
+
+    <div class="tarjeta-resumen">
+        <p><strong>Total usuarios:</strong> {{ usuarios_total }}</p>
+        <p><strong>Total pacientes:</strong> {{ pacientes_total }}</p>
+        <p><strong>Total médicos:</strong> {{ medicos_total }}</p>
+        <p><strong>Médicos activos:</strong> {{ medicos_activos }}</p>
+        <p><strong>Médicos ocupados:</strong> {{ medicos_ocupados }}</p>
+        <p><strong>Médicos en consulta:</strong> {{ medicos_consulta }}</p>
+    </div>
+
+    <div class="acciones-admin">
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/admin/pacientes'">
+            Gestionar pacientes
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/admin/medicos'">
+            Gestión de médicos
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/admin/actividades'">
+             Actividades
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/admin/asignaciones'">
+             Asignaciones
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/admin/historial'">
+            Historial de actividades
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/admin/resultados'">
+            📊 Resultados de Juegos
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/admin/contenido'">
+            Contenido del sistema
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/juegos/'"
+                style="background:#388e3c;">
+            🎮 Juegos Fonoaudiológicos
+        </button>
+
+        <button class="boton-rojo-borde ancho-completo"
+                onclick="window.location.href='/auth/login'">
+            Cerrar sesión
+        </button>
+    </div>
+</section>
+{% endblock %}

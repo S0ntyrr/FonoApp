@@ -1,0 +1,186 @@
+@startuml FonoApp - Diagrama de Casos de Uso Extendido
+
+left to right direction
+
+' Actores
+actor Admin as admin
+actor Doctor as doctor
+actor Paciente as paciente
+actor Emisor as emisor
+actor "Sistema\nMongoDB" as sistema
+
+' Paquetes de casos de uso
+package "Autenticación" {
+  usecase UC01 as "Iniciar Sesión"
+  usecase UC02 as "Registrarse"
+  usecase UC03 as "Validar Credenciales" <<include>>
+  usecase UC04 as "Verificar Email Existente" <<include>>
+  usecase UC05 as "Redirigir según Rol" <<extend>>
+}
+
+package "Gestión Admin" {
+  usecase UC10 as "Ver Dashboard"
+  usecase UC11 as "Listar Pacientes"
+  usecase UC12 as "Crear Paciente"
+  usecase UC13 as "Eliminar Paciente"
+  usecase UC14 as "Gestionar Actividades"
+  usecase UC15 as "Gestionar Contenido"
+  usecase UC16 as "Ver Asignaciones"
+  usecase UC17 as "Ver Historial de Actividades"
+}
+
+package "Gestión Doctor" {
+  usecase UC20 as "Ver Home"
+  usecase UC21 as "Ver Pacientes"
+  usecase UC22 as "Ver Actividades Disponibles"
+  usecase UC23 as "Ver Asignaciones"
+  usecase UC24 as "Ver Historial de Pacientes"
+}
+
+package "Gestión Paciente" {
+  usecase UC30 as "Ver Perfil"
+  usecase UC31 as "Editar Perfil"
+  usecase UC32 as "Ver Calendario de Uso"
+  usecase UC33 as "Guardar Perfil" <<include>>
+}
+
+package "Gestión Emisor" {
+  usecase UC40 as "Ver Home"
+}
+
+package "Operaciones del Sistema" {
+  usecase UC50 as "Conectar Base de Datos" <<include>>
+  usecase UC51 as "Guardar Sesión" <<include>>
+  usecase UC52 as "Consultar Colección" <<include>>
+}
+
+' Relaciones de Actores con Casos de Uso
+admin --> UC01
+admin --> UC10
+admin --> UC11
+admin --> UC12
+admin --> UC13
+admin --> UC14
+admin --> UC15
+admin --> UC16
+admin --> UC17
+
+doctor --> UC01
+doctor --> UC20
+doctor --> UC21
+doctor --> UC22
+doctor --> UC23
+doctor --> UC24
+
+paciente --> UC01
+paciente --> UC02
+paciente --> UC30
+paciente --> UC31
+paciente --> UC32
+
+emisor --> UC01
+emisor --> UC40
+
+' Relaciones de Inclusión (include)
+UC01 ..> UC03 : <<include>>
+UC01 ..> UC50 : <<include>>
+UC02 ..> UC04 : <<include>>
+UC02 ..> UC50 : <<include>>
+UC10 ..> UC50 : <<include>>
+UC10 ..> UC52 : <<include>>
+UC11 ..> UC50 : <<include>>
+UC11 ..> UC52 : <<include>>
+UC12 ..> UC50 : <<include>>
+UC12 ..> UC52 : <<include>>
+UC13 ..> UC50 : <<include>>
+UC13 ..> UC52 : <<include>>
+UC14 ..> UC50 : <<include>>
+UC14 ..> UC52 : <<include>>
+UC15 ..> UC50 : <<include>>
+UC15 ..> UC52 : <<include>>
+UC16 ..> UC50 : <<include>>
+UC16 ..> UC52 : <<include>>
+UC17 ..> UC50 : <<include>>
+UC17 ..> UC52 : <<include>>
+UC20 ..> UC50 : <<include>>
+UC21 ..> UC50 : <<include>>
+UC21 ..> UC52 : <<include>>
+UC22 ..> UC50 : <<include>>
+UC22 ..> UC52 : <<include>>
+UC23 ..> UC50 : <<include>>
+UC23 ..> UC52 : <<include>>
+UC24 ..> UC50 : <<include>>
+UC24 ..> UC52 : <<include>>
+UC30 ..> UC50 : <<include>>
+UC30 ..> UC52 : <<include>>
+UC31 ..> UC33 : <<include>>
+UC31 ..> UC50 : <<include>>
+UC31 ..> UC52 : <<include>>
+UC32 ..> UC50 : <<include>>
+UC32 ..> UC52 : <<include>>
+UC40 ..> UC50 : <<include>>
+
+' Relaciones de Extensión (extend)
+UC05 ..> UC01 : <<extend>>
+UC05 ..> UC51 : <<extend>>
+
+' Relaciones del Sistema
+sistema --> UC50
+sistema --> UC52
+
+' Notas explicativas
+note right of UC01
+  Todos los usuarios deben
+  autenticarse para acceder
+  al sistema
+end note
+
+note right of UC05
+  Se ejecuta después de
+  validar credenciales
+  exitosamente
+end note
+
+note right of UC10
+  Muestra resumen de:
+  - Total usuarios
+  - Total pacientes
+  - Total médicos
+end note
+
+note right of UC14
+  Permite ver y gestionar
+  categorías de actividades:
+  respiración, fonación,
+  resonancia, articulación,
+  prosodia, discriminación
+  auditiva
+end note
+
+note right of UC15
+  Gestiona contenido
+  multimedia del sistema:
+  imágenes, videos, audios,
+  textos e instrucciones
+end note
+
+note right of UC30
+  Muestra información del
+  perfil del paciente y
+  calendario de uso de la app
+end note
+
+note right of UC32
+  Muestra días en que el
+  paciente ha usado la app
+  basado en sesiones_app
+end note
+
+note right of UC50
+  Operación común a todos
+  los casos de uso que
+  requieren acceso a datos
+end note
+
+@enduml
+

@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Practica Conmigo</h1>
+    <p class="centrado" style="margin-bottom:1rem;">Selecciona la imagen que corresponde</p>
+
+    <div id="juego-asociacion">
+        <!-- Puntuación -->
+        <div class="asoc-score">
+            <span>Puntos: <strong id="puntos">0</strong></span>
+            <span>Pregunta: <strong id="num-pregunta">1</strong>/<strong id="total-preguntas">6</strong></span>
+        </div>
+
+        <!-- Pregunta actual -->
+        <div class="asoc-pregunta" id="pregunta-texto">
+            <!-- Texto de la pregunta -->
+        </div>
+
+        <!-- Opciones de imágenes -->
+        <div class="asoc-opciones" id="opciones">
+            <!-- Generadas por JS -->
+        </div>
+
+        <!-- Feedback -->
+        <div id="feedback" class="asoc-feedback oculto"></div>
+
+        <!-- Botón siguiente -->
+        <button id="btn-siguiente" class="boton-rojo ancho-completo oculto" onclick="siguientePregunta()" style="margin-top:0.8rem;">
+            Siguiente →
+        </button>
+
+        <!-- Fin del juego -->
+        <div id="fin-juego" class="fin-juego oculto">
+            <h2>🎉 ¡Completaste el juego!</h2>
+            <p>Puntuación final: <strong id="puntos-final">0</strong></p>
+            <button class="boton-rojo ancho-completo" onclick="reiniciar()">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/practica" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.asoc-score {
+    display: flex;
+    justify-content: space-between;
+    background: #f5f5f5;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+    font-size: 0.9rem;
+}
+.asoc-pregunta {
+    background: #fff3e0;
+    border: 2px solid #ff9800;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    min-height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.asoc-opciones {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+.opcion-btn {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0.5rem;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, transform 0.1s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+}
+.opcion-btn:hover { border-color: #ff9800; transform: scale(1.04); }
+.opcion-btn .opcion-emoji { font-size: 2rem; }
+.opcion-btn .opcion-label { font-size: 0.7rem; color: #555; }
+.opcion-btn.correcta { border-color: #4caf50; background: #e8f5e9; }
+.opcion-btn.incorrecta { border-color: #f44336; background: #ffebee; }
+.opcion-btn:disabled { cursor: default; }
+
+.asoc-feedback {
+    padding: 0.6rem;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+.asoc-feedback.correcto { background: #e8f5e9; color: #2e7d32; border: 1px solid #4caf50; }
+.asoc-feedback.incorrecto { background: #ffebee; color: #c62828; border: 1px solid #f44336; }
+
+.fin-juego {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 1rem;
+}
+.oculto { display: none !important; }
+</style>
+
+<script>
+const PREGUNTAS = [
+    {
+        pregunta: 'PARA GUARDAR MONEDAS USO...',
+        opciones: [
+            { emoji: '👛', label: 'Monedero', correcto: true },
+            { emoji: '🧺', label: 'Canasta', correcto: false },
+            { emoji: '💳', label: 'Tarjeta', correcto: false },
+        ]
+    },
+    {
+        pregunta: 'CUANDO TENGO FRÍO ME PONGO...',
+        opciones: [
+            { emoji: '🧥', label: 'Abrigo', correcto: true },
+            { emoji: '👙', label: 'Traje de baño', correcto: false },
+            { emoji: '👔', label: 'Corbata', correcto: false },
+        ]
+    },
+    {
+        pregunta: 'LOS HELADOS SE GUARDAN EN...',
+        opciones: [
+            { emoji: '🍳', label: 'Estufa', correcto: false },
+            { emoji: '🧊', label: 'Refrigerador', correcto: true },
+            { emoji: '🪣', label: 'Balde', correcto: false },
+        ]
+    },
+    {
+        pregunta: 'PARA ESCRIBIR USO...',
+        opciones: [
+            { emoji: '✏️', label: 'Lápiz', correcto: true },
+            { emoji: '🍴', label: 'Tenedor', correcto: false },
+            { emoji: '🔑', label: 'Llave', correcto: false },
+        ]
+    },
+    {
+        pregunta: 'PARA DORMIR ME ACUESTO EN...',
+        opciones: [
+            { emoji: '🛁', label: 'Bañera', correcto: false },
+            { emoji: '🛏️', label: 'Cama', correcto: true },
+            { emoji: '🪑', label: 'Silla', correcto: false },
+        ]
+    },
+    {
+        pregunta: 'PARA BAÑARME USO...',
+        opciones: [
+            { emoji: '🧴', label: 'Jabón', correcto: true },
+            { emoji: '🍎', label: 'Manzana', correcto: false },
+            { emoji: '📚', label: 'Libro', correcto: false },
+        ]
+    },
+];
+
+let preguntaActual = 0;
+let puntos = 0;
+let respondida = false;
+
+function iniciar() {
+    preguntaActual = 0;
+    puntos = 0;
+    respondida = false;
+    document.getElementById('total-preguntas').textContent = PREGUNTAS.length;
+    document.getElementById('fin-juego').classList.add('oculto');
+    mostrarPregunta();
+}
+
+function mostrarPregunta() {
+    respondida = false;
+    const p = PREGUNTAS[preguntaActual];
+    document.getElementById('num-pregunta').textContent = preguntaActual + 1;
+    document.getElementById('puntos').textContent = puntos;
+    document.getElementById('pregunta-texto').textContent = p.pregunta;
+    document.getElementById('feedback').classList.add('oculto');
+    document.getElementById('btn-siguiente').classList.add('oculto');
+
+    const opciones = document.getElementById('opciones');
+    opciones.innerHTML = '';
+    // Mezclar opciones
+    const mezcladas = [...p.opciones].sort(() => Math.random() - 0.5);
+    mezcladas.forEach(op => {
+        const btn = document.createElement('button');
+        btn.className = 'opcion-btn';
+        btn.innerHTML = `<span class="opcion-emoji">${op.emoji}</span><span class="opcion-label">${op.label}</span>`;
+        btn.onclick = () => responder(btn, op.correcto);
+        opciones.appendChild(btn);
+    });
+}
+
+function responder(btn, esCorrecta) {
+    if (respondida) return;
+    respondida = true;
+
+    const feedback = document.getElementById('feedback');
+    const opciones = document.querySelectorAll('.opcion-btn');
+    opciones.forEach(b => b.disabled = true);
+
+    if (esCorrecta) {
+        btn.classList.add('correcta');
+        puntos += 10;
+        document.getElementById('puntos').textContent = puntos;
+        feedback.textContent = '✅ ¡Correcto! ¡Muy bien!';
+        feedback.className = 'asoc-feedback correcto';
+        reproducirSonido(true);
+    } else {
+        btn.classList.add('incorrecta');
+        // Marcar la correcta
+        opciones.forEach(b => {
+            // No podemos saber cuál es la correcta desde el btn, así que buscamos
+        });
+        feedback.textContent = '❌ Inténtalo de nuevo la próxima vez.';
+        feedback.className = 'asoc-feedback incorrecto';
+        reproducirSonido(false);
+    }
+    feedback.classList.remove('oculto');
+    document.getElementById('btn-siguiente').classList.remove('oculto');
+}
+
+function siguientePregunta() {
+    preguntaActual++;
+    if (preguntaActual >= PREGUNTAS.length) {
+        document.getElementById('opciones').innerHTML = '';
+        document.getElementById('pregunta-texto').textContent = '';
+        document.getElementById('feedback').classList.add('oculto');
+        document.getElementById('btn-siguiente').classList.add('oculto');
+        document.getElementById('puntos-final').textContent = puntos;
+        document.getElementById('fin-juego').classList.remove('oculto');
+    } else {
+        mostrarPregunta();
+    }
+}
+
+function reiniciar() {
+    iniciar();
+}
+
+function reproducirSonido(correcto) {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = correcto ? 880 : 220;
+        osc.type = correcto ? 'sine' : 'sawtooth';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+    } catch(e) {}
+}
+
+window.addEventListener('DOMContentLoaded', iniciar);
+</script>
+{% endblock %}

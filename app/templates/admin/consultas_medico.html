@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">{{ titulo_pagina }}</h1>
+
+    {% if asignaciones %}
+        <ul class="lista-pacientes">
+            {% for a in asignaciones %}
+                <li class="item-paciente">
+                    <div>
+                        <strong>Paciente: {{ a.paciente_email }}</strong><br />
+                        <small>Fecha: {{ a.fecha_asignacion }}</small><br />
+                        <small>Estado: {{ a.estado }}</small>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="centrado">No hay consultas registradas para este médico.</p>
+    {% endif %}
+
+    <div class="texto-inferior">
+        <button type="button" class="boton-enlace-rojo"
+                onclick="window.location.href='/admin/medicos'">
+            Volver a gestión de médicos
+        </button>
+    </div>
+</section>
+{% endblock %}

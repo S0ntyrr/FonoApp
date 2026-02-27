@@ -1,0 +1,199 @@
+@startuml FonoApp - Diagrama de Clases
+
+' Configuración y Base de Datos
+class AppSettings {
+  + MONGODB_URI: str
+  + MONGODB_DB_NAME: str
+  + Config
+}
+
+class database {
+  + mongo_client: AsyncIOMotorClient
+  + connect_to_mongo()
+  + close_mongo_connection()
+  + get_db()
+}
+
+' Modelos Pydantic
+class UsuarioBase {
+  + email: EmailStr
+  + activo: bool
+  + rol: str
+}
+
+class UsuarioCreate {
+  + password: str
+  + acepta_terminos: bool
+}
+
+class UsuarioPublico {
+  + id: str
+}
+
+class ActividadCategoria {
+  + id: str
+  + categoria: str
+  + actividades: List[str]
+}
+
+class Asignacion {
+  + id: str
+  + paciente_email: EmailStr
+  + medico_email: EmailStr
+  + actividades_asignadas: list[dict]
+  + dificultad: str
+  + fecha_asignacion: datetime
+}
+
+class ContenidoAdmin {
+  + id: str
+  + imagenes: List[str]
+  + videos: List[str]
+  + audios_referencia: List[str]
+  + textos_sistema: List[str]
+  + instrucciones: Any
+}
+
+class HistorialActividad {
+  + id: str
+  + paciente_email: EmailStr
+  + categoria: str
+  + actividad: str
+  + puntos_obtenidos: int
+  + nivel: int
+  + fecha: datetime
+  + feedback: str
+}
+
+class PerfilPaciente {
+  + id: str
+  + paciente_email: EmailStr
+  + nombre: str
+  + edad: int
+  + escolaridad: str
+  + genero: str
+  + fecha_registro: datetime
+  + tutor: str
+  + parentesco: str
+}
+
+class SesionApp {
+  + id: str
+  + paciente_email: EmailStr
+  + fecha: datetime
+  + minutos_conectado: int
+}
+
+' Routers
+class AuthRouter {
+  + router: APIRouter
+  + mostrar_pantalla_login()
+  + mostrar_pantalla_registro()
+  + procesar_registro()
+  + procesar_login()
+}
+
+class PacienteRouter {
+  + router: APIRouter
+  + vista_perfil_paciente()
+  + guardar_perfil_paciente()
+}
+
+class DoctorRouter {
+  + router: APIRouter
+  + home_doctor()
+  + vista_pacientes_doctor()
+  + vista_actividades_doctor()
+  + vista_asignaciones_doctor()
+  + vista_historial_doctor()
+}
+
+class AdminRouter {
+  + router: APIRouter
+  + vista_dashboard_admin()
+  + listar_pacientes_admin()
+  + crear_paciente_admin()
+  + eliminar_paciente_admin()
+  + vista_actividades_admin()
+  + vista_contenido_admin()
+  + vista_asignaciones_admin()
+  + vista_historial_admin()
+}
+
+class EmisorRouter {
+  + router: APIRouter
+  + home_emisor()
+}
+
+class RoutesAdmin {
+  + router: APIRouter
+}
+
+class RoutesDoctor {
+  + router: APIRouter
+}
+
+' Aplicación Principal
+class FastAPI {
+  + app: FastAPI
+  + on_startup()
+  + on_shutdown()
+}
+
+' Relaciones de Herencia
+UsuarioCreate --|> UsuarioBase
+UsuarioPublico --|> UsuarioBase
+
+' Relaciones de Dependencia
+database ..> AppSettings : usa
+AuthRouter ..> database : usa
+PacienteRouter ..> database : usa
+PacienteRouter ..> PerfilPaciente : usa
+PacienteRouter ..> SesionApp : usa
+DoctorRouter ..> database : usa
+DoctorRouter ..> ActividadCategoria : usa
+DoctorRouter ..> Asignacion : usa
+DoctorRouter ..> HistorialActividad : usa
+AdminRouter ..> database : usa
+AdminRouter ..> ActividadCategoria : usa
+AdminRouter ..> ContenidoAdmin : usa
+AdminRouter ..> Asignacion : usa
+AdminRouter ..> HistorialActividad : usa
+FastAPI ..> database : usa
+FastAPI ..> AuthRouter : incluye
+FastAPI ..> PacienteRouter : incluye
+FastAPI ..> DoctorRouter : incluye
+FastAPI ..> AdminRouter : incluye
+FastAPI ..> EmisorRouter : incluye
+FastAPI ..> RoutesAdmin : incluye
+FastAPI ..> RoutesDoctor : incluye
+
+' Relaciones con Base de Datos
+Asignacion ..> UsuarioBase : referencia
+HistorialActividad ..> UsuarioBase : referencia
+PerfilPaciente ..> UsuarioBase : referencia
+SesionApp ..> UsuarioBase : referencia
+
+note right of UsuarioBase
+  Modelo base para usuarios
+  del sistema con roles:
+  admin, doctor, emisor, paciente
+end note
+
+note right of Asignacion
+  Relaciona pacientes con médicos
+  y actividades asignadas
+end note
+
+note right of HistorialActividad
+  Registra las actividades
+  completadas por pacientes
+end note
+
+note right of database
+  Maneja la conexión
+  a MongoDB usando Motor
+end note
+
+@enduml
+

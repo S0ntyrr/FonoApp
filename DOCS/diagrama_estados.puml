@@ -1,0 +1,265 @@
+@startuml FonoApp - Diagramas de Estado por Clase
+
+!define STATE_COLOR #E1F5FF
+!define TRANSITION_COLOR #4A90E2
+
+' ============================================
+' DIAGRAMA DE ESTADO: Usuario
+' ============================================
+state "Usuario" as UsuarioState {
+  [*] --> NoRegistrado : inicio
+  
+  NoRegistrado --> Registrado : registrarse()\n/crear usuario
+  
+  Registrado --> Activo : activar()\nactivo = true
+  Registrado --> Inactivo : desactivar()\nactivo = false
+  
+  Activo --> Inactivo : desactivar()\nactivo = false
+  Inactivo --> Activo : activar()\nactivo = true
+  
+  Activo --> [*] : eliminar()
+  Inactivo --> [*] : eliminar()
+  
+  note right of Registrado
+    Estados según rol:
+    - admin
+    - doctor/medico
+    - paciente
+    - emisor
+  end note
+  
+  note right of Activo
+    Usuario puede:
+    - Iniciar sesión
+    - Acceder al sistema
+    - Realizar operaciones
+    según su rol
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: Paciente (extendido)
+' ============================================
+state "Paciente" as PacienteState {
+  [*] --> SinPerfil : inicio
+  
+  SinPerfil --> PerfilIncompleto : crear perfil parcial
+  SinPerfil --> PerfilCompleto : crear perfil completo
+  
+  PerfilIncompleto --> PerfilCompleto : completar datos\n(edad, tutor, etc.)
+  PerfilCompleto --> PerfilCompleto : actualizar perfil
+  
+  PerfilCompleto --> ConActividades : asignar actividades
+  ConActividades --> ConActividades : realizar actividad
+  
+  ConActividades --> [*] : eliminar paciente
+  
+  note right of PerfilCompleto
+    Atributos:
+    - nivel: 1
+    - puntos: 0
+    - estado: activo
+  end note
+  
+  note right of ConActividades
+    Puede tener:
+    - Asignaciones activas
+    - Historial de actividades
+    - Sesiones de uso
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: Asignacion
+' ============================================
+state "Asignacion" as AsignacionState {
+  [*] --> Creada : crear asignación\n(doctor asigna actividades)
+  
+  Creada --> Activa : asignación confirmada\nfecha_asignacion establecida
+  
+  Activa --> EnProgreso : paciente inicia actividad
+  
+  EnProgreso --> Completada : paciente completa actividad\nregistro en historial
+  EnProgreso --> Activa : paciente pausa actividad
+  
+  Activa --> Vencida : fecha límite superada
+  EnProgreso --> Vencida : fecha límite superada
+  
+  Completada --> [*] : finalizar
+  Vencida --> [*] : finalizar
+  
+  note right of Creada
+    Contiene:
+    - paciente_email
+    - medico_email
+    - actividades_asignadas[]
+    - dificultad
+  end note
+  
+  note right of Completada
+    Se registra en:
+    historial_actividades
+    con puntos obtenidos
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: HistorialActividad
+' ============================================
+state "HistorialActividad" as HistorialState {
+  [*] --> Iniciada : paciente inicia actividad
+  
+  Iniciada --> EnProgreso : paciente trabaja en actividad
+  
+  EnProgreso --> Completada : actividad finalizada\npuntos_obtenidos asignados
+  EnProgreso --> Abandonada : paciente abandona actividad
+  
+  Completada --> Evaluada : doctor proporciona feedback\nfeedback != null
+  
+  Evaluada --> [*] : registro finalizado
+  Abandonada --> [*] : registro finalizado
+  
+  note right of EnProgreso
+    Atributos:
+    - categoria
+    - actividad
+    - nivel
+    - fecha
+  end note
+  
+  note right of Completada
+    Se registra:
+    - puntos_obtenidos
+    - fecha de finalización
+  end note
+  
+  note right of Evaluada
+    Feedback del doctor:
+    - Comentarios
+    - Evaluación
+    - Recomendaciones
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: SesionApp
+' ============================================
+state "SesionApp" as SesionState {
+  [*] --> Iniciada : paciente abre app\nfecha establecida
+  
+  Iniciada --> Activa : paciente usa la app\nminutos_conectado > 0
+  
+  Activa --> Activa : paciente continúa usando\nminutos_conectado incrementa
+  
+  Activa --> Finalizada : paciente cierra app\nminutos_conectado registrado
+  
+  Iniciada --> Finalizada : paciente cierra inmediatamente\nminutos_conectado = 0
+  
+  Finalizada --> [*] : sesión guardada
+  
+  note right of Iniciada
+    Se crea registro con:
+    - paciente_email
+    - fecha (datetime)
+  end note
+  
+  note right of Activa
+    Se actualiza:
+    - minutos_conectado
+    (incrementa mientras
+    está activa)
+  end note
+  
+  note right of Finalizada
+    Registro completo:
+    - fecha
+    - minutos_conectado
+    (usado para calendario)
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: PerfilPaciente
+' ============================================
+state "PerfilPaciente" as PerfilState {
+  [*] --> NoCreado : paciente sin perfil
+  
+  NoCreado --> Creado : crear perfil\nPOST /paciente/perfil
+  
+  Creado --> Actualizado : editar perfil\nactualizar datos
+  
+  Actualizado --> Actualizado : seguir editando
+  
+  Creado --> [*] : eliminar perfil
+  Actualizado --> [*] : eliminar perfil
+  
+  note right of Creado
+    Datos iniciales:
+    - nombre
+    - edad
+    - escolaridad
+    - genero
+    - tutor
+    - parentesco
+    - fecha_registro
+  end note
+  
+  note right of Actualizado
+    Puede actualizar:
+    - Cualquier campo
+    - Mantiene fecha_registro
+    original
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: Conexión Base de Datos
+' ============================================
+state "Database Connection" as DatabaseState {
+  [*] --> Desconectada : inicio aplicación
+  
+  Desconectada --> Conectando : connect_to_mongo()\non_startup()
+  
+  Conectando --> Conectada : conexión exitosa\nmongo_client inicializado
+  
+  Conectada --> Conectada : operaciones CRUD\nget_db()
+  
+  Conectada --> Desconectando : close_mongo_connection()\non_shutdown()
+  
+  Desconectando --> Desconectada : conexión cerrada
+  
+  Conectando --> Error : error de conexión
+  Error --> Desconectada : reintentar
+  
+  note right of Conectada
+    Estado operativo:
+    - mongo_client activo
+    - Colecciones accesibles
+    - Operaciones disponibles
+  end note
+  
+  note right of Error
+    Manejo de errores:
+    - Log de error
+    - Reintento automático
+    - Fallback si es necesario
+  end note
+}
+
+' ============================================
+' NOTAS SOBRE RELACIONES ENTRE CLASES
+' ============================================
+' Nota: Las relaciones entre clases se muestran
+' en el diagrama de clases (diagrama_clases.puml)
+' 
+' Relaciones conceptuales:
+' - Usuario puede ser Paciente
+' - Paciente tiene PerfilPaciente
+' - Paciente recibe Asignaciones
+' - Paciente genera SesionesApp
+' - Asignacion genera HistorialActividad
+' - Database soporta todas las operaciones
+
+@enduml
+
+

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>{{ titulo_pagina }}</title>
+  <link rel="stylesheet" href="/static/css/estilos.css">
+  <style>
+    body{margin:0;background:#fff;font-family:'Segoe UI',sans-serif;}
+    .screen{max-width:430px;margin:0 auto;min-height:100vh;padding:16px;box-sizing:border-box;}
+    h1.cat{color:#e63946;text-align:center;font-size:1.4rem;border-bottom:2px solid #e63946;padding-bottom:8px;margin-bottom:16px;}
+    .step{display:none;} .step.active{display:block;}
+    .btn-next{background:#e63946;color:#fff;border:none;border-radius:12px;padding:14px;font-size:1rem;cursor:pointer;display:block;margin:20px auto 0;width:100%;}
+    .mic-btn{background:#e63946;color:#fff;border:none;border-radius:50%;width:56px;height:56px;font-size:1.6rem;cursor:pointer;display:block;margin:12px auto;}
+    .feedback{color:#27ae60;font-weight:bold;text-align:center;display:none;margin:8px 0;}
+    .big-letter{font-size:5rem;text-align:center;color:#e63946;font-weight:900;}
+    .vowel-row{display:flex;align-items:center;justify-content:space-around;margin:12px 0;font-size:1.5rem;font-weight:bold;}
+    .vowel-mic{background:#e63946;color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:1.2rem;cursor:pointer;}
+    .vowel-mic.done{background:#27ae60;}
+    .wordsearch{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin:12px 0;font-size:0.85rem;}
+    .ws-cell{height:32px;display:flex;align-items:center;justify-content:center;border:1px solid #eee;border-radius:3px;cursor:pointer;font-weight:bold;transition:background .2s;}
+    .ws-cell.selected{background:#ffeaea;color:#e63946;}
+    .ws-cell.found{background:#c8f7c5;color:#27ae60;}
+    .words-to-find{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+    .wtf-chip{padding:6px 12px;border:2px solid #e63946;border-radius:16px;font-size:0.85rem;}
+    .wtf-chip.found{background:#c8f7c5;border-color:#27ae60;text-decoration:line-through;color:#27ae60;}
+  </style>
+</head>
+<body>
+<div class="screen">
+  <h1 class="cat">Articulación</h1>
+
+  <!-- STEP 1 -->
+  <div class="step active" id="s1">
+    <div class="big-letter">🧒 F</div>
+    <div style="text-align:center;font-size:3rem;margin:12px 0;">😁</div>
+    <p style="text-align:center;">¿Qué letra estás viendo?</p>
+    <button class="mic-btn" id="mic-s1">🎤</button>
+    <div class="feedback" id="fb-s1">¡Muy bien! Es la letra F 🎉</div>
+    <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="s2">
+    <h2>Ahora hagamos la pronunciación juntos</h2>
+    <p>Colocaremos los dientes superiores sobre el labio inferior y dejaremos salir aire entre los dientes y el labio.</p>
+    <div style="text-align:center;font-size:3rem;">😬💨</div>
+    <p style="text-align:center;font-weight:bold;">¿Lo hiciste bien?</p>
+    <button class="mic-btn" id="mic-s2">🎤</button>
+    <div class="feedback" id="fb-s2">¡Excelente! 🎉</div>
+    <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 3: Vowel combos -->
+  <div class="step" id="s3">
+    <h2 style="color:#e63946;">¡Bien!</h2>
+    <p>Ahora practiquemos con las vocales. Activa el micrófono y responde</p>
+    <div id="vowel-rows"></div>
+    <button class="btn-next" onclick="goStep(4)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 4: Word search -->
+  <div class="step" id="s4">
+    <p>Para evitar que a la foca se le rompa el hielo y caiga al agua. Resuelve la sopa de letras 🦭🧊</p>
+    <div class="wordsearch" id="ws"></div>
+    <div class="words-to-find" id="wtf"></div>
+    <button class="btn-next" onclick="goStep(5)">Finalizar ✓</button>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="s5">
+    <div style="text-align:center;padding:40px 0;">
+      <div style="font-size:4rem;">🏆</div>
+      <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
+      <p>Has completado los ejercicios de la letra <strong>F</strong></p>
+      <a href="/juegos/articulacion" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:20px;">Volver a Articulación</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function goStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s'+n).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+document.getElementById('mic-s1').addEventListener('click',function(){
+  this.textContent='⏹️';this.style.background='#27ae60';
+  setTimeout(()=>{this.textContent='🎤';this.style.background='#e63946';document.getElementById('fb-s1').style.display='block';},1800);
+});
+document.getElementById('mic-s2').addEventListener('click',function(){
+  this.textContent='⏹️';this.style.background='#27ae60';
+  setTimeout(()=>{this.textContent='🎤';this.style.background='#e63946';document.getElementById('fb-s2').style.display='block';},1800);
+});
+
+// Vowel rows
+const vowels=[['a','🍎'],['e','🐘'],['i','🦎'],['o','🍊'],['u','🍇']];
+const vr=document.getElementById('vowel-rows');
+vowels.forEach(([v,em])=>{
+  const row=document.createElement('div');
+  row.className='vowel-row';
+  row.innerHTML=`<span style="color:#e63946;font-size:2rem;">F</span><span>+</span><span style="font-size:2rem;">${em}</span><span>=</span><button class="vowel-mic" onclick="recordVowel(this,'F${v}')">🎤</button>`;
+  vr.appendChild(row);
+});
+function recordVowel(btn,syl){
+  btn.textContent='⏹️';
+  setTimeout(()=>{btn.textContent='✓';btn.classList.add('done');},1500);
+}
+
+// Word search (simplified 8x8)
+const wsLetters=[
+  ['F','R','E','S','A','P','Q','Z'],
+  ['U','A','B','C','D','E','F','G'],
+  ['E','F','U','E','G','O','H','I'],
+  ['N','J','K','L','M','N','O','P'],
+  ['T','F','L','A','U','T','A','Q'],
+  ['E','R','S','T','U','V','W','X'],
+  ['Y','Z','F','O','C','A','A','B'],
+  ['F','A','L','D','A','C','D','E'],
+];
+const wsWords=['FRESA','FUEGO','FUENTE','FLAUTA','FOCA','FALDA'];
+const wsEl=document.getElementById('ws');
+wsLetters.forEach((row,ri)=>{
+  row.forEach((letter,ci)=>{
+    const cell=document.createElement('div');
+    cell.className='ws-cell';
+    cell.textContent=letter;
+    cell.dataset.r=ri; cell.dataset.c=ci;
+    wsEl.appendChild(cell);
+  });
+});
+
+const wtfEl=document.getElementById('wtf');
+wsWords.forEach(w=>{
+  const chip=document.createElement('div');
+  chip.className='wtf-chip';
+  chip.textContent=w;
+  chip.id='wtf-'+w;
+  wtfEl.appendChild(chip);
+});
+
+// Simple tap-to-find (tap any cell with F to mark found)
+wsEl.addEventListener('click',e=>{
+  const cell=e.target;
+  if(!cell.classList.contains('ws-cell'))return;
+  cell.classList.toggle('selected');
+});
+</script>
+</body>
+</html>

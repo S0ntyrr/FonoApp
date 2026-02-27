@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Crear cuenta</h1>
+
+    {% if error %}
+        <div class="mensaje-error">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <form method="post" action="/auth/registro" class="formulario-movil">
+        <!-- Campo nombre Paciente-->
+        <label class="etiqueta-campo" for="nombre">Nombre completo</label>
+        <input
+            type="text"
+            id="nombre"
+            name="nombre"
+            class="campo-texto"
+            placeholder="Nombre y apellido"
+            value="{{ nombre or '' }}"
+            required
+        />
+
+        <!-- Campo email-->
+        <label class="etiqueta-campo" for="email">Correo electrónico</label>
+        <input
+            type="email"
+            id="email"
+            name="email"
+            class="campo-texto"
+            placeholder="tu@correo.com"
+            value="{{ email or '' }}"
+            required
+        />
+
+        <!-- Campo contraseña-->
+        <label class="etiqueta-campo" for="password">Contraseña</label>
+        <input
+            type="password"
+            id="password"
+            name="password"
+            class="campo-texto"
+            placeholder="********"
+            required
+        />
+
+        <div class="grupo-checkbox">
+            <input
+                type="checkbox"
+                id="acepta_terminos"
+                name="acepta_terminos"
+                value="true"
+                required
+            />
+            <label for="acepta_terminos">
+                Acepto los
+                <a href="#" class="link-rojo">términos y condiciones</a>
+            </label>
+        </div>
+
+        <button type="submit" class="boton-rojo ancho-completo">
+            Registrarme
+        </button>
+    </form>
+
+    <div class="texto-inferior">
+        <span>¿Ya tienes cuenta?</span>
+        <button
+            type="button"
+            class="boton-enlace-rojo"
+            onclick="window.location.href='/auth/login'">
+            Inicia sesión
+        </button>
+    </div>
+</section>
+{% endblock %}

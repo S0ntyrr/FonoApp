@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ titulo_pagina }}</title>
+  <link rel="stylesheet" href="/static/css/estilos.css">
+  <style>
+    body{margin:0;background:#f9f9f9;font-family:'Segoe UI',sans-serif;}
+    .container{max-width:1000px;margin:0 auto;padding:24px;}
+    h1{color:#e63946;border-bottom:2px solid #e63946;padding-bottom:10px;}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+    th{background:#e63946;color:#fff;padding:12px;text-align:left;font-size:0.9rem;}
+    td{padding:10px 12px;border-bottom:1px solid #eee;font-size:0.9rem;}
+    tr:last-child td{border-bottom:none;}
+    .badge{padding:3px 10px;border-radius:12px;font-size:0.8rem;font-weight:bold;}
+    .badge.ok{background:#c8f7c5;color:#27ae60;}
+    .badge.pending{background:#fff3cd;color:#856404;}
+    .nav-links{margin-bottom:20px;}
+    .nav-links a{color:#e63946;text-decoration:none;margin-right:16px;}
+    .empty{text-align:center;padding:40px;color:#999;}
+    .stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+    .stat-card{background:#fff;border-radius:8px;padding:16px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center;}
+    .stat-card .num{font-size:2rem;font-weight:bold;color:#e63946;}
+    .stat-card .label{font-size:0.85rem;color:#555;}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="nav-links">
+    <a href="/admin/dashboard">← Dashboard</a>
+    <a href="/admin/historial">Historial</a>
+    <a href="/admin/pacientes">Pacientes</a>
+  </div>
+  <h1>📊 Resultados de Juegos</h1>
+  <div class="stats">
+    <div class="stat-card"><div class="num">{{ resultados|length }}</div><div class="label">Total registros</div></div>
+    <div class="stat-card"><div class="num">{{ resultados|selectattr('completado')|list|length }}</div><div class="label">Completados</div></div>
+  </div>
+  {% if resultados %}
+  <table>
+    <thead>
+      <tr>
+        <th>Paciente</th>
+        <th>Categoría</th>
+        <th>Juego</th>
+        <th>Progreso</th>
+        <th>Estado</th>
+        <th>Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in resultados %}
+      <tr>
+        <td>{{ r.paciente_email }}</td>
+        <td>{{ r.categoria }}</td>
+        <td>{{ r.juego }}</td>
+        <td>{{ r.paso_completado }} / {{ r.total_pasos }}</td>
+        <td>
+          {% if r.completado %}
+            <span class="badge ok">✓ Completado</span>
+          {% else %}
+            <span class="badge pending">En progreso</span>
+          {% endif %}
+        </td>
+        <td>{{ r.fecha.strftime('%d/%m/%Y %H:%M') if r.fecha else '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No hay resultados registrados aún.</div>
+  {% endif %}
+</div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+@startuml
+title Diagrama de Actores y Roles en FonoApp
+
+actor "Administrador" as Admin
+actor "Médico" as Medico
+actor "Paciente" as Paciente
+actor "Emisor" as Emisor
+
+note right of Admin : Rol: admin\n- Gestiona usuarios (pacientes y médicos)\n- Administra asignaciones\n- Controla contenido del sistema\n- Ve estadísticas y reportes
+note right of Medico : Rol: medico\n- Gestiona evaluaciones de pacientes\n- Valora el avance del paciente mediante las actividades/juegos realizados\n- Acepta/cancela asignaciones\n- Cambia su estado (activo/ocupado/consulta)\n- Ve historial de actividades
+note right of Paciente : Rol: paciente\n- Realiza actividades asignadas (juegos)\n- Las actividades son evaluadas por el médico para determinar su avance\n- Ve su perfil y progreso\n- Selecciona actividades desde móvil
+note right of Emisor : Rol: emisor\n- Gestiona contenido multimedia\n- Envía instrucciones o recursos
+
+@enduml

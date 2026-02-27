@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<!-- Cabecera app: titulo y boton hamburguesa para abrir panel perfil -->
+<header class="cabecera-app">
+    <div class="titulo-app">Mi cuenta</div>
+    <button class="boton-hamburguesa" id="btn-hamburguesa" aria-label="Abrir perfil">☰</button>
+</header>
+
+<!-- Splash inicial (se muestra al iniciar sesión) -->
+<div id="splash" class="splash-full" aria-hidden="false">
+    <img src="/static/img/splash.svg" alt="FonoApp" />
+</div>
+
+<!-- Overlay para oscurecer contenido cuando se abre el panel -->
+<div id="overlay" class="overlay-app"></div>
+
+<!-- Panel de perfil (oculto por defecto, se desplaza desde la derecha) -->
+<aside id="panelPerfil" class="panel-perfil" role="dialog" aria-label="Panel de perfil">
+    <h2 class="titulo-rojo">Mi perfil</h2>
+
+    <form method="post" action="/paciente/perfil" class="formulario-movil">
+        <input type="hidden" name="paciente_email" value="{{ email_paciente }}" />
+
+        <label class="etiqueta-campo" for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" class="campo-texto" value="{{ perfil.nombre if perfil else '' }}" required />
+
+        <label class="etiqueta-campo" for="edad">Edad</label>
+        <input type="number" id="edad" name="edad" class="campo-texto" min="1" max="120" value="{{ perfil.edad if perfil else '' }}" required />
+
+        <label class="etiqueta-campo" for="tutor">Nombre del tutor</label>
+        <input type="text" id="tutor" name="tutor" class="campo-texto" value="{{ perfil.tutor if perfil else '' }}" required />
+
+        <label class="etiqueta-campo" for="parentesco">Parentesco</label>
+        <input type="text" id="parentesco" name="parentesco" class="campo-texto" value="{{ perfil.parentesco if perfil else '' }}" required />
+
+        {% if perfil %}
+            <p class="texto-pequeño">Registrado desde: {{ perfil.fecha_registro }}</p>
+        {% endif %}
+
+        <button type="submit" class="boton-rojo ancho-completo">Guardar</button>
+        <a href="/auth/login" class="boton-rojo-borde ancho-completo" style="display:block; text-align:center; margin-top:0.6rem;">Cerrar sesión</a>
+    </form>
+</aside>
+
+<!-- Contenido principal en formato app: selección de actividad y calendario -->
+<main class="contenido-principal">
+    <div class="pantalla-movil">
+        <section>
+        <h3 class="titulo-rojo">Actividades disponibles</h3>
+
+        <p class="texto-pequeño">Elige una actividad y toca "Comenzar".</p>
+
+        <div id="listaActividades" class="lista-actividades">
+            {% if actividades_disponibles %}
+                {% for cat in actividades_disponibles %}
+                    <div class="categoria-titulo">{{ cat.categoria }}</div>
+                    {% for act in cat.actividades %}
+                        <div class="actividad-item" data-actividad="{{ act }}">
+                            <div class="actividad-detalle">{{ act }}</div>
+                            <div class="marcador">›</div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
+                <p class="centrado texto-pequeño">No hay actividades disponibles en este momento.</p>
+            {% endif %}
+        </div>
+
+        <button id="btnComenzar" class="boton-rojo ancho-completo boton-comenzar" disabled>Comenzar</button>
+
+        <button class="boton-rojo ancho-completo boton-comenzar"
+                onclick="window.location.href='/juegos/'"
+                style="background:#388e3c; margin-top:0.5rem;">
+            🎮 Juegos Fonoaudiológicos
+        </button>
+
+        <!-- Calendario compacto -->
+        <h3 class="titulo-rojo" style="margin-top:1.2rem;">Mi calendario de uso</h3>
+        <div class="calendario-uso">
+            {% if sesiones_por_dia %}
+                <div class="calendario-grid">
+                    {% for dia, minutos in sesiones_por_dia.items() %}
+                        <div class="calendario-dia">
+                            <span class="calendario-fecha">{{ dia }}</span>
+                            <span class="calendario-minutos">{{ minutos }} min</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="centrado">Todavía no hay registros de uso para este mes.</p>
+            {% endif %}
+        </div>
+    </section>
+</main>
+
+<script src="/static/js/paciente.js"></script>
+
+{% endblock %}

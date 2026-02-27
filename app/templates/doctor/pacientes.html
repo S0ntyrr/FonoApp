@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Pacientes del sistema</h1>
+
+    <button class="boton-rojo-borde ancho-completo" onclick="window.location.href='/doctor/home'">
+        ← Volver al panel
+    </button>
+
+    {% if pacientes %}
+        <ul class="lista-pacientes">
+            {% for p in pacientes %}
+                <li class="item-paciente">
+                    <div>
+                        <strong>{{ p.nombre }}</strong><br />
+                        <small>{{ p.email }}</small><br />
+                        <small>Nivel: {{ p.nivel }} | Puntos: {{ p.puntos }}</small>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="centrado">No hay pacientes registrados.</p>
+    {% endif %}
+
+    <div class="texto-inferior">
+        <button type="button" class="boton-enlace-rojo"
+                onclick="window.location.href='/auth/login'">
+            Cerrar sesión
+        </button>
+    </div>
+</section>
+{% endblock %}

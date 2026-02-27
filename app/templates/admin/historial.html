@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Historial de actividades</h1>
+
+    {% if historial %}
+        <ul class="lista-pacientes">
+            {% for h in historial %}
+                <li class="item-paciente">
+                    <div>
+                        <strong>Paciente:</strong> {{ h.paciente_email }}<br>
+                        <strong>Categoría:</strong> {{ h.categoria }}<br>
+                        <strong>Actividad:</strong> {{ h.actividad }}<br>
+                        <strong>Puntos:</strong> {{ h.puntos_obtenidos }} | Nivel: {{ h.nivel }}<br>
+                        <strong>Fecha:</strong> {{ h.fecha }}<br>
+                        <strong>Feedback:</strong> {{ h.feedback }}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="centrado">No hay historial registrado.</p>
+    {% endif %}
+</section>
+{% endblock %}

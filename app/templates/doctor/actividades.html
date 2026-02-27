@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Actividades disponibles</h1>
+
+    <button class="boton-rojo-borde ancho-completo" onclick="window.location.href='/doctor/home'">
+        ← Volver al panel
+    </button>
+
+    {% if categorias %}
+        {% for c in categorias %}
+            <div class="tarjeta-resumen">
+                <h2>{{ c.categoria | replace("_", " ") | title }}</h2>
+                <ul>
+                    {% for act in c.actividades %}
+                        <li>{{ act }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="centrado">Aún no hay actividades configuradas.</p>
+    {% endif %}
+</section>
+{% endblock %}

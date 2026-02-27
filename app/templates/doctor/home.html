@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Panel Atención Terapéutica</h1>
+
+    <div class="tarjeta-resumen">
+        <p><strong>Estado actual:</strong> {{ estado_actual|title }}</p>
+    </div>
+
+    <h2 class="centrado">Cambiar estado</h2>
+    <form method="post" action="/doctor/estado" class="formulario-movil">
+        <label class="etiqueta-campo" for="estado">Nuevo estado</label>
+        <select id="estado" name="estado" class="campo-texto">
+            <option value="activo" {% if estado_actual == "activo" %}selected{% endif %}>Disponible</option>
+            <option value="ocupado" {% if estado_actual == "ocupado" %}selected{% endif %}>Ocupado</option>
+            <option value="consulta" {% if estado_actual == "consulta" %}selected{% endif %}>En consulta</option>
+        </select>
+
+        <button type="submit" class="boton-rojo ancho-completo">
+            Cambiar estado
+        </button>
+    </form>
+
+    <div class="acciones-admin">
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/doctor/pacientes'">
+            Ver pacientes
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/doctor/actividades'">
+            Actividades
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/doctor/asignaciones'">
+            Asignaciones
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/doctor/historial'">
+            Historial
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/doctor/resultados'">
+            📊 Resultados de Juegos
+        </button>
+
+        <button class="boton-rojo ancho-completo"
+                onclick="window.location.href='/juegos/'"
+                style="background:#388e3c;">
+            🎮 Juegos Fonoaudiológicos
+        </button>
+
+        <button class="boton-rojo-borde ancho-completo"
+                onclick="window.location.href='/auth/login'">
+            Cerrar sesión
+        </button>
+    </div>
+</section>
+{% endblock %}

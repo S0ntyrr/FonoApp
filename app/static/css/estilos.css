@@ -1,0 +1,368 @@
+:root {
+    --color-fondo: #ffffff;      /* Fondo blanco */
+    --color-rojo: #d32f2f;       /* Rojo principal (botones, títulos) */
+    --color-rojo-borde: #d32f2f;
+    --color-texto: #333333;
+    --color-error: #ff5252;
+    --color-borde-input: #cccccc;
+}
+
+body.fondo-blanco {
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-fondo);
+    font-family: Arial, sans-serif;
+    color: var(--color-texto);
+}
+
+/* Contenedor principal (modo móvil) */
+.contenedor-principal {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Caja tipo pantalla móvil */
+.pantalla-movil {
+    width: 100%;
+    max-width: 450px;
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+/* Títulos en rojo */
+.titulo-rojo {
+    color: var(--color-rojo);
+    margin-bottom: 1.5rem;
+}
+
+.centrado {
+    text-align: center;
+}
+
+/* Formularios */
+.formulario-movil {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.etiqueta-campo {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.campo-texto {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--color-borde-input);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+/* Botones rojos */
+.boton-rojo {
+    background-color: var(--color-rojo);
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 0.8rem;
+}
+
+.boton-rojo:hover {
+    opacity: 0.9;
+}
+
+/* Botón rojo con borde */
+.boton-rojo-borde {
+    background-color: #ffffff;
+    color: var(--color-rojo);
+    border: 1px solid var(--color-rojo-borde);
+    border-radius: 4px;
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 0.4rem;
+}
+
+.boton-rojo-borde:hover {
+    background-color: #fff5f5;
+}
+
+.ancho-completo {
+    width: 100%;
+}
+
+/* Checkbox términos */
+.grupo-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.link-rojo {
+    color: var(--color-rojo);
+    text-decoration: none;
+}
+
+.link-rojo:hover {
+    text-decoration: underline;
+}
+
+/* Mensaje de error */
+.mensaje-error {
+    background-color: #ffe6e6;
+    color: var(--color-error);
+    border: 1px solid var(--color-error);
+    border-radius: 4px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.8rem;
+    font-size: 0.85rem;
+}
+
+/* Texto inferior (¿Ya tienes cuenta?) */
+.texto-inferior {
+    margin-top: 1.2rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.boton-enlace-rojo {
+    background: none;
+    border: none;
+    color: var(--color-rojo);
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    padding: 0;
+    margin-left: 0.25rem;
+}
+/* Layout con menú lateral para el paciente */
+.layout-lateral {
+    display: flex;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* Menú lateral */
+.menu-lateral {
+    min-width: 180px;
+    max-width: 220px;
+    padding: 1rem;
+    border-right: 1px solid #eeeeee;
+}
+
+.menu-lateral ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.menu-lateral li {
+    margin-bottom: 0.5rem;
+}
+
+/* Contenido principal al lado del menú */
+.contenido-principal {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1rem;
+}
+
+/* Calendario simple */
+.calendario-uso {
+    margin-top: 0.5rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.calendario-dia {
+    border: 1px solid #eeeeee;
+    border-radius: 6px;
+    padding: 0.4rem;
+    text-align: center;
+    background-color: #fff5f5; /* fondo suave rojo claro */
+}
+
+.calendario-fecha {
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-rojo);
+}
+
+.calendario-minutos {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.texto-pequeño {
+    font-size: 0.8rem;
+    color: #666666;
+}
+
+/* Listas de pacientes/médicos reutilizadas */
+.lista-pacientes {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 1rem;
+}
+
+.item-paciente {
+    border: 1px solid #eeeeee;
+    border-radius: 6px;
+    padding: 0.8rem;
+    margin-bottom: 0.6rem;
+}
+
+/* --- Estilos específicos para la app móvil (panel paciente) --- */
+.cabecera-app {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    background: linear-gradient(180deg, #fff, #fffaf9);
+}
+.titulo-app {
+    font-size: 1.1rem;
+    color: var(--color-rojo);
+    font-weight: 700;
+}
+.boton-hamburguesa {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    padding: 0.2rem;
+    cursor: pointer;
+}
+
+/* Panel de perfil colapsable a la derecha (modo app) */
+.panel-perfil {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 90%;
+    max-width: 420px;
+    height: 100%;
+    background: #ffffff;
+    box-shadow: -6px 0 18px rgba(0,0,0,0.08);
+    transition: right 0.28s ease-in-out;
+    z-index: 1000;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+.panel-perfil.abierto {
+    right: 0;
+}
+.overlay-app {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 900;
+}
+.overlay-app.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Splash inicial pantalla completa */
+.splash-full {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg,#ffffff,#fffaf0);
+    z-index: 2000;
+}
+.splash-full img {
+    width: 75%;
+    max-width: 300px;
+}
+
+/* Lista de actividades en formato app */
+.lista-actividades {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.categoria-titulo {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 0.6rem;
+    text-align: center;
+    font-weight: bold;
+}
+.actividad-item {
+    border: 1px solid #f2f2f2;
+    border-radius: 10px;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+}
+
+.actividad-item.selected {
+    border-color: var(--color-rojo);
+    background: #fff7f7;
+}
+
+.marcador {
+    font-size: 1.2rem;
+    color: var(--color-rojo);
+}
+.actividad-detalle {
+    font-size: 0.95rem;
+    color: var(--color-texto);
+}
+.boton-comenzar {
+    margin-top: 1rem;
+}
+
+/* Ajustes responsivos pequeños */
+@media (max-width: 420px) {
+    .pantalla-movil { padding: 1rem; }
+    .cabecera-app { padding: 0.6rem 1rem; }
+    .titulo-app { font-size: 1rem; }
+    .boton-hamburguesa { font-size: 1.2rem; }
+    .splash-full img { width: 80%; }
+    .panel-perfil { padding: 0.8rem; }
+    .panel-perfil h2 { font-size: 1.2rem; }
+    .panel-perfil .formulario-movil { gap: 0.5rem; }
+    .overlay-app { background: rgba(0,0,0,0.4); }
+    .contenido-principal { padding: 0.5rem; }
+    .contenido-principal h3 { font-size: 1.1rem; }
+    .boton-comenzar { font-size: 1.1rem; padding: 0.8rem 1.2rem; }
+    .actividad-detalle { font-size: 0.9rem; }
+    .categoria-titulo { font-size: 0.8rem; }
+    .calendario-dia { padding: 0.3rem; }
+    .calendario-fecha { font-size: 0.75rem; }
+    .calendario-minutos { font-size: 0.85rem; }
+    .texto-pequeño { font-size: 0.75rem; }
+    .calendario-grid { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+}

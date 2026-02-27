@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Pacientes</h1>
+
+    <h2 class="centrado">Crear nuevo paciente</h2>
+    <form method="post" action="/admin/pacientes/crear" class="formulario-movil">
+        <label class="etiqueta-campo" for="nombre">Nombre</label>
+        <input type="text" id="nombre" name="nombre" class="campo-texto" required />
+
+        <label class="etiqueta-campo" for="email">Correo</label>
+        <input type="email" id="email" name="email" class="campo-texto" required />
+
+        <label class="etiqueta-campo" for="password">Contraseña</label>
+        <input type="password" id="password" name="password" class="campo-texto" required />
+
+        <button type="submit" class="boton-rojo ancho-completo">Crear paciente</button>
+    </form>
+
+    <h2 class="centrado" style="margin-top: 1.5rem;">Listado de pacientes</h2>
+
+    {% if pacientes %}
+        <ul class="lista-pacientes">
+            {% for p in pacientes %}
+                <li class="item-paciente">
+                    <div>
+                        <strong>{{ p.nombre }}</strong><br />
+                        <small>{{ p.email }}</small><br />
+                        <small>Estado: {{ p.estado }}</small>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <form method="post"
+                              action="/admin/asignaciones/auto">
+                            <input type="hidden" name="paciente_email" value="{{ p.email }}" />
+                            <button type="submit" class="boton-rojo">
+                                Asignar médico
+                            </button>
+                        </form>
+                        <form method="post"
+                              action="/admin/pacientes/{{ p._id }}/eliminar"
+                              onsubmit="return confirm('¿Eliminar este paciente?');">
+                            <button type="submit" class="boton-rojo-borde">Eliminar</button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="centrado">No hay pacientes registrados.</p>
+    {% endif %}
+
+    <div class="texto-inferior">
+        <button type="button" class="boton-enlace-rojo"
+                onclick="window.location.href='/admin/dashboard'">
+            Volver al panel
+        </button>
+    </div>
+</section>
+{% endblock %}

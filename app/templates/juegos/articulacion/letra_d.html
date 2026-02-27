@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>{{ titulo_pagina }}</title>
+  <link rel="stylesheet" href="/static/css/estilos.css">
+  <style>
+    body{margin:0;background:#fff;font-family:'Segoe UI',sans-serif;}
+    .screen{max-width:430px;margin:0 auto;min-height:100vh;padding:16px;box-sizing:border-box;}
+    h1.cat{color:#e63946;text-align:center;font-size:1.4rem;border-bottom:2px solid #e63946;padding-bottom:8px;margin-bottom:16px;}
+    .step{display:none;} .step.active{display:block;}
+    .btn-next{background:#e63946;color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:1rem;cursor:pointer;display:block;margin:20px auto 0;width:100%;}
+    .mic-btn{background:#e63946;color:#fff;border:none;border-radius:50%;width:56px;height:56px;font-size:1.6rem;cursor:pointer;display:block;margin:12px auto;}
+    .feedback{color:#27ae60;font-weight:bold;text-align:center;display:none;margin:8px 0;}
+    .big-letter{font-size:5rem;text-align:center;color:#e63946;font-weight:900;}
+    .maze{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:16px 0;}
+    .maze-cell{height:44px;border:1px solid #ddd;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;background:#f0f8ff;}
+    .maze-cell.path{background:#e63946;color:#fff;font-weight:bold;}
+    .maze-cell.collected{background:#27ae60;color:#fff;}
+    .maze-cell.wall{background:#333;cursor:default;}
+    .complete-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+    .complete-item{border:1px solid #eee;border-radius:8px;padding:10px;text-align:center;}
+    .complete-item .emoji{font-size:2rem;}
+    .complete-item .word{font-size:0.85rem;color:#555;margin-top:4px;}
+    .complete-item .mic-sm{background:#e63946;color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:0.9rem;cursor:pointer;margin-top:6px;}
+    .complete-item.done{background:#c8f7c5;border-color:#27ae60;}
+  </style>
+</head>
+<body>
+<div class="screen">
+  <h1 class="cat">Articulación</h1>
+
+  <!-- STEP 1 -->
+  <div class="step active" id="s1">
+    <div style="text-align:center;font-size:3rem;margin:16px 0;">😬🦷</div>
+    <p style="text-align:center;">¿Sabes qué letra están pronunciando?</p>
+    <button class="mic-btn" id="mic-s1">🎤</button>
+    <div class="feedback" id="fb-s1">¡Bravo! Es la letra D 🎉</div>
+    <div class="big-letter">🐉 D d</div>
+    <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="s2">
+    <h2>Sigue estos pasos</h2>
+    <p>1. Colocaremos labios entre abiertos mostrando los dientes y la punta de la lengua</p>
+    <div style="text-align:center;font-size:3rem;">😬</div>
+    <p>2. Ahora con la ayuda de tus padres debes colocar un espejo debajo de la nariz y por encima de tu boca y pronuncia la letra <strong>d</strong>, no se debe empañar el espejo</p>
+    <div style="text-align:center;font-size:2.5rem;">🪞</div>
+    <p style="color:#e63946;font-weight:bold;text-align:center;">¡Perfecto!</p>
+    <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
+  </div>
+
+  <!-- STEP 3: Maze -->
+  <div class="step" id="s3">
+    <p>Practiquemos juntos la letra <strong>d</strong>. Lo haremos de manera aislada. Recoge las <strong>d</strong> y encuentra el camino correcto</p>
+    <div class="maze" id="maze"></div>
+    <div style="text-align:center;font-size:2rem;" id="smiley">😐</div>
+    <p style="text-align:center;color:#555;">Haz que la cara esté feliz. Haciéndolo en el menor tiempo</p>
+    <button class="btn-next" id="btn-maze-next" onclick="goStep(4)" style="display:none;">Siguiente →</button>
+  </div>
+
+  <!-- STEP 4: Complete the word -->
+  <div class="step" id="s4">
+    <p><strong>Completa la palabra.</strong><br><span style="color:#555;">Graba un audio con la sílaba correspondiente</span></p>
+    <div class="complete-grid" id="complete-grid"></div>
+    <button class="btn-next" onclick="goStep(5)">Finalizar ✓</button>
+  </div>
+
+  <!-- STEP 5: Done -->
+  <div class="step" id="s5">
+    <div style="text-align:center;padding:40px 0;">
+      <div style="font-size:4rem;">🏆</div>
+      <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
+      <p>Has completado los ejercicios de la letra <strong>D</strong></p>
+      <a href="/juegos/articulacion" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:20px;">Volver a Articulación</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s'+n).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+document.getElementById('mic-s1').addEventListener('click', function(){
+  this.textContent='⏹️'; this.style.background='#27ae60';
+  setTimeout(()=>{
+    this.textContent='🎤'; this.style.background='#e63946';
+    document.getElementById('fb-s1').style.display='block';
+  },1800);
+});
+
+// Simple maze: 6x5 grid, some cells have 'd', some are walls, path leads through d's
+const mazeData = [
+  ['d','.','.','w','d','.'],
+  ['.','w','d','.','w','.'],
+  ['d','.','w','d','.','.'],
+  ['w','d','.','w','d','.'],
+  ['.','w','d','.','w','d'],
+];
+let collected=0, total=0;
+const mazeEl = document.getElementById('maze');
+mazeData.forEach(row => {
+  row.forEach(cell => {
+    const div = document.createElement('div');
+    div.className = 'maze-cell';
+    if(cell==='w'){div.className='maze-cell wall';div.textContent='■';}
+    else if(cell==='d'){div.textContent='d';div.className='maze-cell path';total++;}
+    else{div.textContent='';}
+    if(cell==='d'){
+      div.addEventListener('click',()=>{
+        if(div.classList.contains('collected'))return;
+        div.classList.remove('path');div.classList.add('collected');div.textContent='✓';
+        collected++;
+        const pct=collected/total;
+        const smileys=['😐','🙂','😊','😄','🤩'];
+        document.getElementById('smiley').textContent=smileys[Math.min(Math.floor(pct*5),4)];
+        if(collected===total)document.getElementById('btn-maze-next').style.display='block';
+      });
+    }
+    mazeEl.appendChild(div);
+  });
+});
+
+// Complete the word items
+const words=[
+  {emoji:'👆',word:'de__o',answer:'d'},
+  {emoji:'🚿',word:'__ucha',answer:'d'},
+  {emoji:'🍬',word:'__lce',answer:'d'},
+  {emoji:'🐬',word:'__lfín',answer:'d'},
+  {emoji:'📜',word:'__ploma',answer:'d'},
+  {emoji:'😴',word:'__rmir',answer:'d'},
+  {emoji:'🦷',word:'__ente',answer:'d'},
+  {emoji:'🎲',word:'__do',answer:'d'},
+  {emoji:'🍊',word:'__razno',answer:'d'},
+  {emoji:'🎭',word:'__ctor',answer:'d'},
+];
+const cgrid=document.getElementById('complete-grid');
+words.forEach(item=>{
+  const div=document.createElement('div');
+  div.className='complete-item';
+  div.innerHTML=`<div class="emoji">${item.emoji}</div><div class="word">${item.word}</div><button class="mic-sm">🎤</button>`;
+  div.querySelector('.mic-sm').addEventListener('click',function(){
+    this.textContent='⏹️';
+    setTimeout(()=>{this.textContent='✓';div.classList.add('done');},1500);
+  });
+  cgrid.appendChild(div);
+});
+</script>
+</body>
+</html>
