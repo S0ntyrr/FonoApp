@@ -1,6 +1,6 @@
 from datetime import datetime
 from collections import defaultdict
-from random import sample
+from random import sample, seed as random_seed
 
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -93,13 +93,22 @@ async def vista_perfil_paciente(
                     "url": "/juegos/"
                 })
     else:
-        # Selección aleatoria de actividades reales (4 de diferentes categorías)
+        # Selección DETERMINISTA por día y email (mismas actividades todo el día)
+        # Usar fecha + email como semilla para que sean consistentes
+        seed_str = f"{hoy.strftime('%Y-%m-%d')}-{email}"
+        seed_val = sum(ord(c) for c in seed_str)
+        random_seed(seed_val)
+        
         categorias = list({a["categoria"] for a in ACTIVIDADES_REALES})
         actividades_disponibles_raw = []
         for cat in sample(categorias, min(4, len(categorias))):
             opciones_cat = [a for a in ACTIVIDADES_REALES if a["categoria"] == cat]
             if opciones_cat:
                 actividades_disponibles_raw.append(sample(opciones_cat, 1)[0])
+        
+        # Resetear la semilla aleatoria para no afectar otras partes
+        import time
+        random_seed(int(time.time()))
 
     # Agrupar por categoría para la plantilla
     categorias_dict = defaultdict(list)

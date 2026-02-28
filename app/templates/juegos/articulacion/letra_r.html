@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <script>
+  function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1){
+    const email=sessionStorage.getItem('paciente_email')||'paciente@tesis.com';
+    const fd=new FormData();fd.append('paciente_email',email);fd.append('categoria',cat);
+    fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
+    fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
+    fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
+  }
+  </script>
   <style>
     body{margin:0;background:#fff;font-family:'Segoe UI',sans-serif;}
     .screen{max-width:430px;margin:0 auto;min-height:100vh;padding:16px;box-sizing:border-box;}
@@ -79,7 +88,7 @@
   <div class="step" id="s4">
     <p><strong>Completa la palabra.</strong><br><span style="color:#555;">Graba un audio con la sílaba correspondiente</span></p>
     <div class="complete-grid" id="complete-grid"></div>
-    <button class="btn-next" onclick="goStep(5)">Finalizar ✓</button>
+    <button class="btn-next" onclick="goStep(5); guardarResultadoJuego('articulacion','letra_r',5,5,true,60,1);">Finalizar ✓</button>
   </div>
 
   <!-- STEP 5 -->

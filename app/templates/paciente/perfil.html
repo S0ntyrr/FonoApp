@@ -163,42 +163,47 @@ sessionStorage.setItem('juegos_origen', '/paciente/perfil');
 </script>
 <script src="/static/js/paciente.js"></script>
 <script>
-// Marcar actividad como completada
-let actividadesCompletadas = 0;
-let totalActividades = 0;
+// Sistema de progreso de actividades del día
+// Usa la URL de cada actividad como clave (no el índice) para ser estable
+const HOY_KEY = 'actividades_completadas_' + new Date().toDateString() + '_{{ email_paciente }}';
 
 document.addEventListener('DOMContentLoaded', function() {
-    totalActividades = document.querySelectorAll('.actividad-link').length;
-    // Restaurar estado del localStorage
-    const completadas = JSON.parse(localStorage.getItem('actividades_hoy_' + new Date().toDateString()) || '[]');
-    completadas.forEach(idx => {
-        const items = document.querySelectorAll('.actividad-link');
-        if (items[idx]) {
-            items[idx].classList.add('completada');
-            items[idx].querySelector('.actividad-check').textContent = '✓';
-            actividadesCompletadas++;
+    const items = document.querySelectorAll('.actividad-link');
+    const completadas = JSON.parse(localStorage.getItem(HOY_KEY) || '[]');
+    
+    items.forEach(item => {
+        const url = item.getAttribute('href');
+        if (completadas.includes(url)) {
+            item.classList.add('completada');
+            const check = item.querySelector('.actividad-check');
+            if (check) check.textContent = '✓';
         }
     });
+    
     verificarSesionCompleta();
 });
 
 function marcarActividad(el) {
-    // Guardar en localStorage ANTES de navegar (síncrono)
-    const idx = Array.from(document.querySelectorAll('.actividad-link')).indexOf(el);
-    const key = 'actividades_hoy_' + new Date().toDateString();
-    const completadas = JSON.parse(localStorage.getItem(key) || '[]');
-    if (!completadas.includes(idx)) {
-        completadas.push(idx);
-        localStorage.setItem(key, JSON.stringify(completadas));
+    // Guardar la URL de la actividad en localStorage ANTES de navegar
+    const url = el.getAttribute('href');
+    if (!url) return;
+    const completadas = JSON.parse(localStorage.getItem(HOY_KEY) || '[]');
+    if (!completadas.includes(url)) {
+        completadas.push(url);
+        localStorage.setItem(HOY_KEY, JSON.stringify(completadas));
     }
-    // La navegación ocurre normalmente (el href del <a> se ejecuta)
+    // La navegación ocurre normalmente
 }
 
 function verificarSesionCompleta() {
+    const total = document.querySelectorAll('.actividad-link').length;
     const completadas = document.querySelectorAll('.actividad-link.completada').length;
-    if (totalActividades > 0 && completadas >= totalActividades) {
-        document.getElementById('sesion-completada').style.display = 'flex';
-        document.querySelectorAll('.actividad-link').forEach(a => a.style.opacity = '0.6');
+    if (total > 0 && completadas >= total) {
+        const sesionDiv = document.getElementById('sesion-completada');
+        if (sesionDiv) {
+            sesionDiv.style.display = 'flex';
+            document.querySelectorAll('.actividad-link').forEach(a => a.style.opacity = '0.7');
+        }
     }
 }
 </script>

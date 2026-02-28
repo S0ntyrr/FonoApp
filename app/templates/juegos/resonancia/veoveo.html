@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <script>
+  function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1){
+    const email=sessionStorage.getItem('paciente_email')||'paciente@tesis.com';
+    const fd=new FormData();fd.append('paciente_email',email);fd.append('categoria',cat);
+    fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
+    fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
+    fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
+  }
+  </script>
   <style>
     /* mobile container */
     body { margin:0; background:#fff; font-family: 'Segoe UI', sans-serif; }
@@ -53,7 +62,7 @@
     <button class="mic-btn" id="mic2" title="Grabar">🎤</button>
     <div class="feedback" id="feedback">¡Muy bien! 🎉</div>
     <div style="margin-top:24px;">
-      <a href="/juegos/resonancia" style="display:block;text-align:center;color:#e63946;">← Volver a Resonancia</a>
+      <a href="/juegos/resonancia" style="display:block;text-align:center;color:#e63946;" onclick="guardarResultadoJuego('resonancia','veoveo',2,2,true,50,1);">← Volver a Resonancia</a>
     </div>
   </div>
 </div>
