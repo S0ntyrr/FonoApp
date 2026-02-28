@@ -1,87 +1,74 @@
 {% extends "base.html" %}
-
 {% block contenido %}
 <section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">🎮 Juegos Fonoaudiológicos</h1>
-    <p class="centrado texto-pequeño" style="margin-bottom:1.5rem;">Selecciona una categoría para comenzar a practicar</p>
+    <div class="juegos-header">
+        <button class="btn-volver" id="btn-volver" onclick="volverAtras()">← Volver</button>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.3rem;">🎮 Juegos Fonoaudiológicos</h1>
+        <div style="width:80px;"></div>
+    </div>
+    <p class="centrado texto-pequeño" style="margin-bottom:1.5rem;margin-top:0.5rem;">Selecciona una categoría para comenzar a practicar</p>
 
     <div class="juegos-grid">
-
         <a href="/juegos/practica" class="juego-card practica">
             <div class="juego-icono">🧩</div>
-            <div class="juego-info">
-                <h2>Practica Conmigo</h2>
-                <p>Rompecabezas, crea tu personaje y asocia imágenes</p>
-            </div>
+            <div class="juego-info"><h2>Practica Conmigo</h2><p>Rompecabezas, crea tu personaje y asocia imágenes</p></div>
+            <span class="juego-flecha">›</span>
         </a>
-
         <a href="/juegos/respiracion" class="juego-card respiracion">
             <div class="juego-icono">🎈</div>
-            <div class="juego-info">
-                <h2>Respiración</h2>
-                <p>Practica la respiración diafragmática correcta</p>
-            </div>
+            <div class="juego-info"><h2>Respiración</h2><p>Practica la respiración diafragmática correcta</p></div>
+            <span class="juego-flecha">›</span>
         </a>
-
         <a href="/juegos/fonacion" class="juego-card fonacion">
             <div class="juego-icono">🎵</div>
-            <div class="juego-info">
-                <h2>Fonación</h2>
-                <p>Ejercicios de voz: goles y escalas musicales</p>
-            </div>
+            <div class="juego-info"><h2>Fonación</h2><p>Ejercicios de voz: goles y escalas musicales</p></div>
+            <span class="juego-flecha">›</span>
         </a>
-
         <a href="/juegos/resonancia" class="juego-card resonancia">
             <div class="juego-icono">🎹</div>
-            <div class="juego-info">
-                <h2>Resonancia</h2>
-                <p>Escaleras de tono y piano interactivo</p>
-            </div>
+            <div class="juego-info"><h2>Resonancia</h2><p>Escaleras de tono y piano interactivo</p></div>
+            <span class="juego-flecha">›</span>
         </a>
-
         <a href="/juegos/articulacion" class="juego-card articulacion">
             <div class="juego-icono">🗣️</div>
-            <div class="juego-info">
-                <h2>Articulación</h2>
-                <p>Aprende a pronunciar letras correctamente</p>
-            </div>
+            <div class="juego-info"><h2>Articulación</h2><p>Aprende a pronunciar letras correctamente</p></div>
+            <span class="juego-flecha">›</span>
         </a>
-
-    </div>
-
-    <div style="margin-top:2rem; text-align:center;">
-        <a href="javascript:history.back()" class="boton-rojo-borde" style="display:inline-block; padding:0.6rem 1.5rem; text-decoration:none; border-radius:4px;">← Volver</a>
     </div>
 </section>
 
 <style>
-.juegos-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-.juego-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.2rem;
-    border-radius: 12px;
-    text-decoration: none;
-    color: #333;
-    transition: transform 0.15s, box-shadow 0.15s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.juego-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
-}
-.juego-card.practica  { background: linear-gradient(135deg,#fff7f7,#ffe0e0); border-left: 4px solid #d32f2f; }
-.juego-card.respiracion { background: linear-gradient(135deg,#f0f8ff,#d0eaff); border-left: 4px solid #1976d2; }
-.juego-card.fonacion  { background: linear-gradient(135deg,#f5fff0,#d4f5c0); border-left: 4px solid #388e3c; }
-.juego-card.resonancia { background: linear-gradient(135deg,#fffbf0,#ffe9a0); border-left: 4px solid #f57c00; }
-.juego-card.articulacion { background: linear-gradient(135deg,#fff0f8,#ffd6ee); border-left: 4px solid #e63946; }
-.juego-icono { font-size: 2.5rem; min-width: 3rem; text-align:center; }
-.juego-info h2 { margin: 0 0 0.25rem; font-size: 1.05rem; color: #222; }
-.juego-info p  { margin: 0; font-size: 0.82rem; color: #555; }
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; cursor:pointer; font-weight:600; transition:background 0.15s; white-space:nowrap; }
+.btn-volver:hover { background:#fff5f5; }
+.juegos-grid { display:flex; flex-direction:column; gap:0.9rem; }
+.juego-card { display:flex; align-items:center; gap:1rem; padding:1rem 1.2rem; border-radius:14px; text-decoration:none; color:#333; transition:transform 0.15s, box-shadow 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.07); position:relative; }
+.juego-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+.juego-card.practica    { background:linear-gradient(135deg,#fff7f7,#ffe0e0); border-left:4px solid #d32f2f; }
+.juego-card.respiracion { background:linear-gradient(135deg,#f0f8ff,#d0eaff); border-left:4px solid #1976d2; }
+.juego-card.fonacion    { background:linear-gradient(135deg,#f5fff0,#d4f5c0); border-left:4px solid #388e3c; }
+.juego-card.resonancia  { background:linear-gradient(135deg,#fffbf0,#ffe9a0); border-left:4px solid #f57c00; }
+.juego-card.articulacion{ background:linear-gradient(135deg,#fff0f8,#ffd6ee); border-left:4px solid #e63946; }
+.juego-icono { font-size:2.4rem; min-width:3rem; text-align:center; }
+.juego-info h2 { margin:0 0 0.2rem; font-size:1rem; color:#222; font-weight:700; }
+.juego-info p  { margin:0; font-size:0.8rem; color:#666; }
+.juego-flecha  { font-size:1.4rem; color:#bbb; margin-left:auto; padding-left:0.5rem; }
 </style>
+
+<script>
+function volverAtras() {
+    const ref = document.referrer;
+    if (ref.includes('/admin/')) {
+        window.location.href = '/admin/dashboard';
+    } else if (ref.includes('/doctor/')) {
+        window.location.href = '/doctor/home';
+    } else if (ref.includes('/paciente/')) {
+        window.location.href = '/paciente/perfil';
+    } else if (history.length > 1) {
+        history.back();
+    } else {
+        window.location.href = '/paciente/perfil';
+    }
+}
+</script>
 {% endblock %}

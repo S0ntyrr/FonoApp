@@ -1,32 +1,70 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Historial de pacientes</h1>
-
-    <button class="boton-rojo-borde ancho-completo" onclick="window.location.href='/doctor/home'">
-        ← Volver al panel
-    </button>
-
+<section class="pantalla-movil" style="padding-top:1rem;">
+    <div class="panel-header">
+        <a href="/doctor/home" class="btn-volver-panel">← Volver</a>
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.1rem;">📅 Historial de actividades</h1>
+        <div style="width:70px;"></div>
+    </div>
+    <div class="filtros-historial">
+        <a href="/doctor/evaluaciones-pendientes" class="filtro-btn activo-alerta">⚠️ Solo pendientes</a>
+        <a href="/doctor/historial" class="filtro-btn activo">📋 Todo el historial</a>
+    </div>
     {% if historial %}
-        <ul class="lista-pacientes">
+        <div class="historial-lista">
             {% for h in historial %}
-                <li class="item-paciente">
-                    <div>
-                        <strong>Paciente:</strong> {{ h.paciente_email }}<br>
-                        <strong>Categoría:</strong> {{ h.categoria }}<br>
-                        <strong>Actividad:</strong> {{ h.actividad }}<br>
-                        <strong>Puntos:</strong> {{ h.puntos_obtenidos }} | Nivel: {{ h.nivel }}<br>
-                        <strong>Fecha:</strong> {{ h.fecha }}<br>
-                        {% if h.feedback %}
-                            <strong>Comentario:</strong> {{ h.feedback }}
-                        {% endif %}
+                <div class="historial-card {% if not h.feedback %}sin-feedback{% endif %}">
+                    <div class="historial-header">
+                        <div class="paciente-avatar-sm">{{ h.paciente_email[0] | upper }}</div>
+                        <div class="historial-info">
+                            <p class="historial-paciente">{{ h.paciente_email }}</p>
+                            <p class="historial-actividad-nombre">{{ h.actividad }}</p>
+                            <p class="historial-meta">{{ h.categoria | title }} · 🏆 {{ h.puntos_obtenidos }} pts · Nivel {{ h.nivel }} · 📅 {{ h.fecha.strftime('%d/%m/%Y') if h.fecha else '-' }}</p>
+                        </div>
+                        {% if h.feedback %}<span class="badge-evaluado">✓</span>
+                        {% else %}<span class="badge-pendiente">⏳</span>{% endif %}
                     </div>
-                </li>
+                    {% if h.feedback %}
+                        <div class="hist-feedback">
+                            <span class="feedback-label">💬</span>
+                            <p class="feedback-texto">{{ h.feedback }}</p>
+                        </div>
+                    {% else %}
+                        <a href="/doctor/evaluaciones-pendientes" class="btn-evaluar">Evaluar esta actividad →</a>
+                    {% endif %}
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
-        <p class="centrado">Aún no hay actividades registradas por los pacientes.</p>
+        <div class="actividad-vacia" style="margin-top:2rem;">
+            <span style="font-size:2.5rem;">📋</span>
+            <p>Aún no hay actividades registradas.</p>
+        </div>
     {% endif %}
 </section>
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+.filtros-historial { display:flex; gap:0.5rem; margin-bottom:1rem; }
+.filtro-btn { font-size:0.78rem; font-weight:600; padding:0.35rem 0.8rem; border-radius:20px; text-decoration:none; border:1.5px solid #e0e0e0; color:#666; background:#fff; }
+.filtro-btn.activo { border-color:#d32f2f; color:#d32f2f; background:#fff9f9; }
+.filtro-btn.activo-alerta { border-color:#f57c00; color:#e65100; background:#fff8f0; }
+.historial-lista { display:flex; flex-direction:column; gap:0.7rem; }
+.historial-card { background:#fff; border-radius:12px; padding:0.9rem 1rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); border-left:4px solid #e0e0e0; }
+.historial-card.sin-feedback { border-left-color:#f57c00; }
+.historial-header { display:flex; align-items:flex-start; gap:0.7rem; margin-bottom:0.5rem; }
+.paciente-avatar-sm { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; font-size:0.88rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.historial-info { flex:1; }
+.historial-paciente { margin:0; font-size:0.82rem; color:#888; }
+.historial-actividad-nombre { margin:0.1rem 0; font-size:0.9rem; font-weight:700; color:#1a1a1a; }
+.historial-meta { margin:0; font-size:0.7rem; color:#aaa; }
+.badge-evaluado { background:#e8f5e9; color:#2e7d32; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
+.badge-pendiente { background:#fff3e0; color:#e65100; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
+.hist-feedback { display:flex; gap:0.4rem; background:#f9f9f9; border-radius:8px; padding:0.4rem 0.6rem; }
+.feedback-label { font-size:0.85rem; }
+.feedback-texto { margin:0; font-size:0.82rem; color:#333; }
+.btn-evaluar { display:inline-block; margin-top:0.4rem; font-size:0.78rem; color:#e65100; text-decoration:none; font-weight:600; padding:0.25rem 0.6rem; border:1px solid #ffe0b2; border-radius:8px; background:#fff8f0; }
+.btn-evaluar:hover { background:#fff3e0; }
+</style>
 {% endblock %}

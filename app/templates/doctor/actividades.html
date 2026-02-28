@@ -1,26 +1,40 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Actividades disponibles</h1>
-
-    <button class="boton-rojo-borde ancho-completo" onclick="window.location.href='/doctor/home'">
-        ← Volver al panel
-    </button>
-
-    {% if categorias %}
-        {% for c in categorias %}
-            <div class="tarjeta-resumen">
-                <h2>{{ c.categoria | replace("_", " ") | title }}</h2>
-                <ul>
-                    {% for act in c.actividades %}
-                        <li>{{ act }}</li>
-                    {% endfor %}
-                </ul>
+<section class="pantalla-movil" style="padding-top:1rem;">
+    <div class="panel-header">
+        <a href="/doctor/home" class="btn-volver-panel">← Volver</a>
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.1rem;">🎮 Juegos disponibles</h1>
+        <div style="width:70px;"></div>
+    </div>
+    <p class="texto-pequeño centrado" style="margin-bottom:1rem;">Juegos fonoaudiológicos disponibles. Haz clic para probarlos.</p>
+    {% for categoria in juegos_disponibles %}
+        <div class="categoria-juegos">
+            <h3 class="categoria-titulo-juego">{{ categoria.categoria }}</h3>
+            <div class="juegos-lista">
+                {% for juego in categoria.juegos %}
+                    <a href="{{ juego.url }}" class="juego-item-link" target="_blank">
+                        <span class="juego-item-nombre">{{ juego.nombre }}</span>
+                        <span class="juego-item-flecha">↗</span>
+                    </a>
+                {% endfor %}
             </div>
-        {% endfor %}
-    {% else %}
-        <p class="centrado">Aún no hay actividades configuradas.</p>
-    {% endif %}
+        </div>
+    {% endfor %}
+    <div style="margin-top:1.5rem;">
+        <a href="/juegos/" class="boton-rojo ancho-completo" style="display:block;text-align:center;text-decoration:none;padding:0.75rem;">🎮 Ir al hub de juegos</a>
+    </div>
 </section>
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+.categoria-juegos { margin-bottom:1rem; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
+.categoria-titulo-juego { margin:0; padding:0.7rem 1rem; font-size:0.82rem; font-weight:700; color:#d32f2f; text-transform:uppercase; letter-spacing:0.5px; background:#fff9f9; border-bottom:1px solid #f5f5f5; }
+.juegos-lista { display:flex; flex-direction:column; }
+.juego-item-link { display:flex; align-items:center; justify-content:space-between; padding:0.7rem 1rem; text-decoration:none; color:#1a1a1a; border-bottom:1px solid #f5f5f5; transition:background 0.1s; font-size:0.9rem; }
+.juego-item-link:last-child { border-bottom:none; }
+.juego-item-link:hover { background:#fff5f5; }
+.juego-item-nombre { font-weight:500; }
+.juego-item-flecha { color:#d32f2f; font-size:0.9rem; }
+</style>
 {% endblock %}

@@ -1,44 +1,58 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Evaluaciones Pendientes</h1>
-
-    <div class="nav-links" style="margin-bottom:1rem;">
-        <a href="/doctor/home" class="boton-rojo-borde" style="display:inline-block;padding:0.4rem 1rem;text-decoration:none;">← Panel Doctor</a>
+<section class="pantalla-movil" style="padding-top:1rem;">
+    <div class="panel-header">
+        <a href="/doctor/home" class="btn-volver-panel">← Volver</a>
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.1rem;">📋 Evaluaciones pendientes</h1>
+        <div style="width:70px;"></div>
     </div>
+    <p class="texto-pequeño" style="margin-bottom:1rem;color:#888;">Actividades sin evaluar. Agrega un comentario para marcarlas como evaluadas.</p>
 
     {% if evaluaciones %}
-        <div class="lista-actividades">
+        <div class="evaluaciones-lista">
             {% for ev in evaluaciones %}
-                <div class="actividad-item" style="flex-direction:column; align-items:flex-start; padding:1rem;">
-                    <p><strong>Paciente:</strong> {{ ev.paciente_email }}</p>
-                    <p><strong>Categoría:</strong> {{ ev.categoria }}</p>
-                    <p><strong>Actividad:</strong> {{ ev.actividad }}</p>
-                    <p><strong>Puntos:</strong> {{ ev.puntos_obtenidos }}</p>
-                    <p><strong>Nivel:</strong> {{ ev.nivel }}</p>
-                    <p><strong>Fecha:</strong> {{ ev.fecha }}</p>
-                    {% if ev.feedback %}
-                        <p><strong>Feedback:</strong> {{ ev.feedback }}</p>
-                    {% else %}
-                        <p style="color:#e63946;"><em>Sin feedback aún</em></p>
-                    {% endif %}
+                <div class="evaluacion-card">
+                    <div class="evaluacion-header">
+                        <div class="paciente-avatar-sm">{{ ev.paciente_email[0] | upper }}</div>
+                        <div class="evaluacion-info">
+                            <p class="evaluacion-paciente">{{ ev.paciente_email }}</p>
+                            <p class="evaluacion-meta">{{ ev.categoria | title }} · {{ ev.actividad }}</p>
+                            <p class="evaluacion-meta">📅 {{ ev.fecha.strftime('%d/%m/%Y %H:%M') if ev.fecha else '-' }} · 🏆 {{ ev.puntos_obtenidos }} pts · Nivel {{ ev.nivel }}</p>
+                        </div>
+                    </div>
+                    <form method="post" action="/doctor/evaluaciones/{{ ev._id }}/feedback" class="feedback-form">
+                        <textarea name="feedback" class="campo-texto feedback-textarea" placeholder="Escribe tu evaluación aquí..." rows="2" required></textarea>
+                        <button type="submit" class="btn-feedback">💬 Guardar evaluación</button>
+                    </form>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <p class="centrado texto-pequeño">No hay evaluaciones pendientes en este momento.</p>
+        <div class="actividad-vacia" style="margin-top:2rem;">
+            <span style="font-size:2.5rem;">✅</span>
+            <p style="font-weight:700;color:#2e7d32;">¡Todo al día!</p>
+            <p class="texto-pequeño">No hay actividades pendientes de evaluación.</p>
+        </div>
     {% endif %}
 
     <div style="margin-top:1.5rem;">
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/historial'">
-            Ver historial completo
-        </button>
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/resultados'">
-            📊 Ver resultados de juegos
-        </button>
+        <a href="/doctor/historial" class="boton-rojo-borde ancho-completo" style="display:block;text-align:center;text-decoration:none;padding:0.7rem;">📅 Ver historial completo</a>
     </div>
 </section>
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+.evaluaciones-lista { display:flex; flex-direction:column; gap:0.8rem; }
+.evaluacion-card { background:#fff; border-radius:12px; padding:0.9rem 1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-left:4px solid #f57c00; }
+.evaluacion-header { display:flex; align-items:flex-start; gap:0.7rem; margin-bottom:0.7rem; }
+.paciente-avatar-sm { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; font-size:0.95rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.evaluacion-info { flex:1; }
+.evaluacion-paciente { margin:0; font-size:0.88rem; font-weight:700; color:#1a1a1a; }
+.evaluacion-meta { margin:0.1rem 0 0; font-size:0.75rem; color:#888; }
+.feedback-form { display:flex; flex-direction:column; gap:0.5rem; }
+.feedback-textarea { resize:vertical; min-height:60px; font-size:0.88rem; padding:0.6rem 0.8rem; }
+.btn-feedback { background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; border:none; border-radius:8px; padding:0.55rem 1rem; font-size:0.85rem; font-weight:700; cursor:pointer; align-self:flex-end; }
+.btn-feedback:hover { opacity:0.88; }
+</style>
 {% endblock %}
