@@ -23,7 +23,6 @@
      * @param {number} nivel - Nivel del paciente (opcional)
      */
     function guardarResultadoJuego(categoria, juego, pasoCompletado, totalPasos, completado, puntos=0, nivel=1) {
-        // Obtener email del paciente desde sessionStorage o URL
         const email = sessionStorage.getItem('paciente_email') || 'paciente@tesis.com';
         const formData = new FormData();
         formData.append('paciente_email', email);
@@ -39,6 +38,35 @@
             .then(data => console.log('Resultado guardado:', data))
             .catch(e => console.warn('No se pudo guardar resultado:', e));
     }
+
+    // Función global para volver al inicio (dashboard del usuario)
+    function volverInicio() {
+        const origen = sessionStorage.getItem('juegos_origen');
+        window.location.href = origen || '/paciente/perfil';
+    }
+
+    // Auto-agregar botón 🏠 Inicio en páginas de juegos si hay sessionStorage.juegos_origen
+    document.addEventListener('DOMContentLoaded', function() {
+        const origen = sessionStorage.getItem('juegos_origen');
+        if (!origen) return;
+        // Buscar botones/links de "← Volver" en páginas de juegos
+        const volverLinks = document.querySelectorAll('a.boton-rojo-borde, a.btn-volver-cat');
+        volverLinks.forEach(link => {
+            const href = link.getAttribute('href') || '';
+            // Solo agregar en páginas de juegos (no en admin/doctor)
+            if (href.includes('/juegos/') || href === '/juegos/') {
+                const parent = link.parentElement;
+                if (parent && !parent.querySelector('.btn-inicio-global')) {
+                    const btnInicio = document.createElement('button');
+                    btnInicio.className = 'btn-inicio-global boton-rojo-borde';
+                    btnInicio.style.cssText = 'padding:0.5rem 1rem;border-radius:4px;cursor:pointer;margin-left:0.5rem;';
+                    btnInicio.textContent = '🏠 Inicio';
+                    btnInicio.onclick = volverInicio;
+                    parent.appendChild(btnInicio);
+                }
+            }
+        });
+    });
     </script>
 </head>
 <body class="fondo-blanco">
