@@ -1,45 +1,24 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Iniciar sesión</h1>
-
-    {% if error %}
-        <div class="mensaje-error">
-            {{ error }}
+<section class="pantalla-movil" style="padding-top:2rem;">
+    <div class="centrado" style="margin-bottom:2rem;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;background:linear-gradient(135deg,#d32f2f,#b71c1c);border-radius:20px;box-shadow:0 6px 20px rgba(211,47,47,0.3);margin-bottom:1rem;">
+            <span style="font-size:2rem;">🎙️</span>
         </div>
-    {% endif %}
-
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.8rem;letter-spacing:-0.5px;">FonoApp</h1>
+        <p class="texto-pequeño" style="margin-top:0.3rem;">Fonoaudiología interactiva</p>
+    </div>
+    {% if error %}<div class="mensaje-error">⚠️ {{ error }}</div>{% endif %}
     <form method="post" action="/auth/login" class="formulario-movil">
         <label class="etiqueta-campo" for="email">Correo electrónico</label>
-        <input
-            type="email"
-            id="email"
-            name="email"
-            class="campo-texto"
-            placeholder="tu@correo.com"
-            value="{{ email or '' }}"
-            required
-        />
-
+        <input type="email" id="email" name="email" class="campo-texto" placeholder="tu@correo.com" value="{{ email or '' }}" autocomplete="email" required />
         <label class="etiqueta-campo" for="password">Contraseña</label>
-        <input
-            type="password"
-            id="password"
-            name="password"
-            class="campo-texto"
-            placeholder="********"
-            required
-        />
-
-        <button type="submit" class="boton-rojo ancho-completo">
-            Iniciar sesión
-        </button>
-
-        <button type="button" class="boton-rojo-borde ancho-completo"
-                onclick="window.location.href='/auth/registro'">
-            Crear cuenta nueva
-        </button>
+        <input type="password" id="password" name="password" class="campo-texto" placeholder="••••••••" autocomplete="current-password" required />
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:1.2rem;padding:0.85rem;font-size:1rem;">Iniciar sesión →</button>
+        <div style="text-align:center;margin-top:0.8rem;">
+            <span class="texto-pequeño">¿No tienes cuenta?</span>
+            <a href="/auth/registro" class="link-rojo" style="font-size:0.88rem;margin-left:0.3rem;">Regístrate aquí</a>
+        </div>
     </form>
 </section>
 {% endblock %}

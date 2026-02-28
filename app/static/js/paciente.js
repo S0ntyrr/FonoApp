@@ -1,61 +1,54 @@
 document.addEventListener("DOMContentLoaded", function () {
     const splash = document.getElementById("splash");
     const btnHamb = document.getElementById("btn-hamburguesa");
+    const btnCerrar = document.getElementById("btn-cerrar-panel");
     const panel = document.getElementById("panelPerfil");
     const overlay = document.getElementById("overlay");
     const lista = document.getElementById("listaActividades");
     const btnComenzar = document.getElementById("btnComenzar");
 
-    // Mostrar splash por breve tiempo
     if (splash) {
         setTimeout(() => {
-            splash.style.display = "none";
-        }, 1400);
+            splash.style.transition = "opacity 0.5s ease";
+            splash.style.opacity = "0";
+            setTimeout(() => { splash.style.display = "none"; }, 500);
+        }, 1800);
     }
 
     function abrirPanel() {
-        panel.classList.add("abierto");
-        overlay.classList.add("visible");
+        if (panel) panel.classList.add("abierto");
+        if (overlay) overlay.classList.add("visible");
+        document.body.style.overflow = "hidden";
     }
-
     function cerrarPanel() {
-        panel.classList.remove("abierto");
-        overlay.classList.remove("visible");
+        if (panel) panel.classList.remove("abierto");
+        if (overlay) overlay.classList.remove("visible");
+        document.body.style.overflow = "";
     }
 
     if (btnHamb) btnHamb.addEventListener("click", abrirPanel);
+    if (btnCerrar) btnCerrar.addEventListener("click", cerrarPanel);
     if (overlay) overlay.addEventListener("click", cerrarPanel);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarPanel(); });
 
-    // Selección de actividad (lista)
     if (lista) {
         lista.addEventListener("click", (ev) => {
             let item = ev.target;
-            // Subir hasta el elemento actividad-item si hace falta
-            while (item && !item.classList.contains("actividad-item")) {
-                item = item.parentElement;
-            }
+            while (item && !item.classList.contains("actividad-item")) item = item.parentElement;
             if (!item) return;
-
-            // Deseleccionar otros
-            document.querySelectorAll(".actividad-item.selected").forEach((it) => {
-                it.classList.remove("selected");
-            });
-
-            // Seleccionar actual
+            document.querySelectorAll(".actividad-item.selected").forEach(it => it.classList.remove("selected"));
             item.classList.add("selected");
-            const actividad = item.getAttribute("data-actividad");
-            btnComenzar.disabled = false;
-            btnComenzar.dataset.actividad = actividad || "";
+            if (btnComenzar) {
+                btnComenzar.disabled = false;
+                btnComenzar.dataset.actividad = item.getAttribute("data-actividad") || "";
+            }
         });
     }
 
     if (btnComenzar) {
         btnComenzar.addEventListener("click", () => {
-            const act = btnComenzar.dataset.actividad;
-            if (!act) return;
-            // Redirigir a una ruta que manejará el inicio de la actividad (puede implementarse luego)
-            const url = `/paciente/comenzar?actividad=${encodeURIComponent(act)}`;
-            window.location.href = url;
+            if (!btnComenzar.dataset.actividad) return;
+            window.location.href = "/juegos/";
         });
     }
 });

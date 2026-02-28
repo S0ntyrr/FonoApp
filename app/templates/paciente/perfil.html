@@ -1,101 +1,143 @@
 {% extends "base.html" %}
-
 {% block contenido %}
 
-<!-- Cabecera app: titulo y boton hamburguesa para abrir panel perfil -->
 <header class="cabecera-app">
-    <div class="titulo-app">Mi cuenta</div>
-    <button class="boton-hamburguesa" id="btn-hamburguesa" aria-label="Abrir perfil">☰</button>
+    <div class="titulo-app">🎙️ FonoApp</div>
+    <button class="boton-hamburguesa" id="btn-hamburguesa" aria-label="Abrir perfil">
+        <span class="hamburguesa-icono">☰</span>
+    </button>
 </header>
 
-<!-- Splash inicial (se muestra al iniciar sesión) -->
-<div id="splash" class="splash-full" aria-hidden="false">
-    <img src="/static/img/splash.svg" alt="FonoApp" />
+<div id="splash" class="splash-full">
+    <div class="splash-contenido">
+        <img src="/static/img/splash.svg" alt="FonoApp" class="splash-logo" />
+        <p class="splash-subtitulo">¡Bienvenido/a!</p>
+    </div>
 </div>
 
-<!-- Overlay para oscurecer contenido cuando se abre el panel -->
 <div id="overlay" class="overlay-app"></div>
 
-<!-- Panel de perfil (oculto por defecto, se desplaza desde la derecha) -->
 <aside id="panelPerfil" class="panel-perfil" role="dialog" aria-label="Panel de perfil">
-    <h2 class="titulo-rojo">Mi perfil</h2>
-
+    <div class="panel-perfil-header">
+        <h2 class="titulo-rojo">👤 Mi perfil</h2>
+        <button class="btn-cerrar-panel" id="btn-cerrar-panel">✕</button>
+    </div>
     <form method="post" action="/paciente/perfil" class="formulario-movil">
         <input type="hidden" name="paciente_email" value="{{ email_paciente }}" />
 
         <label class="etiqueta-campo" for="nombre">Nombre completo</label>
-        <input type="text" id="nombre" name="nombre" class="campo-texto" value="{{ perfil.nombre if perfil else '' }}" required />
+        <input type="text" id="nombre" name="nombre" class="campo-texto" value="{{ perfil.nombre if perfil else '' }}" placeholder="Tu nombre completo" required />
 
         <label class="etiqueta-campo" for="edad">Edad</label>
-        <input type="number" id="edad" name="edad" class="campo-texto" min="1" max="120" value="{{ perfil.edad if perfil else '' }}" required />
+        <input type="number" id="edad" name="edad" class="campo-texto" min="1" max="120" value="{{ perfil.edad if perfil else '' }}" placeholder="Ej: 8" required />
+
+        <label class="etiqueta-campo" for="escolaridad">Escolaridad</label>
+        <select id="escolaridad" name="escolaridad" class="campo-texto" required>
+            <option value="">Selecciona...</option>
+            {% set esc = perfil.escolaridad if perfil else '' %}
+            <option value="Preescolar"   {% if esc == 'Preescolar'   %}selected{% endif %}>Preescolar</option>
+            <option value="Primaria"     {% if esc == 'Primaria'     %}selected{% endif %}>Primaria</option>
+            <option value="Secundaria"   {% if esc == 'Secundaria'   %}selected{% endif %}>Secundaria</option>
+            <option value="Bachillerato" {% if esc == 'Bachillerato' %}selected{% endif %}>Bachillerato</option>
+            <option value="Universidad"  {% if esc == 'Universidad'  %}selected{% endif %}>Universidad</option>
+            <option value="Otro"         {% if esc == 'Otro'         %}selected{% endif %}>Otro</option>
+        </select>
+
+        <label class="etiqueta-campo" for="genero">Género</label>
+        <select id="genero" name="genero" class="campo-texto" required>
+            <option value="">Selecciona...</option>
+            {% set gen = perfil.genero if perfil else '' %}
+            <option value="Masculino" {% if gen == 'Masculino' %}selected{% endif %}>Masculino</option>
+            <option value="Femenino"  {% if gen == 'Femenino'  %}selected{% endif %}>Femenino</option>
+            <option value="Otro"      {% if gen == 'Otro'      %}selected{% endif %}>Otro</option>
+        </select>
 
         <label class="etiqueta-campo" for="tutor">Nombre del tutor</label>
-        <input type="text" id="tutor" name="tutor" class="campo-texto" value="{{ perfil.tutor if perfil else '' }}" required />
+        <input type="text" id="tutor" name="tutor" class="campo-texto" value="{{ perfil.tutor if perfil else '' }}" placeholder="Nombre del tutor" required />
 
         <label class="etiqueta-campo" for="parentesco">Parentesco</label>
-        <input type="text" id="parentesco" name="parentesco" class="campo-texto" value="{{ perfil.parentesco if perfil else '' }}" required />
+        <input type="text" id="parentesco" name="parentesco" class="campo-texto" value="{{ perfil.parentesco if perfil else '' }}" placeholder="Ej: Madre, Padre..." required />
 
         {% if perfil %}
-            <p class="texto-pequeño">Registrado desde: {{ perfil.fecha_registro }}</p>
+            <p class="texto-pequeño" style="color:#999;margin-top:0.3rem;">📅 Desde: {{ perfil.fecha_registro.strftime('%d/%m/%Y') if perfil.fecha_registro else '' }}</p>
         {% endif %}
 
-        <button type="submit" class="boton-rojo ancho-completo">Guardar</button>
-        <a href="/auth/login" class="boton-rojo-borde ancho-completo" style="display:block; text-align:center; margin-top:0.6rem;">Cerrar sesión</a>
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:1rem;">💾 Guardar perfil</button>
+        <a href="/auth/login" class="boton-rojo-borde ancho-completo" style="display:block;text-align:center;margin-top:0.5rem;text-decoration:none;">🚪 Cerrar sesión</a>
     </form>
 </aside>
 
-<!-- Contenido principal en formato app: selección de actividad y calendario -->
 <div class="contenido-principal">
     <div class="pantalla-movil">
-        <section>
-        <h3 class="titulo-rojo">Actividades disponibles</h3>
 
-        <p class="texto-pequeño">Elige una actividad y toca "Comenzar".</p>
+        {% if perfil %}
+        <div class="bienvenida-card">
+            <span class="bienvenida-emoji">👋</span>
+            <div>
+                <p class="bienvenida-nombre">¡Hola, {{ perfil.nombre.split()[0] if perfil.nombre else 'Paciente' }}!</p>
+                <p class="bienvenida-sub">¿Listo para practicar hoy?</p>
+            </div>
+        </div>
+        {% endif %}
 
-        <div id="listaActividades" class="lista-actividades">
+        <div class="acceso-juegos-card" onclick="window.location.href='/juegos/'">
+            <div class="acceso-juegos-icono">🎮</div>
+            <div class="acceso-juegos-info">
+                <h3>Juegos Fonoaudiológicos</h3>
+                <p>Respiración, fonación, resonancia y más</p>
+            </div>
+            <div class="acceso-juegos-flecha">›</div>
+        </div>
+
+        <section style="margin-top:1.5rem;">
+            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📋 Actividades asignadas</h3>
+            <div id="listaActividades" class="lista-actividades">
+                {% if actividades_disponibles %}
+                    {% for cat in actividades_disponibles %}
+                        <div class="categoria-titulo">{{ cat.categoria | upper }}</div>
+                        {% for act in cat.actividades %}
+                            <div class="actividad-item" data-actividad="{{ act }}">
+                                <div class="actividad-detalle">{{ act }}</div>
+                                <div class="marcador">›</div>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <div class="actividad-vacia">
+                        <span style="font-size:2rem;">📭</span>
+                        <p>No hay actividades asignadas aún.</p>
+                        <p class="texto-pequeño">Tu médico te asignará actividades pronto.</p>
+                    </div>
+                {% endif %}
+            </div>
             {% if actividades_disponibles %}
-                {% for cat in actividades_disponibles %}
-                    <div class="categoria-titulo">{{ cat.categoria }}</div>
-                    {% for act in cat.actividades %}
-                        <div class="actividad-item" data-actividad="{{ act }}">
-                            <div class="actividad-detalle">{{ act }}</div>
-                            <div class="marcador">›</div>
-                        </div>
-                    {% endfor %}
-                {% endfor %}
-            {% else %}
-                <p class="centrado texto-pequeño">No hay actividades disponibles en este momento.</p>
+            <button id="btnComenzar" class="boton-rojo ancho-completo boton-comenzar" disabled>▶ Comenzar actividad</button>
             {% endif %}
-        </div>
-
-        <button id="btnComenzar" class="boton-rojo ancho-completo boton-comenzar" disabled>Comenzar</button>
-
-        <button class="boton-rojo ancho-completo boton-comenzar"
-                onclick="window.location.href='/juegos/'"
-                style="background:#388e3c; margin-top:0.5rem;">
-            🎮 Juegos Fonoaudiológicos
-        </button>
-
-        <!-- Calendario compacto -->
-        <h3 class="titulo-rojo" style="margin-top:1.2rem;">Mi calendario de uso</h3>
-        <div class="calendario-uso">
-            {% if sesiones_por_dia %}
-                <div class="calendario-grid">
-                    {% for dia, minutos in sesiones_por_dia.items() %}
-                        <div class="calendario-dia">
-                            <span class="calendario-fecha">{{ dia }}</span>
-                            <span class="calendario-minutos">{{ minutos }} min</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="centrado">Todavía no hay registros de uso para este mes.</p>
-            {% endif %}
-        </div>
         </section>
+
+        <section style="margin-top:1.8rem;">
+            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📅 Mi actividad este mes</h3>
+            <div class="calendario-uso">
+                {% if sesiones_por_dia %}
+                    <div class="calendario-grid">
+                        {% for dia, minutos in sesiones_por_dia.items() %}
+                            <div class="calendario-dia">
+                                <span class="calendario-fecha">{{ dia[8:] }}/{{ dia[5:7] }}</span>
+                                <span class="calendario-minutos">{{ minutos }} min</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="actividad-vacia">
+                        <span style="font-size:1.8rem;">📆</span>
+                        <p class="texto-pequeño">Todavía no hay registros este mes.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
     </div>
 </div>
 
 <script src="/static/js/paciente.js"></script>
-
 {% endblock %}

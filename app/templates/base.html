@@ -4,11 +4,16 @@
     <meta charset="UTF-8" />
     <title>{{ titulo_pagina or "FonoApp" }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/static/css/estilos.css?v=3" />
+    <meta name="theme-color" content="#d32f2f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/estilos.css?v=6" />
+    <style>body { font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif; }</style>
 </head>
 <body class="fondo-blanco">
-    <main class="contenedor-principal">
+    <div class="contenedor-principal">
         {% block contenido %}{% endblock %}
-    </main>
+    </div>
 </body>
 </html>

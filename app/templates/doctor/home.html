@@ -1,68 +1,109 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Panel Atención Terapéutica</h1>
-
-    <div class="tarjeta-resumen">
-        <p><strong>Estado actual:</strong> {{ estado_actual|title }}</p>
+<section class="pantalla-movil" style="padding-top:1rem;">
+    <div class="panel-header">
+        <div class="panel-header-marca">
+            <span class="panel-header-icono">🩺</span>
+            <div>
+                <h1 class="panel-header-titulo">{{ nombre_doctor or 'Panel Doctor' }}</h1>
+                <p class="panel-header-sub">Atención Terapéutica</p>
+            </div>
+        </div>
+        <a href="/auth/login" class="btn-cerrar-sesion" title="Cerrar sesión">🚪</a>
     </div>
 
-    <h2 class="centrado">Cambiar estado</h2>
-    <form method="post" action="/doctor/estado" class="formulario-movil">
-        <label class="etiqueta-campo" for="estado">Nuevo estado</label>
-        <select id="estado" name="estado" class="campo-texto">
-            <option value="activo" {% if estado_actual == "activo" %}selected{% endif %}>Disponible</option>
-            <option value="ocupado" {% if estado_actual == "ocupado" %}selected{% endif %}>Ocupado</option>
-            <option value="consulta" {% if estado_actual == "consulta" %}selected{% endif %}>En consulta</option>
-        </select>
+    <div class="estado-card">
+        <div class="estado-info">
+            <p class="estado-label">Mi estado</p>
+            <p class="estado-valor estado-{{ estado_actual }}">
+                {% if estado_actual == 'activo' %}✓ Disponible
+                {% elif estado_actual == 'ocupado' %}⏳ Ocupado
+                {% elif estado_actual == 'consulta' %}💬 En consulta
+                {% else %}{{ estado_actual | title }}{% endif %}
+            </p>
+        </div>
+        <form method="post" action="/doctor/estado" class="estado-form">
+            <input type="hidden" name="email" value="{{ email_doctor }}" />
+            <select name="estado" class="campo-texto estado-select" onchange="this.form.submit()">
+                <option value="activo" {% if estado_actual == 'activo' %}selected{% endif %}>✓ Disponible</option>
+                <option value="ocupado" {% if estado_actual == 'ocupado' %}selected{% endif %}>⏳ Ocupado</option>
+                <option value="consulta" {% if estado_actual == 'consulta' %}selected{% endif %}>💬 En consulta</option>
+            </select>
+        </form>
+    </div>
 
-        <button type="submit" class="boton-rojo ancho-completo">
-            Cambiar estado
-        </button>
-    </form>
-
-    <div class="acciones-admin">
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/pacientes'">
-            Ver pacientes
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/actividades'">
-            Actividades
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/asignaciones'">
-            Asignaciones
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/historial'">
-            Historial
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/evaluaciones-pendientes'">
-            📋 Evaluaciones Pendientes
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/doctor/resultados'">
-            📊 Resultados de Juegos
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/juegos/'"
-                style="background:#388e3c;">
-            🎮 Juegos Fonoaudiológicos
-        </button>
-
-        <button class="boton-rojo-borde ancho-completo"
-                onclick="window.location.href='/auth/login'">
-            Cerrar sesión
-        </button>
+    <div class="menu-acciones">
+        <a href="/doctor/pacientes" class="menu-item">
+            <span class="menu-item-icono">👥</span>
+            <span class="menu-item-texto">Mis pacientes</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/doctor/asignaciones" class="menu-item">
+            <span class="menu-item-icono">🔗</span>
+            <span class="menu-item-texto">Asignaciones</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/doctor/evaluaciones-pendientes" class="menu-item menu-item-alerta">
+            <span class="menu-item-icono">📋</span>
+            <span class="menu-item-texto">
+                Evaluaciones pendientes
+                {% if evaluaciones_pendientes and evaluaciones_pendientes > 0 %}
+                    <span class="badge-count">{{ evaluaciones_pendientes }}</span>
+                {% endif %}
+            </span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/doctor/resultados" class="menu-item">
+            <span class="menu-item-icono">📊</span>
+            <span class="menu-item-texto">Resultados de juegos</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/doctor/historial" class="menu-item">
+            <span class="menu-item-icono">📅</span>
+            <span class="menu-item-texto">Historial de actividades</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/doctor/actividades" class="menu-item">
+            <span class="menu-item-icono">📚</span>
+            <span class="menu-item-texto">Juegos disponibles</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/juegos/" class="menu-item menu-item-juegos">
+            <span class="menu-item-icono">🎮</span>
+            <span class="menu-item-texto">Juegos Fonoaudiológicos</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
     </div>
 </section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; padding-bottom:1rem; border-bottom:1px solid #f0f0f0; }
+.panel-header-marca { display:flex; align-items:center; gap:0.7rem; }
+.panel-header-icono { font-size:1.8rem; background:linear-gradient(135deg,#d32f2f,#b71c1c); border-radius:12px; width:48px; height:48px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(211,47,47,0.25); }
+.panel-header-titulo { margin:0; font-size:1.1rem; font-weight:800; color:#1a1a1a; }
+.panel-header-sub { margin:0; font-size:0.78rem; color:#999; }
+.btn-cerrar-sesion { font-size:1.4rem; text-decoration:none; background:#f5f5f5; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
+.btn-cerrar-sesion:hover { background:#ffebee; }
+.estado-card { display:flex; align-items:center; justify-content:space-between; gap:1rem; background:#fff; border-radius:12px; padding:0.9rem 1rem; margin-bottom:1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-left:4px solid #d32f2f; }
+.estado-info { flex:1; }
+.estado-label { margin:0; font-size:0.72rem; color:#999; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.estado-valor { margin:0.2rem 0 0; font-size:0.95rem; font-weight:700; }
+.estado-activo { color:#2e7d32; }
+.estado-ocupado { color:#e65100; }
+.estado-consulta { color:#1565c0; }
+.estado-form { flex-shrink:0; }
+.estado-select { font-size:0.82rem; padding:0.4rem 0.7rem; border-radius:8px; width:auto; cursor:pointer; }
+.menu-acciones { display:flex; flex-direction:column; gap:0.5rem; }
+.menu-item { display:flex; align-items:center; gap:0.9rem; padding:0.85rem 1rem; background:#fff; border-radius:12px; text-decoration:none; color:#1a1a1a; box-shadow:0 1px 4px rgba(0,0,0,0.05); border:1px solid #f0f0f0; transition:transform 0.1s, box-shadow 0.1s, background 0.1s; font-weight:500; font-size:0.92rem; }
+.menu-item:hover { transform:translateX(3px); box-shadow:0 3px 12px rgba(0,0,0,0.08); background:#fff9f9; border-color:#ffcdd2; }
+.menu-item-icono { font-size:1.3rem; min-width:1.8rem; text-align:center; }
+.menu-item-texto { flex:1; display:flex; align-items:center; gap:0.5rem; }
+.menu-item-flecha { color:#ccc; font-size:1.2rem; }
+.menu-item-alerta { border-color:#fff3e0; background:#fffdf8; }
+.menu-item-alerta:hover { border-color:#ffe0b2; background:#fff8f0; }
+.menu-item-juegos { background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff; border-color:transparent; }
+.menu-item-juegos:hover { background:linear-gradient(135deg,#16213e,#0f3460); border-color:transparent; }
+.menu-item-juegos .menu-item-flecha { color:rgba(255,255,255,0.4); }
+.badge-count { background:#d32f2f; color:#fff; font-size:0.7rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:10px; min-width:18px; text-align:center; }
+</style>
 {% endblock %}
