@@ -147,6 +147,7 @@ function verificarRespuesta() {
         document.getElementById('resultado-correcto').style.display = 'block';
         document.getElementById('resultado-incorrecto').style.display = 'none';
         document.getElementById('respuesta-area').style.display = 'none';
+        guardarResultadoJuego('prosodia', 'adivina_animal', 1, 1, true, 30, 1);
     } else {
         intentosRestantes--;
         actualizarPuntos();

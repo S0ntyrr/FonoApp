@@ -14,18 +14,16 @@ FonoApp conecta a **pacientes**, **médicos** y **administradores** en un solo l
 
 | Rol | ¿Qué hace? |
 |-----|-----------|
-| 🧒 **Paciente** | Juega, practica y ve su progreso |
-| 🩺 **Médico** | Revisa avances y da feedback |
-| 🛡️ **Administrador** | Gestiona usuarios y el sistema |
+| 🧒 **Paciente** | Juega, practica y ve su progreso diario |
+| 🩺 **Médico** | Revisa avances, evalúa y da feedback |
+| 🛡️ **Administrador** | Gestiona usuarios, asignaciones y el sistema |
 
 ---
 
-## 🎮 Los juegos
-
-Los pacientes practican a través de juegos organizados en 5 categorías:
+## 🎮 Los juegos (23 juegos en 7 categorías)
 
 **🌬️ Respiración**
-- Infla el globo — sopla para inflarlo
+- Infla el globo — sopla para inflarlo con el micrófono
 - El molino de Pepe — ayuda a Pepe soplando
 
 **🎵 Fonación**
@@ -38,7 +36,20 @@ Los pacientes practican a través de juegos organizados en 5 categorías:
 - ¡Veo, veo! — encuentra la imagen y nómbrala
 
 **🗣️ Articulación**
-- Juegos para practicar las letras B, D, F y R
+- Letras B, D, F y R — pronunciación paso a paso
+- Completa la palabra — escribe la letra que falta
+- ¡Acelera la moto! — habla fuerte para acelerar
+
+**🎤 Prosodia**
+- Adivina el animal — activa el micrófono, 4 intentos
+- Trabalenguas — lee y registra palabras difíciles
+- Relaciona la adivinanza — escucha y toca la imagen
+- Completa la canción — canta la parte que falta
+
+**👂 Discriminación Auditiva**
+- Sonidos de animales — escucha y elige el animal
+- Sonidos de objetos — escucha y selecciona el objeto
+- Arrastra al sonido — arrastra la imagen correcta
 
 **🧩 Practica Conmigo**
 - Rompecabezas de letras y animales
@@ -51,11 +62,13 @@ Los pacientes practican a través de juegos organizados en 5 categorías:
 
 ```
 1. El paciente inicia sesión y ve su dashboard
-2. Juega los ejercicios fonoaudiológicos
-3. Los resultados se guardan automáticamente
-4. El admin asigna un médico al paciente
-5. El médico revisa los resultados y da feedback
-6. El admin supervisa todo desde su panel
+2. Ve 4 actividades aleatorias del día (de diferentes categorías)
+3. Hace clic en una actividad → va al juego
+4. Al completar el juego → se guarda automáticamente en la base de datos
+5. Al volver al dashboard → la actividad se marca como ✓ completada
+6. Cuando completa todas → "¡Excelente! Vuelve mañana para nuevas actividades"
+7. El médico revisa los resultados y da feedback
+8. El admin supervisa todo desde su panel
 ```
 
 ---
@@ -64,41 +77,47 @@ Los pacientes practican a través de juegos organizados en 5 categorías:
 
 ### Paciente
 - Dashboard con bienvenida personalizada
+- 4 actividades aleatorias del día (cambian cada día)
 - Acceso rápido a todos los juegos
-- Lista de actividades asignadas por su médico
 - Calendario de uso mensual
+- Progreso visual (✓ completado / pendiente)
 
 ### Médico
-- Panel con su estado (disponible / ocupado / en consulta)
-- Lista de pacientes con su progreso en juegos
-- Perfil detallado de cada paciente con gráfica de avance
+- Panel con estado (disponible / ocupado / en consulta)
+- Lista de pacientes con progreso en juegos
+- Perfil detallado con gráfica de avance por categoría
 - Evaluaciones pendientes con formulario de feedback
 - Historial completo de actividades
 
 ### Administrador
-- Dashboard con estadísticas del sistema
-- Gestión de pacientes y médicos (crear, editar, eliminar)
-- Asignaciones: automática (el sistema elige) o manual (tú eliges)
-- Historial de actividades con barras de progreso por categoría
-- Resultados de juegos con estadísticas de aciertos por juego y por paciente
-- Contenido del sistema: textos, imágenes, videos y referencia de juegos
+- Dashboard con estadísticas en tiempo real
+- Gestión de pacientes y médicos (CRUD completo)
+- Asignaciones: automática o manual
+- Historial con barras de progreso por categoría
+- Resultados de juegos con estadísticas de aciertos
+- Contenido del sistema: textos, imágenes, videos
 
 ---
 
-## 📊 Lo que registra el sistema
+## 📊 Base de datos (MongoDB Atlas)
 
-Cada vez que un paciente juega, se guarda:
-- ✅ Si completó el juego o quedó a medias
-- 📈 Cuántos pasos completó
-- 🗓️ Fecha y hora de la sesión
+Las colecciones principales:
 
-El médico puede ver todo esto y escribir su evaluación directamente desde la app.
+| Colección | ¿Para qué? |
+|-----------|-----------|
+| `usuarios` | Pacientes, médicos y admins |
+| `perfiles_pacientes` | Datos del perfil del paciente |
+| `actividades` | Catálogo de juegos por categoría |
+| `asignaciones` | Médico asignado a cada paciente |
+| `resultados_juegos` | Resultados de cada juego jugado |
+| `historial_actividades` | Actividades completadas (para el médico) |
+| `sesiones_app` | Días y minutos de uso |
+| `contenido_admin` | Textos, imágenes y videos del sistema |
 
 ---
 
 ## 🔒 Accesos
 
-Cada usuario solo ve lo que le corresponde:
 - El **paciente** ve su perfil y sus juegos
 - El **médico** ve sus pacientes asignados y sus resultados
 - El **administrador** tiene acceso completo al sistema

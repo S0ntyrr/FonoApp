@@ -251,6 +251,8 @@ function explotarGlobo() {
     document.getElementById('globo-svg').style.display = 'none';
     document.getElementById('globo-explotado').classList.remove('oculto');
     document.getElementById('instruccion-texto').textContent = '¡Increíble! ¡Inflaste el globo!';
+    // Guardar resultado en la base de datos
+    guardarResultadoJuego('respiracion', 'globo', 1, 1, true, 50, 1);
 }
 
 function reiniciar() {

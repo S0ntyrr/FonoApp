@@ -156,6 +156,11 @@
     </div>
 </div>
 
+<script>
+// Guardar email del paciente en sessionStorage para que los juegos puedan usarlo
+sessionStorage.setItem('paciente_email', '{{ email_paciente }}');
+sessionStorage.setItem('juegos_origen', '/paciente/perfil');
+</script>
 <script src="/static/js/paciente.js"></script>
 <script>
 // Marcar actividad como completada

@@ -367,11 +367,17 @@ async def guardar_resultado_juego(
     total_pasos: int = Form(...),
     completado: bool = Form(False),
     notas: str = Form(""),
+    puntos: int = Form(0),
+    nivel: int = Form(1),
 ):
     """
     Guarda el resultado de un juego completado por un paciente.
+    También registra en historial_actividades para que el doctor pueda ver el progreso.
     Llamado desde el frontend JS al finalizar cada juego.
     """
+    ahora = datetime.utcnow()
+
+    # 1. Guardar en resultados_juegos (detalle técnico del juego)
     resultado = {
         "paciente_email": paciente_email,
         "categoria": categoria,
@@ -379,8 +385,69 @@ async def guardar_resultado_juego(
         "paso_completado": paso_completado,
         "total_pasos": total_pasos,
         "completado": completado,
-        "fecha": datetime.utcnow(),
+        "fecha": ahora,
         "notas": notas,
+        "puntos": puntos,
+        "nivel": nivel,
     }
     await db["resultados_juegos"].insert_one(resultado)
-    return {"status": "ok"}
+
+    # 2. Si el juego fue completado, registrar en historial_actividades
+    # para que el doctor pueda ver y evaluar el progreso
+    if completado:
+        historial_entry = {
+            "paciente_email": paciente_email,
+            "categoria": categoria,
+            "actividad": juego.replace("_", " ").replace("-", " ").title(),
+            "puntos_obtenidos": puntos if puntos > 0 else paso_completado * 10,
+            "nivel": nivel,
+            "fecha": ahora,
+            "feedback": None,  # El doctor lo completará después
+        }
+        await db["historial_actividades"].insert_one(historial_entry)
+
+    return {"status": "ok", "completado": completado, "puntos": puntos}
+
+
+@router.get("/seed-actividades", response_class=JSONResponse)
+async def seed_actividades(db: AsyncIOMotorDatabase = Depends(get_db)):
+    """
+    Actualiza la colección 'actividades' con los juegos reales implementados.
+    Llamar una vez para sincronizar la BD con el estado actual del sistema.
+    """
+    juegos_por_categoria = [
+        {
+            "categoria": "respiracion",
+            "actividades": ["Infla el globo", "El molino de Pepe"]
+        },
+        {
+            "categoria": "fonacion",
+            "actividades": ["¡Haz un gol!", "Escala musical"]
+        },
+        {
+            "categoria": "resonancia",
+            "actividades": ["Escaleras de tono", "Piano - Estrellita", "¡Veo, veo!"]
+        },
+        {
+            "categoria": "articulacion",
+            "actividades": ["Letra B", "Letra D", "Letra F", "Letra R", "Completa la palabra", "¡Acelera la moto!"]
+        },
+        {
+            "categoria": "prosodia",
+            "actividades": ["Adivina el animal", "Trabalenguas", "Relaciona la adivinanza", "Completa la canción"]
+        },
+        {
+            "categoria": "discriminacion_auditiva",
+            "actividades": ["Sonidos de animales", "Sonidos de objetos", "Arrastra al sonido"]
+        },
+        {
+            "categoria": "practica_conmigo",
+            "actividades": ["Rompecabezas", "Crea tu personaje", "Asociación de imágenes"]
+        },
+    ]
+
+    # Limpiar y reinsertar
+    await db["actividades"].delete_many({})
+    await db["actividades"].insert_many(juegos_por_categoria)
+
+    return {"status": "ok", "categorias": len(juegos_por_categoria), "mensaje": "Colección 'actividades' actualizada con los juegos reales"}

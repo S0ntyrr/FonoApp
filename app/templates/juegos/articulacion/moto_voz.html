@@ -145,6 +145,7 @@ function medir() {
     if (posicion >= META) {
         detenerMic();
         document.getElementById('resultado-ganaste').style.display = 'block';
+        guardarResultadoJuego('articulacion', 'moto_voz', 1, 1, true, 40, 1);
         return;
     }
 

@@ -4,7 +4,6 @@
 class AppSettings {
   + MONGODB_URI: str
   + MONGODB_DB_NAME: str
-  + Config
 }
 
 class database {
@@ -14,7 +13,7 @@ class database {
   + get_db()
 }
 
-' Modelos Pydantic
+' ── Modelos Pydantic ──────────────────────────────────────
 class UsuarioBase {
   + nombre: str
   + email: EmailStr
@@ -24,16 +23,8 @@ class UsuarioBase {
 }
 
 note right of UsuarioBase
-  Roles disponibles:
-  - admin
-  - medico (doctor)
-  - paciente
-  - emisor
-  
-  Estados disponibles:
-  - activo
-  - ocupado
-  - consulta
+  Roles: admin | medico | paciente | emisor
+  Estados: activo | ocupado | consulta
 end note
 
 class UsuarioCreate {
@@ -51,6 +42,13 @@ class ActividadCategoria {
   + actividades: List[str]
 }
 
+note right of ActividadCategoria
+  Categorías en BD:
+  respiracion, fonacion, resonancia,
+  articulacion, prosodia,
+  discriminacion_auditiva, practica_conmigo
+end note
+
 class Asignacion {
   + id: str
   + paciente_email: EmailStr
@@ -59,13 +57,12 @@ class Asignacion {
   + dificultad: str
   + fecha_asignacion: datetime
   + estado: str
+  + tipo: str
 }
 
 note right of Asignacion
-  Estados:
-  - pendiente
-  - aceptada
-  - cancelada
+  estados: pendiente | aceptada | cancelada
+  tipo: automatica | manual
 end note
 
 class ContenidoAdmin {
@@ -73,7 +70,7 @@ class ContenidoAdmin {
   + imagenes: List[str]
   + videos: List[str]
   + audios_referencia: List[str]
-  + textos_sistema: List[str]
+  + textos_sistema: List[Any]
   + instrucciones: Any
 }
 
@@ -87,6 +84,12 @@ class HistorialActividad {
   + fecha: datetime
   + feedback: str
 }
+
+note right of HistorialActividad
+  feedback=null → evaluación pendiente
+  Se crea automáticamente cuando
+  el paciente completa un juego
+end note
 
 class PerfilPaciente {
   + id: str
@@ -117,22 +120,23 @@ class ResultadoJuego {
   + completado: bool
   + fecha: datetime
   + notas: str
+  + puntos: int
+  + nivel: int
 }
 
 note right of ResultadoJuego
-  Categorías de juegos:
-  - articulacion
-  - resonancia
-  - respiracion
-  - fonacion
-  - practica
+  23 juegos en 7 categorías:
+  respiracion (2), fonacion (2),
+  resonancia (3), articulacion (6),
+  prosodia (4), discriminacion_auditiva (3),
+  practica_conmigo (3)
 end note
 
-' Routers activos (registrados en main.py)
+' ── Routers activos ───────────────────────────────────────
 class AuthRouter {
   + prefix: "/auth"
-  + mostrar_pantalla_login() GET
-  + mostrar_pantalla_registro() GET
+  + mostrar_login() GET
+  + mostrar_registro() GET
   + procesar_registro() POST
   + procesar_login() POST
 }
@@ -143,6 +147,12 @@ class PacienteRouter {
   + guardar_perfil_paciente() POST
 }
 
+note right of PacienteRouter
+  Muestra 4 actividades aleatorias
+  del día (o las asignadas por médico)
+  Guarda email en sessionStorage
+end note
+
 class EmisorRouter {
   + prefix: "/emisor"
   + home_emisor() GET
@@ -150,83 +160,72 @@ class EmisorRouter {
 
 class RoutesAdmin {
   + prefix: "/admin"
-  + vista_dashboard_admin() GET
-  + listar_pacientes_admin() GET
-  + crear_paciente_admin() POST
-  + eliminar_paciente_admin() POST
-  + listar_medicos_admin() GET
-  + crear_medico_admin() POST
-  + eliminar_medico_admin() POST
-  + cambiar_estado_medico_admin() POST
-  + editar_medico_form_admin() GET
-  + editar_medico_admin() POST
-  + ver_consultas_medico_admin() GET
-  + vista_actividades_admin() GET
-  + vista_contenido_admin() GET
-  + vista_asignaciones_admin() GET
-  + vista_historial_admin() GET
-  + vista_resultados_admin() GET
+  + dashboard, pacientes, médicos
+  + actividades, asignaciones (auto+manual)
+  + historial, resultados, contenido
+  + seed_actividades() GET
 }
 
 class RoutesDoctor {
   + prefix: "/doctor"
-  + home_doctor() GET
-  + vista_pacientes_doctor() GET
-  + vista_actividades_doctor() GET
-  + vista_asignaciones_doctor() GET
-  + aceptar_asignacion() POST
-  + cancelar_asignacion() POST
-  + vista_historial_doctor() GET
-  + vista_resultados_doctor() GET
-  + vista_evaluaciones_pendientes() GET
-  + cambiar_estado_doctor() POST
+  + home, pacientes, perfil_paciente
+  + actividades, asignaciones
+  + historial, resultados
+  + evaluaciones_pendientes
+  + feedback() POST
+  + estado() POST
 }
 
 class RoutesJuegos {
   + prefix: "/juegos"
-  + hub_juegos() GET
-  + juego_practica() GET
-  + juego_rompecabezas() GET
-  + juego_cara() GET
-  + juego_asociacion() GET
-  + juego_respiracion() GET
-  + juego_globo() GET
-  + juego_molino() GET
-  + juego_fonacion() GET
-  + juego_gol() GET
-  + juego_escala() GET
-  + juego_resonancia() GET
-  + juego_escaleras() GET
-  + juego_piano() GET
-  + juego_veoveo() GET
-  + juego_articulacion() GET
-  + articulacion_letra_b() GET
-  + articulacion_letra_d() GET
-  + articulacion_letra_f() GET
-  + articulacion_letra_r() GET
-  + guardar_resultado_juego() POST
+  + hub principal (7 categorías)
+  + respiracion (2 juegos)
+  + fonacion (2 juegos)
+  + resonancia (3 juegos)
+  + articulacion (6 juegos)
+  + prosodia (4 juegos)
+  + discriminacion (3 juegos)
+  + practica (3 juegos)
+  + resultado() POST
+  + seed_actividades() GET
 }
 
-' Aplicación Principal
+note right of RoutesJuegos
+  POST /juegos/resultado:
+  - Guarda en resultados_juegos
+  - Si completado=true, también
+    guarda en historial_actividades
+  
+  GET /juegos/seed-actividades:
+  - Actualiza colección 'actividades'
+    con los 23 juegos reales
+end note
+
+' ── Aplicación Principal ──────────────────────────────────
 class FastAPIApp {
   + title: "FonoApp"
   + version: "1.0.0"
-  + lifespan()
   + raiz() GET "/"
+  + guardarResultadoJuego() JS global
 }
 
-' Relaciones de Herencia
+note right of FastAPIApp
+  guardarResultadoJuego() es una
+  función JS global disponible en
+  todos los juegos (via base.html)
+  para guardar resultados en BD
+end note
+
+' ── Relaciones ────────────────────────────────────────────
 UsuarioCreate --|> UsuarioBase
 UsuarioPublico --|> UsuarioBase
 
-' Relaciones de Dependencia
 database ..> AppSettings : usa
 AuthRouter ..> database : usa
 PacienteRouter ..> database : usa
 PacienteRouter ..> PerfilPaciente : usa
 PacienteRouter ..> SesionApp : usa
 RoutesDoctor ..> database : usa
-RoutesDoctor ..> ActividadCategoria : usa
 RoutesDoctor ..> Asignacion : usa
 RoutesDoctor ..> HistorialActividad : usa
 RoutesAdmin ..> database : usa
@@ -236,6 +235,7 @@ RoutesAdmin ..> Asignacion : usa
 RoutesAdmin ..> HistorialActividad : usa
 RoutesJuegos ..> database : usa
 RoutesJuegos ..> ResultadoJuego : usa
+RoutesJuegos ..> HistorialActividad : crea al completar
 FastAPIApp ..> database : usa
 FastAPIApp ..> AuthRouter : incluye
 FastAPIApp ..> PacienteRouter : incluye
@@ -244,24 +244,10 @@ FastAPIApp ..> RoutesAdmin : incluye
 FastAPIApp ..> RoutesDoctor : incluye
 FastAPIApp ..> RoutesJuegos : incluye
 
-' Relaciones con Base de Datos
 Asignacion ..> UsuarioBase : referencia
 HistorialActividad ..> UsuarioBase : referencia
 PerfilPaciente ..> UsuarioBase : referencia
 SesionApp ..> UsuarioBase : referencia
 ResultadoJuego ..> UsuarioBase : referencia
-
-note right of HistorialActividad
-  Registra las actividades
-  completadas por pacientes.
-  feedback=null indica
-  evaluación pendiente
-end note
-
-note right of database
-  Maneja la conexión
-  a MongoDB usando Motor
-  (async)
-end note
 
 @enduml

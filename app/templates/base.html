@@ -10,6 +10,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/estilos.css?v=6" />
     <style>body { font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif; }</style>
+    <script>
+    /**
+     * Guarda el resultado de un juego en la base de datos.
+     * Llamar desde cualquier juego cuando el paciente lo complete.
+     * @param {string} categoria - Categoría del juego (respiracion, fonacion, etc.)
+     * @param {string} juego - Nombre del juego (globo, gol, etc.)
+     * @param {number} pasoCompletado - Último paso completado
+     * @param {number} totalPasos - Total de pasos del juego
+     * @param {boolean} completado - Si el juego fue completado
+     * @param {number} puntos - Puntos obtenidos (opcional)
+     * @param {number} nivel - Nivel del paciente (opcional)
+     */
+    function guardarResultadoJuego(categoria, juego, pasoCompletado, totalPasos, completado, puntos=0, nivel=1) {
+        // Obtener email del paciente desde sessionStorage o URL
+        const email = sessionStorage.getItem('paciente_email') || 'paciente@tesis.com';
+        const formData = new FormData();
+        formData.append('paciente_email', email);
+        formData.append('categoria', categoria);
+        formData.append('juego', juego);
+        formData.append('paso_completado', pasoCompletado);
+        formData.append('total_pasos', totalPasos);
+        formData.append('completado', completado);
+        formData.append('puntos', puntos);
+        formData.append('nivel', nivel);
+        fetch('/juegos/resultado', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => console.log('Resultado guardado:', data))
+            .catch(e => console.warn('No se pudo guardar resultado:', e));
+    }
+    </script>
 </head>
 <body class="fondo-blanco">
     <div class="contenedor-principal">
