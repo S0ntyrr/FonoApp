@@ -14,19 +14,25 @@ note right of Admin
   Gestión de usuarios:
   - Crear, editar y eliminar pacientes
   - Crear, editar y eliminar médicos
-  - Cambiar estado de médicos
-  - Ver consultas por médico
+  - Cambiar estado de médicos (activo/ocupado/consulta)
+  - Ver consultas asignadas por médico
   
-  Gestión de contenido:
-  - Subir imágenes y videos al sistema
-  - Gestionar contenido multimedia
+  Asignaciones:
+  - Crear asignación AUTOMÁTICA (médico al azar)
+  - Crear asignación MANUAL (elige médico específico)
+  - Ver historial completo de asignaciones
+  - Eliminar asignaciones
   
   Supervisión global:
-  - Ver dashboard con estadísticas
-  - Ver todas las asignaciones
-  - Crear asignaciones automáticas
-  - Ver historial de actividades
-  - Ver resultados de todos los juegos
+  - Dashboard con estadísticas en tiempo real
+  - Ver historial de actividades con barras de progreso
+  - Ver resultados de juegos por paciente y por juego
+  - Estadísticas de aciertos/desaciertos por juego
+  
+  Contenido del sistema (3 tabs):
+  - Textos e instrucciones (agregar/eliminar)
+  - Media: subir/eliminar imágenes y videos
+  - Referencia de juegos implementados
   
   Acceso a juegos:
   - Puede acceder a /juegos/* para revisión
@@ -37,17 +43,25 @@ note right of Medico
   Acceso: /doctor/*
   ─────────────────────────────
   Gestión de pacientes:
-  - Ver lista de pacientes asignados
+  - Ver lista de pacientes con stats de juegos
+  - Ver perfil detallado de cada paciente
+  - Editar datos básicos del paciente
+  - Ver gráfica de progreso por categoría
+  
+  Asignaciones:
+  - Ver asignaciones pendientes/aceptadas/canceladas
   - Aceptar o cancelar asignaciones
+  - Ver pacientes sin médico asignado
   
   Evaluación y seguimiento:
-  - Ver historial de actividades de pacientes
-  - Ver resultados de juegos completados
+  - Ver historial de actividades con filtros
   - Ver evaluaciones pendientes (sin feedback)
-  - Proporcionar feedback a actividades
+  - Proporcionar feedback a cada actividad
+  - Ver resultados de juegos completados
   
   Estado personal:
-  - Cambiar estado: activo / ocupado / en consulta
+  - Cambiar estado: disponible / ocupado / en consulta
+  - El cambio se refleja en el panel admin en tiempo real
   
   Acceso a juegos:
   - Puede acceder a /juegos/* para revisión
@@ -60,22 +74,24 @@ note right of Paciente
   Perfil y sesión:
   - Registrarse con email y contraseña
   - Ver y editar su perfil personal
+    (nombre, edad, escolaridad, género, tutor)
   - Ver calendario de uso mensual
   
-  Actividades y juegos:
-  - Ver actividades disponibles asignadas
-  - Acceder al hub de juegos fonoaudiológicos
+  Dashboard:
+  - Tarjeta de bienvenida personalizada
+  - Acceso rápido a juegos fonoaudiológicos
+  - Lista de actividades asignadas por médico
   
-  Categorías de juegos disponibles:
+  Juegos disponibles (12 juegos en 5 categorías):
   - Respiración: globo, molino
   - Fonación: gol, escala musical
   - Resonancia: escaleras, piano, veo-veo
   - Articulación: letras B, D, F, R
   - Practica Conmigo: rompecabezas, cara, asociación
   
-  Los resultados de juegos son evaluados
-  por el médico para determinar el avance
-  terapéutico del paciente
+  Los resultados se guardan automáticamente
+  y el médico los evalúa para determinar
+  el avance terapéutico
 end note
 
 note right of Emisor
@@ -99,10 +115,10 @@ note bottom
   Flujo principal de la aplicación:
   1. Paciente se registra/inicia sesión → /paciente/perfil (dashboard)
   2. Paciente realiza juegos fonoaudiológicos → resultados guardados en DB
-  3. Admin crea asignación automática → asigna médico disponible al paciente
-  4. Médico acepta asignación → revisa historial y resultados del paciente
+  3. Admin crea asignación (auto o manual) → asigna médico al paciente
+  4. Médico acepta asignación → revisa perfil, historial y resultados
   5. Médico proporciona feedback → evaluación registrada en historial
-  6. Admin supervisa todo el proceso desde el dashboard
+  6. Admin supervisa todo desde el dashboard con estadísticas en tiempo real
 end note
 
 @enduml
