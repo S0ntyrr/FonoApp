@@ -90,25 +90,38 @@
         </div>
 
         <section style="margin-top:1.5rem;">
-            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📋 Actividades asignadas</h3>
+            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📋 Actividades de hoy</h3>
             <div id="listaActividades" class="lista-actividades">
                 {% if actividades_disponibles %}
                     {% for cat in actividades_disponibles %}
-                        <div class="categoria-titulo">{{ cat.categoria | upper }}</div>
+                        <div class="categoria-titulo">{{ cat.categoria }}</div>
                         {% for act in cat.actividades %}
                             {% if act is mapping %}
-                                <a href="{{ act.url }}" class="actividad-item actividad-link" style="text-decoration:none;">
+                                <a href="{{ act.url }}" class="actividad-item actividad-link" style="text-decoration:none;" onclick="marcarActividad(this)">
+                                    <span class="actividad-check" id="check-{{ loop.index }}">○</span>
                                     <div class="actividad-detalle">{{ act.actividad }}</div>
                                     <div class="marcador">›</div>
                                 </a>
                             {% else %}
-                                <a href="/juegos/" class="actividad-item actividad-link" style="text-decoration:none;">
+                                <a href="/juegos/" class="actividad-item actividad-link" style="text-decoration:none;" onclick="marcarActividad(this)">
+                                    <span class="actividad-check">○</span>
                                     <div class="actividad-detalle">{{ act }}</div>
                                     <div class="marcador">›</div>
                                 </a>
                             {% endif %}
                         {% endfor %}
                     {% endfor %}
+
+                    <!-- Mensaje de sesión completada (oculto por defecto) -->
+                    <div id="sesion-completada" class="sesion-completada" style="display:none;">
+                        <span style="font-size:2.5rem;">🏆</span>
+                        <p class="sesion-titulo">¡Excelente trabajo!</p>
+                        <p class="sesion-sub">Completaste todas las actividades de hoy.</p>
+                        <p class="sesion-sub">Vuelve mañana para nuevas actividades 🌟</p>
+                        <button class="boton-rojo ancho-completo" onclick="window.location.href='/juegos/'" style="margin-top:0.8rem;">
+                            🎮 Seguir jugando libremente
+                        </button>
+                    </div>
                 {% else %}
                     <div class="actividad-vacia">
                         <span style="font-size:2rem;">📭</span>
@@ -144,4 +157,61 @@
 </div>
 
 <script src="/static/js/paciente.js"></script>
+<script>
+// Marcar actividad como completada
+let actividadesCompletadas = 0;
+let totalActividades = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    totalActividades = document.querySelectorAll('.actividad-link').length;
+    // Restaurar estado del localStorage
+    const completadas = JSON.parse(localStorage.getItem('actividades_hoy_' + new Date().toDateString()) || '[]');
+    completadas.forEach(idx => {
+        const items = document.querySelectorAll('.actividad-link');
+        if (items[idx]) {
+            items[idx].classList.add('completada');
+            items[idx].querySelector('.actividad-check').textContent = '✓';
+            actividadesCompletadas++;
+        }
+    });
+    verificarSesionCompleta();
+});
+
+function marcarActividad(el) {
+    // No prevenir la navegación, solo marcar visualmente al volver
+    const idx = Array.from(document.querySelectorAll('.actividad-link')).indexOf(el);
+    setTimeout(() => {
+        el.classList.add('completada');
+        el.querySelector('.actividad-check').textContent = '✓';
+        actividadesCompletadas++;
+        // Guardar en localStorage
+        const key = 'actividades_hoy_' + new Date().toDateString();
+        const completadas = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!completadas.includes(idx)) completadas.push(idx);
+        localStorage.setItem(key, JSON.stringify(completadas));
+        verificarSesionCompleta();
+    }, 100);
+}
+
+function verificarSesionCompleta() {
+    const completadas = document.querySelectorAll('.actividad-link.completada').length;
+    if (totalActividades > 0 && completadas >= totalActividades) {
+        document.getElementById('sesion-completada').style.display = 'flex';
+        document.querySelectorAll('.actividad-link').forEach(a => a.style.opacity = '0.6');
+    }
+}
+</script>
+
+<style>
+.actividad-link { color: inherit; }
+.actividad-link.completada { background: #f0fff4 !important; border-color: #4caf50 !important; }
+.actividad-link.completada .actividad-detalle { text-decoration: line-through; color: #888; }
+.actividad-link.completada .marcador { color: #4caf50; }
+.actividad-check { font-size: 1rem; color: #ccc; min-width: 1.2rem; }
+.actividad-link.completada .actividad-check { color: #4caf50; font-weight: 700; }
+.categoria-titulo { font-size: 0.78rem; color: #d32f2f; margin-top: 0.8rem; font-weight: 700; letter-spacing: 0.5px; padding-left: 0.3rem; text-transform: capitalize; }
+.sesion-completada { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1.5rem 1rem; background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-radius: 14px; border: 2px solid #4caf50; margin-top: 0.8rem; }
+.sesion-titulo { margin: 0.5rem 0 0.2rem; font-size: 1.1rem; font-weight: 800; color: #2e7d32; }
+.sesion-sub { margin: 0.2rem 0; font-size: 0.85rem; color: #555; }
+</style>
 {% endblock %}
