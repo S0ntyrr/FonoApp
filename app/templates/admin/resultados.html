@@ -1,76 +1,119 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ titulo_pagina }}</title>
-  <link rel="stylesheet" href="/static/css/estilos.css">
-  <style>
-    body{margin:0;background:#f9f9f9;font-family:'Segoe UI',sans-serif;}
-    .container{max-width:1000px;margin:0 auto;padding:24px;}
-    h1{color:#e63946;border-bottom:2px solid #e63946;padding-bottom:10px;}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);}
-    th{background:#e63946;color:#fff;padding:12px;text-align:left;font-size:0.9rem;}
-    td{padding:10px 12px;border-bottom:1px solid #eee;font-size:0.9rem;}
-    tr:last-child td{border-bottom:none;}
-    .badge{padding:3px 10px;border-radius:12px;font-size:0.8rem;font-weight:bold;}
-    .badge.ok{background:#c8f7c5;color:#27ae60;}
-    .badge.pending{background:#fff3cd;color:#856404;}
-    .nav-links{margin-bottom:20px;}
-    .nav-links a{color:#e63946;text-decoration:none;margin-right:16px;}
-    .empty{text-align:center;padding:40px;color:#999;}
-    .stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
-    .stat-card{background:#fff;border-radius:8px;padding:16px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center;}
-    .stat-card .num{font-size:2rem;font-weight:bold;color:#e63946;}
-    .stat-card .label{font-size:0.85rem;color:#555;}
-  </style>
-</head>
-<body>
-<div class="container">
-  <div class="nav-links">
-    <a href="/admin/dashboard">← Dashboard</a>
-    <a href="/admin/historial">Historial</a>
-    <a href="/admin/pacientes">Pacientes</a>
-  </div>
-  <h1>📊 Resultados de Juegos</h1>
-  <div class="stats">
-    <div class="stat-card"><div class="num">{{ resultados|length }}</div><div class="label">Total registros</div></div>
-    <div class="stat-card"><div class="num">{{ resultados|selectattr('completado')|list|length }}</div><div class="label">Completados</div></div>
-  </div>
-  {% if resultados %}
-  <table>
-    <thead>
-      <tr>
-        <th>Paciente</th>
-        <th>Categoría</th>
-        <th>Juego</th>
-        <th>Progreso</th>
-        <th>Estado</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in resultados %}
-      <tr>
-        <td>{{ r.paciente_email }}</td>
-        <td>{{ r.categoria }}</td>
-        <td>{{ r.juego }}</td>
-        <td>{{ r.paso_completado }} / {{ r.total_pasos }}</td>
-        <td>
-          {% if r.completado %}
-            <span class="badge ok">✓ Completado</span>
-          {% else %}
-            <span class="badge pending">En progreso</span>
-          {% endif %}
-        </td>
-        <td>{{ r.fecha.strftime('%d/%m/%Y %H:%M') if r.fecha else '-' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty">No hay resultados registrados aún.</div>
-  {% endif %}
-</div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil" style="padding-top:1rem;">
+
+    <div class="panel-header">
+        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">📊 Resultados de juegos</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <!-- Estadísticas por juego -->
+    {% if stats_juego %}
+    <div style="margin-bottom:1rem;">
+        <h3 style="font-size:0.82rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.6rem;">Aciertos por juego</h3>
+        <div class="stats-juego-grid">
+            {% for juego, s in stats_juego.items() %}
+                {% set pct = ((s.completados / s.total) * 100) | int if s.total > 0 else 0 %}
+                <div class="stat-juego-fila">
+                    <span class="stat-juego-nombre">{{ juego | replace('_', ' ') | title }}</span>
+                    <div class="stat-juego-barra-wrap">
+                        <div class="stat-juego-barra {% if pct >= 70 %}bueno{% elif pct >= 40 %}medio{% else %}bajo{% endif %}"
+                             style="width:{{ pct }}%;"></div>
+                    </div>
+                    <span class="stat-juego-pct">{{ pct }}%</span>
+                    <span class="stat-juego-nums">{{ s.completados }}/{{ s.total }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas por paciente -->
+    {% if stats_paciente %}
+    <div style="margin-bottom:1rem;">
+        <h3 style="font-size:0.82rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.6rem;">Progreso por paciente</h3>
+        <div class="stats-paciente-grid">
+            {% for email, s in stats_paciente.items() %}
+                {% set pct = ((s.completados / s.total) * 100) | int if s.total > 0 else 0 %}
+                <div class="stat-pac-card">
+                    <div class="stat-pac-avatar">{{ email[0] | upper }}</div>
+                    <div class="stat-pac-info">
+                        <p class="stat-pac-email">{{ email }}</p>
+                        <div class="stat-pac-barra-wrap">
+                            <div class="stat-pac-barra" style="width:{{ pct }}%;"></div>
+                        </div>
+                        <p class="stat-pac-nums">✓ {{ s.completados }} completados · ⏳ {{ s.en_progreso }} en progreso</p>
+                    </div>
+                    <span class="stat-pac-pct">{{ pct }}%</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de resultados recientes -->
+    <h3 style="font-size:0.82rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.6rem;">Últimos resultados</h3>
+
+    {% if resultados %}
+        <div class="resultados-lista">
+            {% for r in resultados[:50] %}
+                <div class="resultado-card-admin">
+                    <div class="res-info">
+                        <p class="res-paciente">{{ r.paciente_email }}</p>
+                        <p class="res-juego">{{ r.juego | replace('_', ' ') | title }} · {{ r.categoria }}</p>
+                        <p class="res-meta">{{ r.paso_completado }}/{{ r.total_pasos }} pasos · 📅 {{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '-' }}</p>
+                    </div>
+                    {% if r.completado %}
+                        <span class="badge-ok">✓</span>
+                    {% else %}
+                        <span class="badge-prog">⏳</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="actividad-vacia">
+            <span style="font-size:2.5rem;">📊</span>
+            <p>No hay resultados de juegos registrados.</p>
+        </div>
+    {% endif %}
+
+</section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+
+.stats-juego-grid { background:#fff; border-radius:12px; padding:0.8rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:0.5rem; }
+.stat-juego-fila { display:flex; align-items:center; gap:0.5rem; }
+.stat-juego-nombre { font-size:0.72rem; font-weight:600; color:#555; min-width:80px; text-transform:capitalize; }
+.stat-juego-barra-wrap { flex:1; background:#f0f0f0; border-radius:6px; height:12px; overflow:hidden; }
+.stat-juego-barra { height:100%; border-radius:6px; min-width:4px; }
+.stat-juego-barra.bueno { background:linear-gradient(90deg,#2e7d32,#66bb6a); }
+.stat-juego-barra.medio { background:linear-gradient(90deg,#f57c00,#ffa726); }
+.stat-juego-barra.bajo { background:linear-gradient(90deg,#c62828,#ef5350); }
+.stat-juego-pct { font-size:0.7rem; font-weight:700; color:#555; min-width:30px; text-align:right; }
+.stat-juego-nums { font-size:0.65rem; color:#aaa; min-width:40px; text-align:right; }
+
+.stats-paciente-grid { display:flex; flex-direction:column; gap:0.5rem; }
+.stat-pac-card { display:flex; align-items:center; gap:0.7rem; background:#fff; border-radius:10px; padding:0.6rem 0.8rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+.stat-pac-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; font-size:0.85rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.stat-pac-info { flex:1; }
+.stat-pac-email { margin:0 0 0.2rem; font-size:0.75rem; color:#555; font-weight:600; }
+.stat-pac-barra-wrap { background:#f0f0f0; border-radius:6px; height:10px; overflow:hidden; margin-bottom:0.2rem; }
+.stat-pac-barra { height:100%; background:linear-gradient(90deg,#d32f2f,#e57373); border-radius:6px; min-width:4px; }
+.stat-pac-nums { margin:0; font-size:0.65rem; color:#aaa; }
+.stat-pac-pct { font-size:0.88rem; font-weight:800; color:#d32f2f; min-width:35px; text-align:right; }
+
+.resultados-lista { display:flex; flex-direction:column; gap:0.4rem; }
+.resultado-card-admin { display:flex; align-items:center; justify-content:space-between; background:#fff; border-radius:10px; padding:0.6rem 0.8rem; box-shadow:0 1px 4px rgba(0,0,0,0.04); border:1px solid #f0f0f0; }
+.res-info { flex:1; }
+.res-paciente { margin:0; font-size:0.75rem; color:#888; }
+.res-juego { margin:0.1rem 0; font-size:0.85rem; font-weight:600; color:#1a1a1a; }
+.res-meta { margin:0; font-size:0.7rem; color:#aaa; }
+.badge-ok { background:#e8f5e9; color:#2e7d32; font-size:0.75rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:8px; }
+.badge-prog { background:#fff3e0; color:#e65100; font-size:0.75rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:8px; }
+</style>
+{% endblock %}

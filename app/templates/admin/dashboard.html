@@ -1,64 +1,131 @@
 {% extends "base.html" %}
 
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Panel de administración</h1>
+<section class="pantalla-movil" style="padding-top:1rem;">
 
-    <div class="tarjeta-resumen">
-        <p><strong>Total usuarios:</strong> {{ usuarios_total }}</p>
-        <p><strong>Total pacientes:</strong> {{ pacientes_total }}</p>
-        <p><strong>Total médicos:</strong> {{ medicos_total }}</p>
-        <p><strong>Médicos activos:</strong> {{ medicos_activos }}</p>
-        <p><strong>Médicos ocupados:</strong> {{ medicos_ocupados }}</p>
-        <p><strong>Médicos en consulta:</strong> {{ medicos_consulta }}</p>
+    <!-- Cabecera admin -->
+    <div class="panel-header">
+        <div class="panel-header-marca">
+            <span class="panel-header-icono">🛡️</span>
+            <div>
+                <h1 class="panel-header-titulo">Panel Admin</h1>
+                <p class="panel-header-sub">FonoApp</p>
+            </div>
+        </div>
+        <a href="/auth/login" class="btn-cerrar-sesion" title="Cerrar sesión">🚪</a>
     </div>
 
-    <div class="acciones-admin">
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/admin/pacientes'">
-            Gestionar pacientes
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/admin/medicos'">
-            Gestión de médicos
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/admin/actividades'">
-             Actividades
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/admin/asignaciones'">
-             Asignaciones
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/admin/historial'">
-            Historial de actividades
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/admin/resultados'">
-            📊 Resultados de Juegos
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/admin/contenido'">
-            Contenido del sistema
-        </button>
-
-        <button class="boton-rojo ancho-completo"
-                onclick="window.location.href='/juegos/'"
-                style="background:#388e3c;">
-            🎮 Juegos Fonoaudiológicos
-        </button>
-
-        <button class="boton-rojo-borde ancho-completo"
-                onclick="window.location.href='/auth/login'">
-            Cerrar sesión
-        </button>
+    <!-- Estadísticas principales -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-num">{{ pacientes_total }}</span>
+            <span class="stat-label">Pacientes</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-num">{{ medicos_total }}</span>
+            <span class="stat-label">Médicos</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-num">{{ total_juegos or 0 }}</span>
+            <span class="stat-label">Juegos</span>
+        </div>
     </div>
+
+    <!-- Estado médicos + asignaciones pendientes -->
+    <div class="tarjeta-resumen" style="margin-bottom:1.2rem;">
+        <p style="font-size:0.8rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.5rem;">Estado del sistema</p>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+            <span class="badge-estado activo">✓ {{ medicos_activos }} disponibles</span>
+            <span class="badge-estado ocupado">⏳ {{ medicos_ocupados }} ocupados</span>
+            <span class="badge-estado consulta">💬 {{ medicos_consulta }} consulta</span>
+            {% if asignaciones_pendientes and asignaciones_pendientes > 0 %}
+                <span class="badge-estado pendiente">🔗 {{ asignaciones_pendientes }} asig. pendientes</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="menu-acciones">
+        <a href="/admin/pacientes" class="menu-item">
+            <span class="menu-item-icono">👥</span>
+            <span class="menu-item-texto">Gestionar pacientes</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/admin/medicos" class="menu-item">
+            <span class="menu-item-icono">🩺</span>
+            <span class="menu-item-texto">Gestionar médicos</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/admin/actividades" class="menu-item">
+            <span class="menu-item-icono">🎮</span>
+            <span class="menu-item-texto">Juegos del sistema</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/admin/asignaciones" class="menu-item {% if asignaciones_pendientes and asignaciones_pendientes > 0 %}menu-item-alerta{% endif %}">
+            <span class="menu-item-icono">🔗</span>
+            <span class="menu-item-texto">
+                Asignaciones
+                {% if asignaciones_pendientes and asignaciones_pendientes > 0 %}
+                    <span class="badge-count">{{ asignaciones_pendientes }}</span>
+                {% endif %}
+            </span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/admin/historial" class="menu-item">
+            <span class="menu-item-icono">📋</span>
+            <span class="menu-item-texto">Historial de actividades</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/admin/resultados" class="menu-item">
+            <span class="menu-item-icono">📊</span>
+            <span class="menu-item-texto">Resultados de juegos</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/admin/contenido" class="menu-item">
+            <span class="menu-item-icono">🖼️</span>
+            <span class="menu-item-texto">Contenido del sistema</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+        <a href="/juegos/" class="menu-item menu-item-juegos">
+            <span class="menu-item-icono">🎮</span>
+            <span class="menu-item-texto">Juegos Fonoaudiológicos</span>
+            <span class="menu-item-flecha">›</span>
+        </a>
+    </div>
+
 </section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; padding-bottom:1rem; border-bottom:1px solid #f0f0f0; }
+.panel-header-marca { display:flex; align-items:center; gap:0.7rem; }
+.panel-header-icono { font-size:1.8rem; background:linear-gradient(135deg,#d32f2f,#b71c1c); border-radius:12px; width:48px; height:48px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(211,47,47,0.25); }
+.panel-header-titulo { margin:0; font-size:1.15rem; font-weight:800; color:#1a1a1a; }
+.panel-header-sub { margin:0; font-size:0.78rem; color:#999; }
+.btn-cerrar-sesion { font-size:1.4rem; text-decoration:none; background:#f5f5f5; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
+.btn-cerrar-sesion:hover { background:#ffebee; }
+
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.7rem; margin-bottom:1rem; }
+.stat-card { background:#fff; border-radius:12px; padding:0.9rem 0.5rem; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-top:3px solid #d32f2f; }
+.stat-num { display:block; font-size:1.8rem; font-weight:800; color:#d32f2f; line-height:1; }
+.stat-label { display:block; font-size:0.72rem; color:#888; margin-top:0.3rem; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; }
+
+.badge-estado { font-size:0.75rem; font-weight:600; padding:0.25rem 0.6rem; border-radius:20px; }
+.badge-estado.activo { background:#e8f5e9; color:#2e7d32; }
+.badge-estado.ocupado { background:#fff3e0; color:#e65100; }
+.badge-estado.consulta { background:#e3f2fd; color:#1565c0; }
+.badge-estado.pendiente { background:#fff3e0; color:#e65100; }
+
+.menu-acciones { display:flex; flex-direction:column; gap:0.5rem; }
+.menu-item { display:flex; align-items:center; gap:0.9rem; padding:0.85rem 1rem; background:#fff; border-radius:12px; text-decoration:none; color:#1a1a1a; box-shadow:0 1px 4px rgba(0,0,0,0.05); border:1px solid #f0f0f0; transition:transform 0.1s, box-shadow 0.1s, background 0.1s; font-weight:500; font-size:0.92rem; }
+.menu-item:hover { transform:translateX(3px); box-shadow:0 3px 12px rgba(0,0,0,0.08); background:#fff9f9; border-color:#ffcdd2; }
+.menu-item-icono { font-size:1.3rem; min-width:1.8rem; text-align:center; }
+.menu-item-texto { flex:1; display:flex; align-items:center; gap:0.5rem; }
+.menu-item-flecha { color:#ccc; font-size:1.2rem; }
+.menu-item-alerta { border-color:#fff3e0; background:#fffdf8; }
+.menu-item-alerta:hover { border-color:#ffe0b2; background:#fff8f0; }
+.menu-item-juegos { background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff; border-color:transparent; }
+.menu-item-juegos:hover { background:linear-gradient(135deg,#16213e,#0f3460); border-color:transparent; }
+.menu-item-juegos .menu-item-flecha { color:rgba(255,255,255,0.4); }
+.badge-count { background:#d32f2f; color:#fff; font-size:0.7rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:10px; min-width:18px; text-align:center; }
+</style>
 {% endblock %}

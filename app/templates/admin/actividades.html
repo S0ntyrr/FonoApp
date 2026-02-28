@@ -1,21 +1,68 @@
 {% extends "base.html" %}
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Actividades por categoría</h1>
+<section class="pantalla-movil" style="padding-top:1rem;">
 
-    {% if categorias %}
-        {% for c in categorias %}
-            <div class="tarjeta-resumen">
-                <h2>{{ c.categoria | replace("_", " ") | title }}</h2>
-                <ul>
-                    {% for act in c.actividades %}
-                        <li>{{ act }}</li>
-                    {% endfor %}
-                </ul>
+    <div class="panel-header">
+        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">🎮 Juegos del sistema</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <p class="texto-pequeño centrado" style="margin-bottom:1rem;">
+        Juegos fonoaudiológicos disponibles. Haz clic en cualquiera para probarlo.
+    </p>
+
+    {% for categoria in juegos_disponibles %}
+        <div class="categoria-juegos-admin">
+            <div class="categoria-header-admin">
+                <h3 class="categoria-titulo-admin">{{ categoria.categoria }}</h3>
+                <span class="categoria-count">{{ categoria.juegos | length }} juegos</span>
             </div>
-        {% endfor %}
-    {% else %}
-        <p class="centrado">No hay actividades configuradas.</p>
-    {% endif %}
+            <div class="juegos-lista-admin">
+                {% for juego in categoria.juegos %}
+                    {% set key = categoria.categoria | lower | replace(' ', '_') + '/' + juego.nombre | lower | replace(' ', '_') %}
+                    {% set stats = stats_juegos.get(key, {}) %}
+                    <a href="{{ juego.url }}" class="juego-item-admin" target="_blank">
+                        <div class="juego-item-info">
+                            <span class="juego-item-nombre">{{ juego.nombre }}</span>
+                            {% if stats.total %}
+                                <span class="juego-item-stats">
+                                    {{ stats.completados or 0 }}/{{ stats.total }} completados
+                                </span>
+                            {% endif %}
+                        </div>
+                        <span class="juego-item-flecha">↗</span>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+
+    <div style="margin-top:1.5rem;">
+        <a href="/juegos/" class="boton-rojo ancho-completo"
+           style="display:block; text-align:center; text-decoration:none; padding:0.75rem;">
+            🎮 Ir al hub de juegos
+        </a>
+    </div>
+
 </section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+
+.categoria-juegos-admin { margin-bottom:1rem; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
+.categoria-header-admin { display:flex; align-items:center; justify-content:space-between; padding:0.7rem 1rem; background:#fff9f9; border-bottom:1px solid #f5f5f5; }
+.categoria-titulo-admin { margin:0; font-size:0.82rem; font-weight:700; color:#d32f2f; text-transform:uppercase; letter-spacing:0.5px; }
+.categoria-count { font-size:0.72rem; color:#888; background:#f0f0f0; padding:0.1rem 0.5rem; border-radius:10px; }
+.juegos-lista-admin { display:flex; flex-direction:column; }
+.juego-item-admin { display:flex; align-items:center; justify-content:space-between; padding:0.65rem 1rem; text-decoration:none; color:#1a1a1a; border-bottom:1px solid #f5f5f5; transition:background 0.1s; }
+.juego-item-admin:last-child { border-bottom:none; }
+.juego-item-admin:hover { background:#fff5f5; }
+.juego-item-info { display:flex; flex-direction:column; }
+.juego-item-nombre { font-size:0.88rem; font-weight:500; }
+.juego-item-stats { font-size:0.7rem; color:#888; margin-top:0.1rem; }
+.juego-item-flecha { color:#d32f2f; font-size:0.9rem; }
+</style>
 {% endblock %}

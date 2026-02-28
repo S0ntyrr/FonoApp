@@ -1,58 +1,197 @@
 {% extends "base.html" %}
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Contenido del sistema</h1>
+<section class="pantalla-movil" style="padding-top:1rem;">
 
-    <h2 class="centrado">Agregar contenido</h2>
-    <form method="post"
-          action="/admin/contenido"
-          enctype="multipart/form-data"
-          class="formulario-movil">
-        <label class="etiqueta-campo" for="imagen">Imagen (opcional)</label>
-        <input type="file" id="imagen" name="imagen" accept="image/*" class="campo-texto" />
+    <div class="panel-header">
+        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">🖼️ Contenido del sistema</h1>
+        <div style="width:70px;"></div>
+    </div>
 
-        <label class="etiqueta-campo" for="video">Video (opcional)</label>
-        <input type="file" id="video" name="video" accept="video/*" class="campo-texto" />
+    <!-- Tabs de navegación -->
+    <div class="contenido-tabs">
+        <button class="tab-btn activo" onclick="showTab('tab-textos', this)">📝 Textos</button>
+        <button class="tab-btn" onclick="showTab('tab-media', this)">🖼️ Media</button>
+        <button class="tab-btn" onclick="showTab('tab-juegos', this)">🎮 Juegos</button>
+    </div>
 
-        <button type="submit" class="boton-rojo ancho-completo">
-            Guardar en la base de datos
-        </button>
-    </form>
+    <!-- TAB: Textos e instrucciones -->
+    <div id="tab-textos" class="tab-content activo">
+        <h3 class="tab-titulo">Agregar texto / instrucción</h3>
+        <form method="post" action="/admin/contenido/texto" class="formulario-movil">
+            <label class="etiqueta-campo">Tipo</label>
+            <select name="tipo" class="campo-texto">
+                <option value="instruccion">📋 Instrucción</option>
+                <option value="aviso">⚠️ Aviso</option>
+                <option value="regla">📏 Regla del sistema</option>
+            </select>
+            <label class="etiqueta-campo">Texto</label>
+            <textarea name="texto" class="campo-texto" rows="3"
+                      placeholder="Escribe el texto aquí..." required
+                      style="resize:vertical;"></textarea>
+            <button type="submit" class="boton-rojo ancho-completo">+ Agregar texto</button>
+        </form>
 
-    {% if contenido %}
-        <h2>Imágenes</h2>
-        <ul>
-            {% for img in contenido.imagenes %}
-                <li>
-                    <a href="{{ img }}" target="_blank">{{ img }}</a>
-                </li>
-            {% endfor %}
-        </ul>
+        <!-- Lista de textos -->
+        {% if contenido and contenido.textos_sistema %}
+            <div class="textos-lista">
+                {% for t in contenido.textos_sistema %}
+                    <div class="texto-item">
+                        {% if t is mapping %}
+                            <span class="texto-tipo tipo-{{ t.tipo or 'instruccion' }}">
+                                {% if t.tipo == 'aviso' %}⚠️
+                                {% elif t.tipo == 'regla' %}📏
+                                {% else %}📋
+                                {% endif %}
+                                {{ t.tipo | title if t.tipo else 'Instrucción' }}
+                            </span>
+                            <p class="texto-contenido">{{ t.texto }}</p>
+                            <p class="texto-fecha">{{ t.fecha or '' }}</p>
+                        {% else %}
+                            <p class="texto-contenido">{{ t }}</p>
+                        {% endif %}
+                        <form method="post" action="/admin/contenido/texto/{{ loop.index0 }}/eliminar" style="margin-top:0.3rem;">
+                            <button type="submit" class="btn-eliminar-texto" onclick="return confirm('¿Eliminar este texto?')">🗑️ Eliminar</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="actividad-vacia" style="margin-top:1rem;">
+                <span style="font-size:1.5rem;">📝</span>
+                <p class="texto-pequeño">No hay textos configurados.</p>
+            </div>
+        {% endif %}
+    </div>
 
-        <h2>Videos</h2>
-        <ul>
-            {% for v in contenido.videos %}
-                <li>
-                    <a href="{{ v }}" target="_blank">{{ v }}</a>
-                </li>
-            {% endfor %}
-        </ul>
+    <!-- TAB: Media (imágenes y videos) -->
+    <div id="tab-media" class="tab-content">
+        <h3 class="tab-titulo">Subir imagen o video</h3>
+        <form method="post" action="/admin/contenido/media" enctype="multipart/form-data" class="formulario-movil">
+            <label class="etiqueta-campo">Imagen (PNG, JPG, SVG)</label>
+            <input type="file" name="imagen" accept="image/*" class="campo-texto" />
+            <label class="etiqueta-campo">Video (MP4, WebM)</label>
+            <input type="file" name="video" accept="video/*" class="campo-texto" />
+            <button type="submit" class="boton-rojo ancho-completo">⬆️ Subir archivo</button>
+        </form>
 
-        <h2>Audios de referencia</h2>
-        <ul>
-            {% for a in contenido.audios_referencia %}
-                <li>{{ a }}</li>
-            {% endfor %}
-        </ul>
+        <!-- Imágenes -->
+        {% if contenido and contenido.imagenes %}
+            <h4 style="font-size:0.82rem; color:#555; margin:1rem 0 0.5rem;">Imágenes ({{ contenido.imagenes | length }})</h4>
+            <div class="media-grid">
+                {% for img in contenido.imagenes %}
+                    <div class="media-item">
+                        <img src="{{ img }}" alt="Imagen" class="media-preview" onerror="this.style.display='none'" />
+                        <p class="media-url">{{ img.split('/')[-1] }}</p>
+                        <form method="post" action="/admin/contenido/media/eliminar">
+                            <input type="hidden" name="tipo" value="imagen" />
+                            <input type="hidden" name="url" value="{{ img }}" />
+                            <button type="submit" class="btn-eliminar-media" onclick="return confirm('¿Eliminar imagen?')">🗑️</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="actividad-vacia" style="margin-top:1rem;">
+                <span style="font-size:1.5rem;">🖼️</span>
+                <p class="texto-pequeño">No hay imágenes subidas.</p>
+            </div>
+        {% endif %}
 
-        <h2>Textos del sistema</h2>
-        <ul>
-            {% for t in contenido.textos_sistema %}
-                <li>{{ t }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="centrado">No hay contenido configurado.</p>
-    {% endif %}
+        <!-- Videos -->
+        {% if contenido and contenido.videos %}
+            <h4 style="font-size:0.82rem; color:#555; margin:1rem 0 0.5rem;">Videos ({{ contenido.videos | length }})</h4>
+            <div class="videos-lista">
+                {% for v in contenido.videos %}
+                    <div class="video-item">
+                        <p class="media-url">{{ v.split('/')[-1] }}</p>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <a href="{{ v }}" target="_blank" class="btn-ver-media">▶ Ver</a>
+                            <form method="post" action="/admin/contenido/media/eliminar" style="display:inline;">
+                                <input type="hidden" name="tipo" value="video" />
+                                <input type="hidden" name="url" value="{{ v }}" />
+                                <button type="submit" class="btn-eliminar-media" onclick="return confirm('¿Eliminar video?')">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- TAB: Juegos disponibles (referencia) -->
+    <div id="tab-juegos" class="tab-content">
+        <h3 class="tab-titulo">Juegos implementados en el sistema</h3>
+        <p class="texto-pequeño" style="margin-bottom:0.8rem;">
+            Estos son los juegos actualmente disponibles. Para agregar nuevos juegos,
+            se deben implementar en el código y registrar aquí.
+        </p>
+        {% for cat in juegos_disponibles %}
+            <div class="juego-cat-ref">
+                <p class="juego-cat-titulo">{{ cat.categoria }}</p>
+                {% for j in cat.juegos %}
+                    <div class="juego-ref-item">
+                        <span>{{ j.nombre }}</span>
+                        <a href="{{ j.url }}" target="_blank" class="btn-probar">Probar ↗</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
 </section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+
+.contenido-tabs { display:flex; gap:0.4rem; margin-bottom:1rem; border-bottom:2px solid #f0f0f0; padding-bottom:0.5rem; }
+.tab-btn { background:none; border:none; font-size:0.82rem; font-weight:600; color:#888; cursor:pointer; padding:0.4rem 0.7rem; border-radius:8px; transition:background 0.1s; }
+.tab-btn.activo { background:#fff9f9; color:#d32f2f; }
+.tab-btn:hover { background:#f5f5f5; }
+
+.tab-content { display:none; }
+.tab-content.activo { display:block; }
+.tab-titulo { font-size:0.88rem; font-weight:700; color:#555; margin:0 0 0.8rem; }
+
+.textos-lista { display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem; }
+.texto-item { background:#fff; border-radius:10px; padding:0.7rem 0.9rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); border:1px solid #f0f0f0; }
+.texto-tipo { font-size:0.7rem; font-weight:700; padding:0.1rem 0.5rem; border-radius:8px; display:inline-block; margin-bottom:0.3rem; }
+.tipo-instruccion { background:#e3f2fd; color:#1565c0; }
+.tipo-aviso { background:#fff3e0; color:#e65100; }
+.tipo-regla { background:#f3e5f5; color:#6a1b9a; }
+.texto-contenido { margin:0; font-size:0.85rem; color:#333; }
+.texto-fecha { margin:0.2rem 0 0; font-size:0.68rem; color:#aaa; }
+.btn-eliminar-texto { background:none; border:1px solid #ffcdd2; color:#c62828; border-radius:6px; padding:0.15rem 0.5rem; font-size:0.7rem; cursor:pointer; }
+.btn-eliminar-texto:hover { background:#ffebee; }
+
+.media-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0.6rem; margin-top:0.5rem; }
+.media-item { background:#fff; border-radius:10px; padding:0.6rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); text-align:center; }
+.media-preview { width:100%; height:80px; object-fit:cover; border-radius:6px; margin-bottom:0.3rem; }
+.media-url { margin:0 0 0.3rem; font-size:0.65rem; color:#888; word-break:break-all; }
+.btn-eliminar-media { background:none; border:1px solid #ffcdd2; color:#c62828; border-radius:6px; padding:0.15rem 0.4rem; font-size:0.7rem; cursor:pointer; }
+.btn-eliminar-media:hover { background:#ffebee; }
+
+.videos-lista { display:flex; flex-direction:column; gap:0.4rem; margin-top:0.5rem; }
+.video-item { background:#fff; border-radius:10px; padding:0.6rem 0.8rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:space-between; }
+.btn-ver-media { font-size:0.75rem; color:#1565c0; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid #bbdefb; border-radius:6px; }
+.btn-ver-media:hover { background:#e3f2fd; }
+
+.juego-cat-ref { background:#fff; border-radius:10px; overflow:hidden; margin-bottom:0.7rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+.juego-cat-titulo { margin:0; padding:0.5rem 0.8rem; font-size:0.78rem; font-weight:700; color:#d32f2f; background:#fff9f9; border-bottom:1px solid #f5f5f5; text-transform:uppercase; letter-spacing:0.5px; }
+.juego-ref-item { display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.8rem; border-bottom:1px solid #f5f5f5; font-size:0.85rem; }
+.juego-ref-item:last-child { border-bottom:none; }
+.btn-probar { font-size:0.72rem; color:#d32f2f; text-decoration:none; font-weight:600; padding:0.15rem 0.5rem; border:1px solid #ffcdd2; border-radius:6px; }
+.btn-probar:hover { background:#fff5f5; }
+</style>
+
+<script>
+function showTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('activo'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+    document.getElementById(tabId).classList.add('activo');
+    btn.classList.add('activo');
+}
+</script>
 {% endblock %}

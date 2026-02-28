@@ -1,25 +1,98 @@
 {% extends "base.html" %}
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Historial de actividades</h1>
+<section class="pantalla-movil" style="padding-top:1rem;">
 
-    {% if historial %}
-        <ul class="lista-pacientes">
-            {% for h in historial %}
-                <li class="item-paciente">
-                    <div>
-                        <strong>Paciente:</strong> {{ h.paciente_email }}<br>
-                        <strong>Categoría:</strong> {{ h.categoria }}<br>
-                        <strong>Actividad:</strong> {{ h.actividad }}<br>
-                        <strong>Puntos:</strong> {{ h.puntos_obtenidos }} | Nivel: {{ h.nivel }}<br>
-                        <strong>Fecha:</strong> {{ h.fecha }}<br>
-                        <strong>Feedback:</strong> {{ h.feedback }}
+    <div class="panel-header">
+        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">📋 Historial de actividades</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <!-- Estadísticas por categoría -->
+    {% if stats_categoria %}
+    <div style="margin-bottom:1rem;">
+        <h3 style="font-size:0.82rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.6rem;">Resumen por categoría</h3>
+        <div class="stats-cat-grid">
+            {% for cat, s in stats_categoria.items() %}
+                {% set pct = ((s.con_feedback / s.total) * 100) | int if s.total > 0 else 0 %}
+                <div class="stat-cat-card">
+                    <p class="stat-cat-nombre">{{ cat | title }}</p>
+                    <div class="stat-cat-barra-wrap">
+                        <div class="stat-cat-barra" style="width:{{ pct }}%;"></div>
                     </div>
-                </li>
+                    <p class="stat-cat-nums">{{ s.con_feedback }}/{{ s.total }} evaluados</p>
+                </div>
             {% endfor %}
-        </ul>
-    {% else %}
-        <p class="centrado">No hay historial registrado.</p>
+        </div>
+    </div>
     {% endif %}
+
+    <!-- Lista historial -->
+    {% if historial %}
+        <div class="historial-admin-lista">
+            {% for h in historial %}
+                <div class="historial-admin-card {% if not h.feedback %}sin-eval{% endif %}">
+                    <div class="hist-header">
+                        <div class="paciente-avatar-sm">{{ h.paciente_email[0] | upper }}</div>
+                        <div class="hist-info">
+                            <p class="hist-paciente">{{ h.paciente_email }}</p>
+                            <p class="hist-actividad">{{ h.actividad }}</p>
+                            <p class="hist-meta">
+                                {{ h.categoria | title }}
+                                · 🏆 {{ h.puntos_obtenidos }} pts
+                                · Nivel {{ h.nivel }}
+                                · 📅 {{ h.fecha.strftime('%d/%m/%Y') if h.fecha else '-' }}
+                            </p>
+                        </div>
+                        {% if h.feedback %}
+                            <span class="badge-eval">✓</span>
+                        {% else %}
+                            <span class="badge-sin-eval">⏳</span>
+                        {% endif %}
+                    </div>
+                    {% if h.feedback %}
+                        <div class="hist-feedback">
+                            <span class="feedback-label">💬</span>
+                            <p class="feedback-texto">{{ h.feedback }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="actividad-vacia" style="margin-top:2rem;">
+            <span style="font-size:2.5rem;">📋</span>
+            <p>No hay historial de actividades registrado.</p>
+        </div>
+    {% endif %}
+
 </section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+
+.stats-cat-grid { display:flex; flex-direction:column; gap:0.5rem; background:#fff; border-radius:12px; padding:0.8rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
+.stat-cat-card { display:flex; align-items:center; gap:0.6rem; }
+.stat-cat-nombre { margin:0; font-size:0.78rem; font-weight:600; color:#555; min-width:90px; text-transform:capitalize; }
+.stat-cat-barra-wrap { flex:1; background:#f0f0f0; border-radius:6px; height:14px; overflow:hidden; }
+.stat-cat-barra { height:100%; background:linear-gradient(90deg,#d32f2f,#e57373); border-radius:6px; min-width:4px; }
+.stat-cat-nums { margin:0; font-size:0.7rem; color:#888; min-width:80px; text-align:right; }
+
+.historial-admin-lista { display:flex; flex-direction:column; gap:0.6rem; }
+.historial-admin-card { background:#fff; border-radius:12px; padding:0.8rem 1rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); border-left:4px solid #e0e0e0; }
+.historial-admin-card.sin-eval { border-left-color:#f57c00; }
+.hist-header { display:flex; align-items:flex-start; gap:0.6rem; margin-bottom:0.4rem; }
+.paciente-avatar-sm { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; font-size:0.85rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.hist-info { flex:1; }
+.hist-paciente { margin:0; font-size:0.78rem; color:#888; }
+.hist-actividad { margin:0.1rem 0; font-size:0.88rem; font-weight:700; color:#1a1a1a; }
+.hist-meta { margin:0; font-size:0.7rem; color:#aaa; }
+.badge-eval { background:#e8f5e9; color:#2e7d32; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
+.badge-sin-eval { background:#fff3e0; color:#e65100; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
+.hist-feedback { display:flex; gap:0.4rem; background:#f9f9f9; border-radius:8px; padding:0.4rem 0.6rem; }
+.feedback-label { font-size:0.85rem; }
+.feedback-texto { margin:0; font-size:0.82rem; color:#333; }
+</style>
 {% endblock %}

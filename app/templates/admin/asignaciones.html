@@ -1,34 +1,185 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Asignaciones (Administrador)</h1>
+<section class="pantalla-movil" style="padding-top:1rem;">
+
+    <div class="panel-header">
+        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">🔗 Asignaciones</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-asig">
+        <div class="stat-asig total"><span class="num">{{ stats.total }}</span><span class="lbl">Total</span></div>
+        <div class="stat-asig pendiente"><span class="num">{{ stats.pendientes }}</span><span class="lbl">Pendientes</span></div>
+        <div class="stat-asig aceptada"><span class="num">{{ stats.aceptadas }}</span><span class="lbl">Aceptadas</span></div>
+        <div class="stat-asig cancelada"><span class="num">{{ stats.canceladas }}</span><span class="lbl">Canceladas</span></div>
+    </div>
+
+    <!-- Pacientes sin asignar -->
+    {% if sin_asignar %}
+    <div class="alerta-sin-asignar">
+        <span>⚠️</span>
+        <div>
+            <p class="alerta-titulo">{{ sin_asignar | length }} paciente(s) sin médico asignado</p>
+            <p class="alerta-sub">Usa los botones de abajo para asignar.</p>
+        </div>
+    </div>
+
+    {% for p in sin_asignar %}
+    <div class="sin-asignar-card">
+        <div class="sin-asignar-info">
+            <div class="paciente-avatar-sm">{{ (p.nombre or p.email)[0] | upper }}</div>
+            <div>
+                <p class="sin-asignar-nombre">{{ p.nombre or p.email }}</p>
+                <p class="sin-asignar-email">{{ p.email }}</p>
+            </div>
+        </div>
+        <button class="btn-asignar-toggle" onclick="toggleAsig('asig-{{ p._id }}')">Asignar →</button>
+    </div>
+
+    <div id="asig-{{ p._id }}" class="asig-panel-admin" style="display:none;">
+        <div class="asig-opciones">
+            <!-- Auto -->
+            <div class="asig-opcion">
+                <p class="asig-opcion-titulo">🎲 Automática</p>
+                <p class="asig-opcion-desc">El sistema elige un médico disponible al azar</p>
+                <form method="post" action="/admin/asignaciones/auto">
+                    <input type="hidden" name="paciente_email" value="{{ p.email }}" />
+                    <select name="dificultad" class="campo-texto" style="margin-bottom:0.4rem; font-size:0.82rem;">
+                        <option value="facil">Fácil</option>
+                        <option value="media" selected>Media</option>
+                        <option value="dificil">Difícil</option>
+                    </select>
+                    <button type="submit" class="boton-rojo ancho-completo" style="margin-top:0; font-size:0.82rem;">Asignar automáticamente</button>
+                </form>
+            </div>
+            <!-- Manual -->
+            {% if medicos_disponibles %}
+            <div class="asig-opcion">
+                <p class="asig-opcion-titulo">👆 Manual</p>
+                <p class="asig-opcion-desc">Elige el médico específico</p>
+                <form method="post" action="/admin/asignaciones/manual">
+                    <input type="hidden" name="paciente_email" value="{{ p.email }}" />
+                    <select name="medico_email" class="campo-texto" style="margin-bottom:0.4rem; font-size:0.82rem;">
+                        {% for m in medicos_disponibles %}
+                            <option value="{{ m.email }}">{{ m.nombre or m.email }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="dificultad" class="campo-texto" style="margin-bottom:0.4rem; font-size:0.82rem;">
+                        <option value="facil">Fácil</option>
+                        <option value="media" selected>Media</option>
+                        <option value="dificil">Difícil</option>
+                    </select>
+                    <button type="submit" class="boton-rojo-borde ancho-completo" style="margin-top:0; font-size:0.82rem;">Asignar manualmente</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        <button onclick="toggleAsig('asig-{{ p._id }}')" style="font-size:0.72rem; color:#888; background:none; border:none; cursor:pointer; margin-top:0.3rem;">Cancelar</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Historial de asignaciones -->
+    <h3 class="titulo-rojo" style="font-size:0.95rem; margin-top:1.2rem; margin-bottom:0.6rem;">
+        📋 Historial de asignaciones
+    </h3>
 
     {% if asignaciones %}
-        <ul class="lista-pacientes">
+        <div class="asignaciones-lista">
             {% for a in asignaciones %}
-                <li class="item-paciente">
-                    <div>
-                        <strong>Paciente:</strong> {{ a.paciente_email }}<br>
-                        <strong>Médico:</strong> {{ a.medico_email }}<br>
-                        <strong>Dificultad:</strong> {{ a.dificultad }}<br>
-                        <strong>Fecha:</strong> {{ a.fecha_asignacion }}<br>
-                        <strong>Estado:</strong> {{ a.estado or "pendiente" }}<br>
-                        <strong>Actividades asignadas:</strong>
-                        <ul>
-                            {% for act in a.actividades_asignadas %}
-                                <li>
-                                    {% if act.categoria %}<strong>{{ act.categoria }}:</strong>{% endif %}
-                                    {% if act.actividad %} {{ act.actividad }}{% else %} Actividad{% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
+                <div class="asignacion-card-admin estado-{{ a.estado or 'pendiente' }}">
+                    <div class="asig-header">
+                        <div>
+                            <p class="asig-paciente">👤 {{ a.paciente_email }}</p>
+                            <p class="asig-medico">🩺 {{ a.medico_email }}</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <span class="badge-estado-asig {{ a.estado or 'pendiente' }}">
+                                {% if a.estado == 'aceptada' %}✓ Aceptada
+                                {% elif a.estado == 'cancelada' %}✗ Cancelada
+                                {% else %}⏳ Pendiente
+                                {% endif %}
+                            </span>
+                            {% if a.tipo %}
+                                <p style="font-size:0.65rem; color:#aaa; margin:0.2rem 0 0;">{{ a.tipo | title }}</p>
+                            {% endif %}
+                        </div>
                     </div>
-                </li>
+                    <div class="asig-meta">
+                        <span>📅 {{ a.fecha_asignacion.strftime('%d/%m/%Y') if a.fecha_asignacion else '-' }}</span>
+                        <span>🎯 {{ a.dificultad or 'media' }}</span>
+                    </div>
+                    <form method="post" action="/admin/asignaciones/{{ a._id }}/eliminar"
+                          onsubmit="return confirm('¿Eliminar esta asignación?');" style="margin-top:0.5rem;">
+                        <button type="submit" class="btn-eliminar-asig">🗑️ Eliminar</button>
+                    </form>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
-        <p class="centrado">No hay asignaciones registradas.</p>
+        <div class="actividad-vacia">
+            <span style="font-size:2rem;">🔗</span>
+            <p>No hay asignaciones registradas.</p>
+        </div>
     {% endif %}
+
 </section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+
+.stats-asig { display:grid; grid-template-columns:repeat(4,1fr); gap:0.5rem; margin-bottom:1rem; }
+.stat-asig { background:#fff; border-radius:10px; padding:0.6rem 0.3rem; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+.stat-asig .num { display:block; font-size:1.4rem; font-weight:800; }
+.stat-asig .lbl { display:block; font-size:0.65rem; color:#888; font-weight:600; text-transform:uppercase; }
+.stat-asig.total .num { color:#555; }
+.stat-asig.pendiente .num { color:#e65100; }
+.stat-asig.aceptada .num { color:#2e7d32; }
+.stat-asig.cancelada .num { color:#c62828; }
+
+.alerta-sin-asignar { display:flex; align-items:flex-start; gap:0.6rem; background:#fff8e1; border:1.5px solid #ffe082; border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:0.8rem; }
+.alerta-titulo { margin:0; font-size:0.85rem; font-weight:700; color:#e65100; }
+.alerta-sub { margin:0.1rem 0 0; font-size:0.75rem; color:#888; }
+
+.sin-asignar-card { display:flex; align-items:center; justify-content:space-between; background:#fff; border-radius:10px; padding:0.6rem 0.8rem; margin-bottom:0.3rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); border:1px solid #f0f0f0; }
+.sin-asignar-info { display:flex; align-items:center; gap:0.6rem; }
+.paciente-avatar-sm { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; font-size:0.85rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.sin-asignar-nombre { margin:0; font-size:0.85rem; font-weight:600; }
+.sin-asignar-email { margin:0; font-size:0.72rem; color:#888; }
+.btn-asignar-toggle { background:#d32f2f; color:#fff; border:none; border-radius:8px; padding:0.3rem 0.7rem; font-size:0.78rem; font-weight:700; cursor:pointer; }
+.btn-asignar-toggle:hover { opacity:0.85; }
+
+.asig-panel-admin { background:#f9f9f9; border-radius:10px; padding:0.8rem; margin-bottom:0.5rem; border:1px solid #e0e0e0; }
+.asig-opciones { display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; }
+.asig-opcion { background:#fff; border-radius:8px; padding:0.7rem; border:1px solid #f0f0f0; }
+.asig-opcion-titulo { margin:0 0 0.2rem; font-size:0.82rem; font-weight:700; color:#1a1a1a; }
+.asig-opcion-desc { margin:0 0 0.5rem; font-size:0.72rem; color:#888; }
+
+.asignaciones-lista { display:flex; flex-direction:column; gap:0.6rem; }
+.asignacion-card-admin { background:#fff; border-radius:12px; padding:0.8rem 1rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); border-left:4px solid #ccc; }
+.asignacion-card-admin.estado-pendiente { border-left-color:#f57c00; }
+.asignacion-card-admin.estado-aceptada { border-left-color:#2e7d32; }
+.asignacion-card-admin.estado-cancelada { border-left-color:#c62828; opacity:0.75; }
+.asig-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0.4rem; }
+.asig-paciente { margin:0; font-size:0.85rem; font-weight:700; }
+.asig-medico { margin:0.1rem 0 0; font-size:0.78rem; color:#888; }
+.badge-estado-asig { font-size:0.7rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:8px; }
+.badge-estado-asig.pendiente { background:#fff3e0; color:#e65100; }
+.badge-estado-asig.aceptada { background:#e8f5e9; color:#2e7d32; }
+.badge-estado-asig.cancelada { background:#ffebee; color:#c62828; }
+.asig-meta { display:flex; gap:0.8rem; font-size:0.72rem; color:#888; }
+.btn-eliminar-asig { background:none; border:1px solid #ffcdd2; color:#c62828; border-radius:6px; padding:0.2rem 0.6rem; font-size:0.72rem; cursor:pointer; }
+.btn-eliminar-asig:hover { background:#ffebee; }
+</style>
+
+<script>
+function toggleAsig(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
 {% endblock %}

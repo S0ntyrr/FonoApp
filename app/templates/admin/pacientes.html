@@ -1,60 +1,140 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Pacientes</h1>
+<section class="pantalla-movil" style="padding-top:1rem;">
 
-    <h2 class="centrado">Crear nuevo paciente</h2>
-    <form method="post" action="/admin/pacientes/crear" class="formulario-movil">
-        <label class="etiqueta-campo" for="nombre">Nombre</label>
-        <input type="text" id="nombre" name="nombre" class="campo-texto" required />
+    <div class="panel-header">
+        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">👥 Pacientes</h1>
+        <button class="btn-nuevo" onclick="toggleForm('form-crear')">+ Nuevo</button>
+    </div>
 
-        <label class="etiqueta-campo" for="email">Correo</label>
-        <input type="email" id="email" name="email" class="campo-texto" required />
+    <!-- Formulario crear paciente (oculto por defecto) -->
+    <div id="form-crear" class="form-colapsable">
+        <h3 style="margin:0 0 0.8rem; font-size:0.95rem; color:#d32f2f;">Crear nuevo paciente</h3>
+        <form method="post" action="/admin/pacientes/crear" class="formulario-movil">
+            <label class="etiqueta-campo">Nombre completo</label>
+            <input type="text" name="nombre" class="campo-texto" placeholder="Nombre y apellido" required />
+            <label class="etiqueta-campo">Correo electrónico</label>
+            <input type="email" name="email" class="campo-texto" placeholder="correo@ejemplo.com" required />
+            <label class="etiqueta-campo">Contraseña</label>
+            <input type="password" name="password" class="campo-texto" placeholder="Mínimo 6 caracteres" required />
+            <button type="submit" class="boton-rojo ancho-completo">✓ Crear paciente</button>
+            <button type="button" class="boton-rojo-borde ancho-completo" onclick="toggleForm('form-crear')">Cancelar</button>
+        </form>
+    </div>
 
-        <label class="etiqueta-campo" for="password">Contraseña</label>
-        <input type="password" id="password" name="password" class="campo-texto" required />
-
-        <button type="submit" class="boton-rojo ancho-completo">Crear paciente</button>
-    </form>
-
-    <h2 class="centrado" style="margin-top: 1.5rem;">Listado de pacientes</h2>
-
+    <!-- Lista de pacientes -->
     {% if pacientes %}
-        <ul class="lista-pacientes">
+        <div class="usuarios-lista">
             {% for p in pacientes %}
-                <li class="item-paciente">
-                    <div>
-                        <strong>{{ p.nombre }}</strong><br />
-                        <small>{{ p.email }}</small><br />
-                        <small>Estado: {{ p.estado }}</small>
+                <div class="usuario-card">
+                    <div class="usuario-avatar">{{ (p.nombre or p.email)[0] | upper }}</div>
+                    <div class="usuario-info">
+                        <p class="usuario-nombre">{{ p.nombre or 'Sin nombre' }}</p>
+                        <p class="usuario-email">{{ p.email }}</p>
+                        <div class="usuario-stats">
+                            <span class="stat-mini">🎮 {{ p.juegos_completados or 0 }}/{{ p.total_juegos or 0 }}</span>
+                            {% if p.tiene_asignacion %}
+                                <span class="badge-asig {{ p.estado_asignacion or 'pendiente' }}">
+                                    {% if p.estado_asignacion == 'aceptada' %}✓ Asignado
+                                    {% elif p.estado_asignacion == 'cancelada' %}✗ Cancelado
+                                    {% else %}⏳ Pendiente
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="badge-sin-asig">Sin asignar</span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <form method="post"
-                              action="/admin/asignaciones/auto">
+                    <div class="usuario-acciones">
+                        {% if not p.tiene_asignacion and medicos_disponibles %}
+                            <button class="btn-accion asignar" onclick="toggleAsignar('asig-{{ p._id }}')">🔗</button>
+                        {% endif %}
+                        <form method="post" action="/admin/pacientes/{{ p._id }}/eliminar"
+                              onsubmit="return confirm('¿Eliminar a {{ p.nombre or p.email }}?');" style="display:inline;">
+                            <button type="submit" class="btn-accion eliminar">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Panel de asignación inline -->
+                {% if not p.tiene_asignacion and medicos_disponibles %}
+                <div id="asig-{{ p._id }}" class="asig-panel" style="display:none;">
+                    <p style="font-size:0.82rem; font-weight:600; color:#555; margin-bottom:0.5rem;">Asignar médico a {{ p.nombre or p.email }}</p>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <!-- Asignación automática -->
+                        <form method="post" action="/admin/asignaciones/auto" style="flex:1;">
                             <input type="hidden" name="paciente_email" value="{{ p.email }}" />
-                            <button type="submit" class="boton-rojo">
-                                Asignar médico
-                            </button>
+                            <select name="dificultad" class="campo-texto" style="margin-bottom:0.4rem;">
+                                <option value="facil">Fácil</option>
+                                <option value="media" selected>Media</option>
+                                <option value="dificil">Difícil</option>
+                            </select>
+                            <button type="submit" class="boton-rojo ancho-completo" style="margin-top:0;">🎲 Auto</button>
                         </form>
-                        <form method="post"
-                              action="/admin/pacientes/{{ p._id }}/eliminar"
-                              onsubmit="return confirm('¿Eliminar este paciente?');">
-                            <button type="submit" class="boton-rojo-borde">Eliminar</button>
+                        <!-- Asignación manual -->
+                        <form method="post" action="/admin/asignaciones/manual" style="flex:1;">
+                            <input type="hidden" name="paciente_email" value="{{ p.email }}" />
+                            <select name="medico_email" class="campo-texto" style="margin-bottom:0.4rem;">
+                                {% for m in medicos_disponibles %}
+                                    <option value="{{ m.email }}">{{ m.nombre or m.email }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="boton-rojo-borde ancho-completo" style="margin-top:0;">👆 Manual</button>
                         </form>
                     </div>
-                </li>
+                    <button onclick="toggleAsignar('asig-{{ p._id }}')" style="font-size:0.75rem; color:#888; background:none; border:none; cursor:pointer; margin-top:0.3rem;">Cancelar</button>
+                </div>
+                {% endif %}
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
-        <p class="centrado">No hay pacientes registrados.</p>
+        <div class="actividad-vacia" style="margin-top:2rem;">
+            <span style="font-size:2.5rem;">👥</span>
+            <p>No hay pacientes registrados.</p>
+        </div>
     {% endif %}
 
-    <div class="texto-inferior">
-        <button type="button" class="boton-enlace-rojo"
-                onclick="window.location.href='/admin/dashboard'">
-            Volver al panel
-        </button>
-    </div>
 </section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-panel:hover { background:#fff5f5; }
+.btn-nuevo { background:#d32f2f; color:#fff; border:none; border-radius:20px; padding:0.3rem 0.9rem; font-size:0.82rem; font-weight:700; cursor:pointer; }
+.btn-nuevo:hover { opacity:0.85; }
+
+.form-colapsable { display:none; background:#fff; border-radius:12px; padding:1rem; margin-bottom:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-left:4px solid #d32f2f; }
+
+.usuarios-lista { display:flex; flex-direction:column; gap:0.6rem; }
+.usuario-card { display:flex; align-items:center; gap:0.8rem; background:#fff; border-radius:12px; padding:0.8rem 1rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); border:1px solid #f0f0f0; }
+.usuario-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; font-size:1.1rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.usuario-info { flex:1; }
+.usuario-nombre { margin:0; font-size:0.9rem; font-weight:700; color:#1a1a1a; }
+.usuario-email { margin:0.1rem 0 0.3rem; font-size:0.75rem; color:#888; }
+.usuario-stats { display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center; }
+.stat-mini { font-size:0.7rem; color:#666; background:#f5f5f5; padding:0.1rem 0.4rem; border-radius:8px; }
+.badge-asig { font-size:0.7rem; font-weight:700; padding:0.1rem 0.5rem; border-radius:8px; }
+.badge-asig.pendiente { background:#fff3e0; color:#e65100; }
+.badge-asig.aceptada { background:#e8f5e9; color:#2e7d32; }
+.badge-asig.cancelada { background:#ffebee; color:#c62828; }
+.badge-sin-asig { font-size:0.7rem; color:#999; background:#f5f5f5; padding:0.1rem 0.5rem; border-radius:8px; }
+.usuario-acciones { display:flex; gap:0.3rem; }
+.btn-accion { background:none; border:none; font-size:1.1rem; cursor:pointer; padding:0.3rem; border-radius:6px; transition:background 0.1s; }
+.btn-accion.asignar:hover { background:#e3f2fd; }
+.btn-accion.eliminar:hover { background:#ffebee; }
+
+.asig-panel { background:#f9f9f9; border-radius:10px; padding:0.8rem; margin-top:-0.3rem; margin-bottom:0.3rem; border:1px solid #e0e0e0; }
+</style>
+
+<script>
+function toggleForm(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function toggleAsignar(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
 {% endblock %}
