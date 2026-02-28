@@ -157,8 +157,12 @@
 </div>
 
 <script>
-// Guardar email del paciente en sessionStorage para que los juegos puedan usarlo
-sessionStorage.setItem('paciente_email', '{{ email_paciente }}');
+// Guardar email del paciente en AMBOS storages para máxima compatibilidad
+// sessionStorage: se borra al cerrar el tab
+// localStorage: persiste entre sesiones (se borra al cerrar sesión)
+const _emailPaciente = '{{ email_paciente }}';
+sessionStorage.setItem('paciente_email', _emailPaciente);
+localStorage.setItem('paciente_email_actual', _emailPaciente);
 sessionStorage.setItem('juegos_origen', '/paciente/perfil');
 </script>
 <script src="/static/js/paciente.js"></script>
