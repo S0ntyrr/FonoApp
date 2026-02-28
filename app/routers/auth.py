@@ -36,6 +36,7 @@ from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
+from ..security import hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
@@ -131,14 +132,14 @@ async def procesar_registro(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Crear el nuevo paciente en la BD
+    # Crear el nuevo paciente en la BD con contraseña hasheada
     nuevo_usuario = {
         "nombre": nombre,
         "email": email,
-        "password": password,   # TODO: encriptar con bcrypt en producción
+        "password": hash_password(password),  # Hash seguro con bcrypt
         "rol": "paciente",
-        "nivel": 1,             # Nivel inicial
-        "puntos": 0,            # Puntos iniciales
+        "nivel": 1,
+        "puntos": 0,
         "estado": "activo",
     }
     await db["usuarios"].insert_one(nuevo_usuario)
@@ -171,8 +172,9 @@ async def procesar_login(
     # Buscar usuario en la BD
     usuario = await db["usuarios"].find_one({"email": email})
 
-    # Verificar credenciales
-    if not usuario or usuario.get("password") != password:
+    # Verificar credenciales usando verify_password (soporta bcrypt y texto plano)
+    stored_password = usuario.get("password", "") if usuario else ""
+    if not usuario or not verify_password(password, stored_password):
         return templates.TemplateResponse(
             "auth/login.html",
             {
@@ -182,6 +184,15 @@ async def procesar_login(
                 "email": email,
             },
             status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+    
+    # Migración automática: si la contraseña está en texto plano, hashearla
+    if usuario and not stored_password.startswith('$2b$') and not stored_password.startswith('$2a$'):
+        from ..database import get_db as _get_db
+        db_instance = _get_db()
+        await db_instance["usuarios"].update_one(
+            {"_id": usuario["_id"]},
+            {"$set": {"password": hash_password(password)}}
         )
 
     # Determinar destino según el rol

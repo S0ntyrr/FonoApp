@@ -50,6 +50,7 @@ from starlette import status
 from bson import ObjectId
 from ..database import get_db
 from ..models import Asignacion, HistorialActividad
+from ..security import get_current_user
 
 router = APIRouter(prefix="/doctor", tags=["doctor-web"])
 templates = Jinja2Templates(directory="app/templates")
@@ -84,6 +85,11 @@ JUEGOS_DISPONIBLES = [
 
 @router.get("/home", response_class=HTMLResponse)
 async def home_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    # Verificar que el usuario sea médico
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+    
     # Obtener email del médico: URL param → cookie de sesión → fallback
     email_doctor = request.query_params.get("email") or request.cookies.get("usuario_email", "doctor@tesis.com")
     doctor_doc = await db["usuarios"].find_one({"email": email_doctor, "rol": "medico"})

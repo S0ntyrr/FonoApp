@@ -57,6 +57,7 @@ from collections import defaultdict
 
 from ..database import get_db
 from ..models import ContenidoAdmin, HistorialActividad
+from ..security import get_current_user, hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin-web"])
 
@@ -96,6 +97,11 @@ async def vista_dashboard_admin(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
+    # Verificar que el usuario sea admin
+    user = get_current_user(request)
+    if not user or user.get("rol") != "admin":
+        return RedirectResponse(url="/auth/login", status_code=303)
+    
     usuarios_total = await db["usuarios"].count_documents({})
     pacientes_total = await db["usuarios"].count_documents({"rol": "paciente"})
     medicos_total = await db["usuarios"].count_documents({"rol": "medico"})
@@ -175,7 +181,7 @@ async def crear_paciente_admin(
     nuevo_paciente = {
         "nombre": nombre,
         "email": email,
-        "password": password,
+        "password": hash_password(password),
         "rol": "paciente",
         "nivel": 1,
         "puntos": 0,
@@ -240,7 +246,7 @@ async def crear_medico_admin(
     nuevo_medico = {
         "nombre": nombre,
         "email": email,
-        "password": password,
+        "password": hash_password(password),
         "rol": "medico",
         "nivel": 1,
         "puntos": 0,

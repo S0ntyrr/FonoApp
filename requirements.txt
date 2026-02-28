@@ -5,5 +5,7 @@ python-dotenv
 jinja2
 pydantic-settings
 python-multipart
-email-validator 
+email-validator
 pydantic
+bcrypt
+itsdangerous
