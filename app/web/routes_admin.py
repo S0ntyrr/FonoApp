@@ -1,3 +1,50 @@
+"""
+FonoApp - Router del Administrador
+====================================
+Panel de administración con acceso completo al sistema.
+
+Rutas principales:
+  GET  /admin/dashboard              → Dashboard con estadísticas
+  
+  Gestión de pacientes:
+  GET  /admin/pacientes              → Listar pacientes con stats
+  POST /admin/pacientes/crear        → Crear nuevo paciente
+  POST /admin/pacientes/{id}/eliminar → Eliminar paciente
+  
+  Gestión de médicos:
+  GET  /admin/medicos                → Listar médicos con filtros
+  POST /admin/medicos/crear          → Crear nuevo médico
+  POST /admin/medicos/{id}/eliminar  → Eliminar médico
+  POST /admin/medicos/{id}/cambiar_estado → Cambiar estado del médico
+  GET  /admin/medicos/{id}/editar    → Formulario de edición
+  POST /admin/medicos/{id}/editar    → Guardar edición
+  GET  /admin/medicos/{id}/consultas → Ver asignaciones del médico
+  
+  Asignaciones:
+  GET  /admin/asignaciones           → Ver todas las asignaciones
+  POST /admin/asignaciones/auto      → Crear asignación automática (médico al azar)
+  POST /admin/asignaciones/manual    → Crear asignación manual (médico específico)
+  POST /admin/asignaciones/{id}/eliminar → Eliminar asignación
+  
+  Contenido y reportes:
+  GET  /admin/actividades            → Ver juegos del sistema con stats
+  GET  /admin/contenido              → Gestionar contenido multimedia
+  POST /admin/contenido/texto        → Agregar texto/instrucción
+  POST /admin/contenido/texto/{idx}/eliminar → Eliminar texto
+  POST /admin/contenido/media        → Subir imagen o video
+  POST /admin/contenido/media/eliminar → Eliminar imagen o video
+  GET  /admin/historial              → Historial de actividades con stats
+  GET  /admin/resultados             → Resultados de juegos con estadísticas
+
+Colecciones MongoDB usadas:
+  - usuarios: pacientes y médicos
+  - asignaciones: asignaciones médico-paciente
+  - actividades: catálogo de juegos
+  - historial_actividades: actividades completadas
+  - resultados_juegos: resultados detallados de juegos
+  - contenido_admin: textos, imágenes y videos
+"""
+
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates

@@ -1,3 +1,46 @@
+"""
+FonoApp - Router del Médico/Terapeuta
+=======================================
+Panel del médico con acceso a sus pacientes y herramientas de evaluación.
+
+Rutas principales:
+  GET  /doctor/home                          → Panel principal del médico
+  POST /doctor/estado                        → Cambiar estado (activo/ocupado/consulta)
+  
+  Gestión de pacientes:
+  GET  /doctor/pacientes                     → Lista de pacientes con stats de juegos
+  GET  /doctor/pacientes/{id}                → Perfil detallado con gráfica de progreso
+  POST /doctor/pacientes/{id}/editar         → Editar datos básicos del paciente
+  
+  Actividades y juegos:
+  GET  /doctor/actividades                   → Lista de juegos disponibles (23 juegos)
+  
+  Asignaciones:
+  GET  /doctor/asignaciones                  → Ver asignaciones + pacientes sin asignar
+  POST /doctor/asignaciones/{id}/aceptar     → Aceptar asignación
+  POST /doctor/asignaciones/{id}/cancelar    → Cancelar asignación
+  
+  Evaluación y seguimiento:
+  GET  /doctor/historial                     → Historial de actividades con filtros
+  GET  /doctor/resultados                    → Resultados de juegos de todos los pacientes
+  GET  /doctor/evaluaciones-pendientes       → Actividades sin feedback del médico
+  POST /doctor/evaluaciones/{id}/feedback    → Guardar evaluación/feedback
+
+Estado del médico:
+  El estado se guarda en la colección 'usuarios' y es visible desde el panel admin.
+  Estados: 'activo' (disponible), 'ocupado', 'consulta' (en sesión activa)
+  
+  NOTA: El email del médico se pasa como query param (?email=...).
+  En producción, obtener del token de sesión.
+
+Colecciones MongoDB usadas:
+  - usuarios: datos del médico y pacientes
+  - asignaciones: asignaciones médico-paciente
+  - historial_actividades: actividades completadas (con/sin feedback)
+  - resultados_juegos: resultados detallados de juegos
+  - perfiles_pacientes: datos extendidos del paciente
+"""
+
 from datetime import datetime
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse

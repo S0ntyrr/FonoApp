@@ -1,3 +1,60 @@
+"""
+FonoApp - Router de Juegos Fonoaudiológicos
+============================================
+Hub principal de los 23 juegos terapéuticos organizados en 7 categorías.
+
+Categorías y juegos:
+  Respiración (2):
+    - /juegos/respiracion/globo    → Infla el globo (micrófono)
+    - /juegos/respiracion/molino   → El molino de Pepe (micrófono)
+  
+  Fonación (2):
+    - /juegos/fonacion/gol         → ¡Haz un gol! (voz)
+    - /juegos/fonacion/escala      → Escala musical (voz)
+  
+  Resonancia (3):
+    - /juegos/resonancia/escaleras → Escaleras de tono (voz)
+    - /juegos/resonancia/piano     → Piano - Estrellita (interactivo)
+    - /juegos/resonancia/veoveo    → ¡Veo, veo! (micrófono)
+  
+  Articulación (6):
+    - /juegos/articulacion/letra-b → Letra B (pronunciación)
+    - /juegos/articulacion/letra-d → Letra D (pronunciación)
+    - /juegos/articulacion/letra-f → Letra F (pronunciación)
+    - /juegos/articulacion/letra-r → Letra R (pronunciación)
+    - /juegos/articulacion/completa-palabra → Completa la palabra
+    - /juegos/articulacion/moto-voz → ¡Acelera la moto! (micrófono)
+  
+  Prosodia (4):
+    - /juegos/prosodia/adivina-animal    → Adivina el animal (micrófono, 4 intentos)
+    - /juegos/prosodia/trabalenguas      → Trabalenguas (micrófono + registro)
+    - /juegos/prosodia/adivinanza-imagen → Relaciona la adivinanza (imágenes)
+    - /juegos/prosodia/completa-cancion  → Completa la canción (voz)
+  
+  Discriminación Auditiva (3):
+    - /juegos/discriminacion/sonidos-animales → Sonidos de animales
+    - /juegos/discriminacion/sonidos-objetos  → Sonidos de objetos
+    - /juegos/discriminacion/arrastra-sonido  → Arrastra al sonido (drag & drop)
+  
+  Practica Conmigo (3):
+    - /juegos/practica/rompecabezas → Rompecabezas de letras
+    - /juegos/practica/cara         → Crea tu personaje
+    - /juegos/practica/asociacion   → Asociación de imágenes
+
+Rutas especiales:
+  POST /juegos/resultado          → Guarda resultado en BD (llamado desde JS)
+  GET  /juegos/seed-actividades   → Actualiza colección 'actividades' en MongoDB
+
+Sistema de guardado de resultados:
+  Cuando un paciente completa un juego, el JS llama a guardarResultadoJuego()
+  (definida en base.html) que hace POST a /juegos/resultado.
+  
+  Este endpoint:
+  1. Guarda en 'resultados_juegos' (detalle técnico)
+  2. Si completado=True, también guarda en 'historial_actividades'
+     para que el médico pueda evaluarlo en /doctor/evaluaciones-pendientes
+"""
+
 from datetime import datetime
 
 from fastapi import APIRouter, Request, Depends, Form
@@ -8,7 +65,6 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ..database import get_db
 
 router = APIRouter(prefix="/juegos", tags=["juegos"])
-
 templates = Jinja2Templates(directory="app/templates")
 
 

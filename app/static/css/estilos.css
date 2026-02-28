@@ -1,3 +1,30 @@
+/*
+ * FonoApp – Estilos principales v6
+ * ==================================
+ * Paleta de colores:
+ *   - Rojo principal: #d32f2f (botones, títulos, acentos)
+ *   - Rojo oscuro: #b71c1c (hover, gradientes)
+ *   - Rojo claro: #ffebee (fondos suaves, hover)
+ *   - Fondo: #f7f7f7 (gris muy claro)
+ *   - Texto: #2d2d2d
+ *
+ * Fuente: Inter (Google Fonts) con fallback a Segoe UI
+ *
+ * Estructura de clases principales:
+ *   .contenedor-principal  → Wrapper principal de la app
+ *   .pantalla-movil        → Contenedor tipo móvil (max 460px)
+ *   .cabecera-app          → Header sticky del dashboard del paciente
+ *   .panel-perfil          → Panel lateral deslizante del paciente
+ *   .splash-full           → Pantalla de splash al iniciar sesión
+ *   .bienvenida-card       → Tarjeta de bienvenida del paciente
+ *   .acceso-juegos-card    → Botón de acceso rápido a juegos
+ *   .lista-actividades     → Lista de actividades del día
+ *   .actividad-item        → Item individual de actividad
+ *   .calendario-uso        → Calendario de uso mensual
+ *
+ * Variables CSS (--color-*) definidas en :root para fácil personalización.
+ */
+
 /* FonoApp – Estilos v6 */
 :root {
     --color-fondo: #ffffff;

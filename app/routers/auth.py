@@ -1,3 +1,35 @@
+"""
+FonoApp - Router de Autenticación
+===================================
+Maneja el login y registro de usuarios.
+
+Rutas:
+  GET  /auth/login     → Muestra el formulario de login
+  POST /auth/login     → Procesa el login y redirige según el rol
+  GET  /auth/registro  → Muestra el formulario de registro
+  POST /auth/registro  → Crea un nuevo paciente
+
+Flujo de login:
+  1. Usuario ingresa email y contraseña
+  2. Se busca en la colección 'usuarios'
+  3. Se compara la contraseña (texto plano - mejorar en producción)
+  4. Se redirige según el rol:
+     - admin   → /admin/dashboard
+     - medico  → /doctor/home
+     - paciente → /paciente/perfil?email=...
+     - emisor  → /emisor/home
+
+NOTA DE SEGURIDAD:
+  Las contraseñas se almacenan en texto plano.
+  En producción, usar bcrypt: pip install bcrypt
+  y hashear antes de guardar.
+
+NOTA DE SESIÓN:
+  No hay sesiones JWT ni cookies de sesión.
+  El email del paciente se pasa como query param (?email=...).
+  En producción, implementar JWT o sesiones con cookies.
+"""
+
 from fastapi import APIRouter, Depends, Request, Form, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -6,14 +38,16 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ..database import get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
 templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def mostrar_pantalla_login(request: Request):
     """
-    Muestra la pantalla de inicio de sesión para la parte móvil.
+    Muestra la pantalla de inicio de sesión.
+    
+    Template: auth/login.html
+    Accesible por todos los usuarios (no requiere autenticación).
     """
     return templates.TemplateResponse(
         "auth/login.html",
@@ -27,7 +61,11 @@ async def mostrar_pantalla_login(request: Request):
 @router.get("/registro", response_class=HTMLResponse)
 async def mostrar_pantalla_registro(request: Request):
     """
-    Muestra la pantalla de registro para nuevos usuarios móviles (emisor).
+    Muestra la pantalla de registro para nuevos pacientes.
+    
+    Template: auth/registro.html
+    Solo los pacientes pueden registrarse por sí mismos.
+    Los médicos y admins son creados por el administrador.
     """
     return templates.TemplateResponse(
         "auth/registro.html",
@@ -48,14 +86,23 @@ async def procesar_registro(
     acepta_terminos: bool = Form(False),
 ):
     """
-    Procesa el formulario de registro para nuevos pacientes (rol 'paciente').
-
-    Crea documentos compatibles con la estructura actual de la colección:
+    Procesa el formulario de registro de nuevos pacientes.
+    
+    Validaciones:
+    - Debe aceptar los términos y condiciones
+    - El email no debe estar ya registrado
+    
+    Al registrarse exitosamente:
+    - Crea un documento en la colección 'usuarios' con rol='paciente'
+    - Redirige al login para que el usuario inicie sesión
+    
+    Campos del documento creado:
     {
-        nombre, email, password, rol, nivel, puntos, estado
+        nombre, email, password (texto plano),
+        rol: "paciente", nivel: 1, puntos: 0, estado: "activo"
     }
     """
-
+    # Validar aceptación de términos
     if not acepta_terminos:
         return templates.TemplateResponse(
             "auth/registro.html",
@@ -69,7 +116,7 @@ async def procesar_registro(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Verificar si ya existe un usuario con ese email
+    # Verificar si el email ya está registrado
     existente = await db["usuarios"].find_one({"email": email})
     if existente:
         return templates.TemplateResponse(
@@ -84,20 +131,19 @@ async def procesar_registro(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Documento compatible con tus registros actuales de tipo "paciente"
+    # Crear el nuevo paciente en la BD
     nuevo_usuario = {
         "nombre": nombre,
         "email": email,
-        "password": password,   # IMPORTANTE: en producción encriptar
+        "password": password,   # TODO: encriptar con bcrypt en producción
         "rol": "paciente",
-        "nivel": 1,
-        "puntos": 0,
+        "nivel": 1,             # Nivel inicial
+        "puntos": 0,            # Puntos iniciales
         "estado": "activo",
     }
-
     await db["usuarios"].insert_one(nuevo_usuario)
 
-    # Después de registrarse, redirigir al login
+    # Redirigir al login después del registro exitoso
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -109,37 +155,49 @@ async def procesar_login(
     password: str = Form(...),
 ):
     """
-    Procesa el formulario de login:
-    - Verifica usuario y contraseña.
-    - Redirige según el rol:
-        admin   -> /admin/dashboard
-        medico  -> /doctor/home
-        paciente-> /paciente/perfil
-        emisor  -> /emisor/home
+    Procesa el formulario de login.
+    
+    Flujo:
+    1. Busca el usuario por email en la colección 'usuarios'
+    2. Compara la contraseña (texto plano)
+    3. Redirige según el rol del usuario:
+       - admin   → /admin/dashboard
+       - medico  → /doctor/home?email=...
+       - paciente → /paciente/perfil?email=...
+       - emisor  → /emisor/home
+    
+    Si las credenciales son inválidas, muestra el error en el formulario.
     """
+    # Buscar usuario en la BD
     usuario = await db["usuarios"].find_one({"email": email})
 
+    # Verificar credenciales
     if not usuario or usuario.get("password") != password:
         return templates.TemplateResponse(
             "auth/login.html",
             {
                 "request": request,
                 "titulo_pagina": "Iniciar sesión",
-                "error": "Credenciales inválidas.",
+                "error": "Credenciales inválidas. Verifica tu correo y contraseña.",
                 "email": email,
             },
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
+    # Determinar destino según el rol
     rol = usuario.get("rol", "paciente")
+    email_usuario = usuario.get("email", email)
 
     if rol == "admin":
         destino = "/admin/dashboard"
     elif rol in ("medico", "doctor"):
-        destino = "/doctor/home"
+        # Pasar el email del médico para personalizar su panel
+        destino = f"/doctor/home?email={email_usuario}"
     elif rol == "paciente":
-        destino = f"/paciente/perfil?email={email}"
-    else:  # emisor u otros
+        # Pasar el email del paciente para cargar su perfil y actividades
+        destino = f"/paciente/perfil?email={email_usuario}"
+    else:
+        # emisor u otros roles
         destino = "/emisor/home"
 
     return RedirectResponse(url=destino, status_code=status.HTTP_303_SEE_OTHER)
