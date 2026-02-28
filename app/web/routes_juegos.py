@@ -271,6 +271,90 @@ async def articulacion_letra_r(request: Request):
     )
 
 
+@router.get("/articulacion/completa-palabra", response_class=HTMLResponse)
+async def articulacion_completa_palabra(request: Request):
+    return templates.TemplateResponse(
+        "juegos/articulacion/completa_palabra.html",
+        {"request": request, "titulo_pagina": "Completa la palabra"},
+    )
+
+@router.get("/articulacion/moto-voz", response_class=HTMLResponse)
+async def articulacion_moto_voz(request: Request):
+    return templates.TemplateResponse(
+        "juegos/articulacion/moto_voz.html",
+        {"request": request, "titulo_pagina": "¡Acelera la moto!"},
+    )
+
+
+# ─── PROSODIA ─────────────────────────────────────────────────────────────────
+
+@router.get("/prosodia", response_class=HTMLResponse)
+async def hub_prosodia(request: Request):
+    return templates.TemplateResponse(
+        "juegos/prosodia/index.html",
+        {"request": request, "titulo_pagina": "Prosodia"},
+    )
+
+@router.get("/prosodia/adivina-animal", response_class=HTMLResponse)
+async def prosodia_adivina_animal(request: Request):
+    return templates.TemplateResponse(
+        "juegos/prosodia/adivina_animal.html",
+        {"request": request, "titulo_pagina": "Adivina el animal"},
+    )
+
+@router.get("/prosodia/trabalenguas", response_class=HTMLResponse)
+async def prosodia_trabalenguas(request: Request):
+    return templates.TemplateResponse(
+        "juegos/prosodia/trabalenguas.html",
+        {"request": request, "titulo_pagina": "Trabalenguas"},
+    )
+
+@router.get("/prosodia/adivinanza-imagen", response_class=HTMLResponse)
+async def prosodia_adivinanza_imagen(request: Request):
+    return templates.TemplateResponse(
+        "juegos/prosodia/adivinanza_imagen.html",
+        {"request": request, "titulo_pagina": "Relaciona la adivinanza"},
+    )
+
+@router.get("/prosodia/completa-cancion", response_class=HTMLResponse)
+async def prosodia_completa_cancion(request: Request):
+    return templates.TemplateResponse(
+        "juegos/prosodia/completa_cancion.html",
+        {"request": request, "titulo_pagina": "Completa la canción"},
+    )
+
+
+# ─── DISCRIMINACIÓN AUDITIVA ──────────────────────────────────────────────────
+
+@router.get("/discriminacion", response_class=HTMLResponse)
+async def hub_discriminacion(request: Request):
+    return templates.TemplateResponse(
+        "juegos/discriminacion/index.html",
+        {"request": request, "titulo_pagina": "Discriminación Auditiva"},
+    )
+
+@router.get("/discriminacion/sonidos-animales", response_class=HTMLResponse)
+async def discriminacion_sonidos_animales(request: Request):
+    return templates.TemplateResponse(
+        "juegos/discriminacion/sonidos_animales.html",
+        {"request": request, "titulo_pagina": "Sonidos de animales"},
+    )
+
+@router.get("/discriminacion/sonidos-objetos", response_class=HTMLResponse)
+async def discriminacion_sonidos_objetos(request: Request):
+    return templates.TemplateResponse(
+        "juegos/discriminacion/sonidos_objetos.html",
+        {"request": request, "titulo_pagina": "Sonidos de objetos"},
+    )
+
+@router.get("/discriminacion/arrastra-sonido", response_class=HTMLResponse)
+async def discriminacion_arrastra_sonido(request: Request):
+    return templates.TemplateResponse(
+        "juegos/discriminacion/arrastra_sonido.html",
+        {"request": request, "titulo_pagina": "Arrastra al sonido"},
+    )
+
+
 # ─── RESULTADO DE JUEGO ───────────────────────────────────────────────────────
 
 @router.post("/resultado", response_class=JSONResponse)

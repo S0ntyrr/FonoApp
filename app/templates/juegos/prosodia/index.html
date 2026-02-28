@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/" class="btn-volver-cat">← Juegos</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.2rem;">🎤 Prosodia</h1>
+        <div style="width:70px;"></div>
+    </div>
+    <p class="centrado texto-pequeño" style="margin-bottom:1.5rem;">Practica el ritmo, la entonación y la pronunciación de palabras</p>
+
+    <div class="juegos-grid">
+        <a href="/juegos/prosodia/adivina-animal" class="juego-card prosodia">
+            <div class="juego-icono">🐾</div>
+            <div class="juego-info">
+                <h2>Adivina el animal</h2>
+                <p>Activa tu micrófono y adivina el animal — ¡solo tienes 4 intentos!</p>
+            </div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/prosodia/trabalenguas" class="juego-card prosodia">
+            <div class="juego-icono">👅</div>
+            <div class="juego-info">
+                <h2>Trabalenguas</h2>
+                <p>Lee el trabalenguas con el micrófono y registra las palabras difíciles</p>
+            </div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/prosodia/adivinanza-imagen" class="juego-card prosodia">
+            <div class="juego-icono">🖼️</div>
+            <div class="juego-info">
+                <h2>Relaciona la adivinanza</h2>
+                <p>Escucha la adivinanza y relaciona con la imagen correcta</p>
+            </div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/prosodia/completa-cancion" class="juego-card prosodia">
+            <div class="juego-icono">🎶</div>
+            <div class="juego-info">
+                <h2>Completa la canción</h2>
+                <p>Escucha la canción y completa la letra con tu voz</p>
+            </div>
+            <span class="juego-flecha">›</span>
+        </a>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #7b1fa2; color:#7b1fa2; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#f3e5f5; }
+.juegos-grid { display:flex; flex-direction:column; gap:0.9rem; }
+.juego-card { display:flex; align-items:center; gap:1rem; padding:1rem 1.2rem; border-radius:14px; text-decoration:none; color:#333; transition:transform 0.15s, box-shadow 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.juego-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+.juego-card.prosodia { background:linear-gradient(135deg,#f3e5f5,#e1bee7); border-left:4px solid #7b1fa2; }
+.juego-icono { font-size:2.4rem; min-width:3rem; text-align:center; }
+.juego-info h2 { margin:0 0 0.2rem; font-size:1rem; color:#222; font-weight:700; }
+.juego-info p  { margin:0; font-size:0.8rem; color:#666; }
+.juego-flecha  { font-size:1.4rem; color:#bbb; margin-left:auto; padding-left:0.5rem; }
+</style>
+{% endblock %}

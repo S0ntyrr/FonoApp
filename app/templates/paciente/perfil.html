@@ -80,7 +80,7 @@
         </div>
         {% endif %}
 
-        <div class="acceso-juegos-card" onclick="window.location.href='/juegos/'">
+        <div class="acceso-juegos-card" onclick="sessionStorage.setItem('juegos_origen','/paciente/perfil'); window.location.href='/juegos/'">
             <div class="acceso-juegos-icono">🎮</div>
             <div class="acceso-juegos-info">
                 <h3>Juegos Fonoaudiológicos</h3>
@@ -96,10 +96,17 @@
                     {% for cat in actividades_disponibles %}
                         <div class="categoria-titulo">{{ cat.categoria | upper }}</div>
                         {% for act in cat.actividades %}
-                            <div class="actividad-item" data-actividad="{{ act }}">
-                                <div class="actividad-detalle">{{ act }}</div>
-                                <div class="marcador">›</div>
-                            </div>
+                            {% if act is mapping %}
+                                <a href="{{ act.url }}" class="actividad-item actividad-link" style="text-decoration:none;">
+                                    <div class="actividad-detalle">{{ act.actividad }}</div>
+                                    <div class="marcador">›</div>
+                                </a>
+                            {% else %}
+                                <a href="/juegos/" class="actividad-item actividad-link" style="text-decoration:none;">
+                                    <div class="actividad-detalle">{{ act }}</div>
+                                    <div class="marcador">›</div>
+                                </a>
+                            {% endif %}
                         {% endfor %}
                     {% endfor %}
                 {% else %}
@@ -110,9 +117,6 @@
                     </div>
                 {% endif %}
             </div>
-            {% if actividades_disponibles %}
-            <button id="btnComenzar" class="boton-rojo ancho-completo boton-comenzar" disabled>▶ Comenzar actividad</button>
-            {% endif %}
         </section>
 
         <section style="margin-top:1.8rem;">

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/articulacion" class="btn-volver-cat">← Articulación</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🔤 Completa la palabra</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <div class="juego-container">
+        <div class="instruccion-card">
+            <p>🖼️ Mira la imagen y completa la palabra que falta</p>
+        </div>
+
+        <div id="pregunta-area">
+            <div class="imagen-display">
+                <div class="imagen-emoji" id="imagen-emoji">❓</div>
+                <p class="imagen-pista" id="imagen-pista">Toca "Comenzar"</p>
+            </div>
+
+            <div class="palabra-display" id="palabra-display"></div>
+
+            <div class="letras-opciones" id="letras-opciones"></div>
+
+            <div class="respuesta-area">
+                <input type="text" id="respuesta-input" class="campo-texto" placeholder="Escribe la letra que falta..." maxlength="3" />
+                <button class="boton-rojo" onclick="verificar()">✓</button>
+            </div>
+        </div>
+
+        <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
+            <p>🎉 ¡Correcto!</p>
+            <button class="boton-rojo ancho-completo" onclick="siguientePregunta()">Siguiente →</button>
+        </div>
+        <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
+            <p>❌ Intenta de nuevo</p>
+        </div>
+        <div id="resultado-final" class="resultado-card correcto" style="display:none;">
+            <p>🏆 ¡Completaste el juego!</p>
+            <p id="puntaje-final" style="font-size:0.9rem;color:#555;"></p>
+            <button class="boton-rojo ancho-completo" onclick="reiniciar()">🔄 Jugar de nuevo</button>
+        </div>
+
+        <button id="btn-comenzar" class="boton-rojo ancho-completo" onclick="comenzar()">▶ Comenzar</button>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #e63946; color:#e63946; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#fff0f8; }
+.juego-container { display:flex; flex-direction:column; gap:1rem; }
+.instruccion-card { background:#fff0f8; border-radius:12px; padding:0.8rem 1rem; border-left:4px solid #e63946; font-size:0.88rem; color:#880e4f; font-weight:600; }
+.instruccion-card p { margin:0; }
+.imagen-display { text-align:center; padding:1.5rem; background:#fff; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.imagen-emoji { font-size:5rem; margin-bottom:0.5rem; }
+.imagen-pista { margin:0; font-size:0.88rem; color:#888; }
+.palabra-display { display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; }
+.letra-box { width:40px; height:40px; border:2px solid #e63946; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:700; color:#1a1a1a; background:#fff; }
+.letra-box.vacia { background:#fff0f8; color:#e63946; }
+.letras-opciones { display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; }
+.letra-opcion { width:44px; height:44px; border:2px solid #e0e0e0; border-radius:8px; font-size:1.2rem; font-weight:700; cursor:pointer; background:#fff; transition:border-color 0.15s, background 0.15s; }
+.letra-opcion:hover { border-color:#e63946; background:#fff0f8; }
+.respuesta-area { display:flex; gap:0.5rem; }
+.respuesta-area .campo-texto { flex:1; text-align:center; font-size:1.2rem; font-weight:700; }
+.respuesta-area .boton-rojo { margin-top:0; padding:0.65rem 1rem; }
+.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
+.resultado-card p { margin:0 0 0.5rem; font-size:1rem; font-weight:700; }
+.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
+.resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
+</style>
+
+<script>
+const PALABRAS = [
+    { emoji: "🐱", pista: "Animal que maúlla", palabra: "GATO", falta: 2, opciones: ["T", "P", "L", "S"] },
+    { emoji: "🌳", pista: "Planta grande con ramas", palabra: "ARBOL", falta: 3, opciones: ["O", "A", "E", "I"] },
+    { emoji: "🏠", pista: "Lugar donde vivimos", palabra: "CASA", falta: 1, opciones: ["A", "O", "E", "U"] },
+    { emoji: "🌞", pista: "Brilla en el cielo de día", palabra: "SOL", falta: 1, opciones: ["O", "A", "E", "I"] },
+    { emoji: "🐟", pista: "Animal que vive en el agua", palabra: "PEZ", falta: 1, opciones: ["E", "A", "I", "O"] },
+    { emoji: "🍎", pista: "Fruta roja y redonda", palabra: "MANZANA", falta: 4, opciones: ["Z", "S", "C", "X"] },
+];
+
+let indiceActual = 0;
+let aciertos = 0;
+
+function comenzar() {
+    document.getElementById('btn-comenzar').style.display = 'none';
+    mostrarPregunta(0);
+}
+
+function mostrarPregunta(idx) {
+    indiceActual = idx;
+    const p = PALABRAS[idx];
+    document.getElementById('imagen-emoji').textContent = p.emoji;
+    document.getElementById('imagen-pista').textContent = p.pista;
+    document.getElementById('resultado-correcto').style.display = 'none';
+    document.getElementById('resultado-incorrecto').style.display = 'none';
+    document.getElementById('resultado-final').style.display = 'none';
+    document.getElementById('pregunta-area').style.display = 'block';
+    document.getElementById('respuesta-input').value = '';
+
+    // Mostrar palabra con hueco
+    const display = document.getElementById('palabra-display');
+    display.innerHTML = '';
+    p.palabra.split('').forEach((letra, i) => {
+        const box = document.createElement('div');
+        box.className = 'letra-box' + (i === p.falta ? ' vacia' : '');
+        box.textContent = i === p.falta ? '_' : letra;
+        display.appendChild(box);
+    });
+
+    // Opciones de letras
+    const opciones = document.getElementById('letras-opciones');
+    opciones.innerHTML = '';
+    p.opciones.forEach(letra => {
+        const btn = document.createElement('button');
+        btn.className = 'letra-opcion';
+        btn.textContent = letra;
+        btn.onclick = () => { document.getElementById('respuesta-input').value = letra; verificar(); };
+        opciones.appendChild(btn);
+    });
+}
+
+function verificar() {
+    const p = PALABRAS[indiceActual];
+    const respuesta = document.getElementById('respuesta-input').value.toUpperCase().trim();
+    const letraCorrecta = p.palabra[p.falta];
+    if (respuesta === letraCorrecta) {
+        // Mostrar letra correcta
+        const boxes = document.querySelectorAll('.letra-box');
+        boxes[p.falta].textContent = letraCorrecta;
+        boxes[p.falta].classList.remove('vacia');
+        aciertos++;
+        document.getElementById('resultado-correcto').style.display = 'block';
+    } else {
+        document.getElementById('resultado-incorrecto').style.display = 'block';
+        setTimeout(() => document.getElementById('resultado-incorrecto').style.display = 'none', 1000);
+    }
+    document.getElementById('respuesta-input').value = '';
+}
+
+function siguientePregunta() {
+    if (indiceActual < PALABRAS.length - 1) { mostrarPregunta(indiceActual + 1); }
+    else {
+        document.getElementById('pregunta-area').style.display = 'none';
+        document.getElementById('resultado-correcto').style.display = 'none';
+        document.getElementById('puntaje-final').textContent = `Completaste ${aciertos} de ${PALABRAS.length} palabras`;
+        document.getElementById('resultado-final').style.display = 'block';
+    }
+}
+
+function reiniciar() { aciertos = 0; mostrarPregunta(0); }
+
+document.getElementById('respuesta-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificar(); });
+</script>
+{% endblock %}

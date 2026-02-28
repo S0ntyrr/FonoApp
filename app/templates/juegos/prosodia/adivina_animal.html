@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/prosodia" class="btn-volver-cat">← Prosodia</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🐾 Adivina el animal</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <div class="juego-container">
+        <div class="instruccion-card">
+            <p class="instruccion-texto">🎤 Activa tu micrófono y di el nombre del animal que ves en la imagen</p>
+            <div class="intentos-display">
+                <span class="intentos-label">Intentos restantes:</span>
+                <div class="intentos-puntos" id="intentos-puntos">
+                    <span class="punto activo">●</span>
+                    <span class="punto activo">●</span>
+                    <span class="punto activo">●</span>
+                    <span class="punto activo">●</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Imagen del animal (oculta hasta que se activa) -->
+        <div class="animal-display" id="animal-display">
+            <div class="animal-emoji" id="animal-emoji">❓</div>
+            <p class="animal-pista" id="animal-pista">Toca "Comenzar" para ver la pista</p>
+        </div>
+
+        <!-- Pista de texto -->
+        <div class="pista-card" id="pista-card" style="display:none;">
+            <p class="pista-titulo">💡 Pista:</p>
+            <p class="pista-texto" id="pista-texto"></p>
+        </div>
+
+        <!-- Respuesta del usuario -->
+        <div class="respuesta-area" id="respuesta-area" style="display:none;">
+            <button class="btn-microfono" id="btn-mic" onclick="toggleMic()">🎤</button>
+            <p class="mic-estado" id="mic-estado">Toca para hablar</p>
+            <div class="respuesta-input-area">
+                <input type="text" id="respuesta-input" class="campo-texto" placeholder="O escribe tu respuesta..." />
+                <button class="boton-rojo" onclick="verificarRespuesta()">✓ Verificar</button>
+            </div>
+        </div>
+
+        <!-- Resultado -->
+        <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
+            <p>🎉 ¡Correcto! ¡Muy bien!</p>
+            <button class="boton-rojo ancho-completo" onclick="siguienteAnimal()">Siguiente animal →</button>
+        </div>
+        <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
+            <p>❌ Intenta de nuevo</p>
+        </div>
+        <div id="resultado-perdiste" class="resultado-card perdiste" style="display:none;">
+            <p>😔 Se acabaron los intentos. El animal era: <strong id="respuesta-correcta"></strong></p>
+            <button class="boton-rojo ancho-completo" onclick="reiniciarJuego()">🔄 Volver a intentar</button>
+        </div>
+
+        <button id="btn-comenzar" class="boton-rojo ancho-completo" style="margin-top:1rem;" onclick="comenzarJuego()">▶ Comenzar</button>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #7b1fa2; color:#7b1fa2; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#f3e5f5; }
+.juego-container { display:flex; flex-direction:column; gap:1rem; }
+.instruccion-card { background:#f3e5f5; border-radius:12px; padding:1rem; border-left:4px solid #7b1fa2; }
+.instruccion-texto { margin:0 0 0.8rem; font-size:0.9rem; color:#4a148c; font-weight:600; }
+.intentos-display { display:flex; align-items:center; gap:0.5rem; }
+.intentos-label { font-size:0.82rem; color:#666; }
+.intentos-puntos { display:flex; gap:0.3rem; }
+.punto { font-size:1.2rem; color:#7b1fa2; transition:color 0.3s; }
+.punto.usado { color:#e0e0e0; }
+.animal-display { background:#fff; border-radius:14px; padding:2rem; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
+.animal-emoji { font-size:5rem; margin-bottom:0.5rem; }
+.animal-pista { margin:0; font-size:0.9rem; color:#888; }
+.pista-card { background:#fff8e1; border-radius:10px; padding:0.8rem 1rem; border-left:3px solid #f57c00; }
+.pista-titulo { margin:0 0 0.3rem; font-size:0.82rem; font-weight:700; color:#e65100; }
+.pista-texto { margin:0; font-size:0.9rem; color:#333; }
+.respuesta-area { display:flex; flex-direction:column; align-items:center; gap:0.7rem; }
+.btn-microfono { width:70px; height:70px; border-radius:50%; border:3px solid #7b1fa2; background:white; font-size:2rem; cursor:pointer; transition:background 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+.btn-microfono.activo { background:#f3e5f5; animation:pulso 1s infinite; }
+@keyframes pulso { 0%,100%{box-shadow:0 0 0 0 rgba(123,31,162,0.4);} 50%{box-shadow:0 0 0 12px rgba(123,31,162,0);} }
+.mic-estado { margin:0; font-size:0.82rem; color:#888; }
+.respuesta-input-area { display:flex; gap:0.5rem; width:100%; }
+.respuesta-input-area .campo-texto { flex:1; }
+.respuesta-input-area .boton-rojo { margin-top:0; white-space:nowrap; }
+.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
+.resultado-card p { margin:0 0 0.8rem; font-size:1rem; font-weight:700; }
+.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
+.resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
+.resultado-card.perdiste { background:#fff3e0; border:2px solid #ff9800; color:#e65100; }
+</style>
+
+<script>
+const ANIMALES = [
+    { emoji: "🐶", nombre: "perro", pista: "Es el mejor amigo del hombre, ladra y mueve la cola" },
+    { emoji: "🐱", nombre: "gato", pista: "Maúlla, ronronea y le gusta dormir mucho" },
+    { emoji: "🐸", nombre: "rana", pista: "Salta, vive cerca del agua y dice 'croac'" },
+    { emoji: "🐘", nombre: "elefante", pista: "Es muy grande, tiene trompa larga y orejas enormes" },
+    { emoji: "🦁", nombre: "leon", pista: "Es el rey de la selva, tiene melena y ruge fuerte" },
+    { emoji: "🐧", nombre: "pinguino", pista: "Es un pájaro que no vuela, vive en el frío y camina gracioso" },
+    { emoji: "🦊", nombre: "zorro", pista: "Es astuto, tiene cola peluda y orejas puntiagudas" },
+    { emoji: "🐢", nombre: "tortuga", pista: "Camina muy despacio y lleva su casa en la espalda" },
+];
+
+let animalActual = null;
+let intentosRestantes = 4;
+let micActivo = false;
+let audioCtx = null;
+let micStream = null;
+let recognition = null;
+
+function comenzarJuego() {
+    document.getElementById('btn-comenzar').style.display = 'none';
+    siguienteAnimal();
+}
+
+function siguienteAnimal() {
+    intentosRestantes = 4;
+    actualizarPuntos();
+    animalActual = ANIMALES[Math.floor(Math.random() * ANIMALES.length)];
+    document.getElementById('animal-emoji').textContent = animalActual.emoji;
+    document.getElementById('animal-pista').textContent = '¿Qué animal es este?';
+    document.getElementById('pista-card').style.display = 'block';
+    document.getElementById('pista-texto').textContent = animalActual.pista;
+    document.getElementById('respuesta-area').style.display = 'flex';
+    document.getElementById('resultado-correcto').style.display = 'none';
+    document.getElementById('resultado-incorrecto').style.display = 'none';
+    document.getElementById('resultado-perdiste').style.display = 'none';
+    document.getElementById('respuesta-input').value = '';
+}
+
+function actualizarPuntos() {
+    const puntos = document.querySelectorAll('.punto');
+    puntos.forEach((p, i) => {
+        p.classList.toggle('usado', i >= intentosRestantes);
+    });
+}
+
+function verificarRespuesta() {
+    const respuesta = document.getElementById('respuesta-input').value.toLowerCase().trim();
+    if (!respuesta) return;
+
+    if (respuesta.includes(animalActual.nombre) || animalActual.nombre.includes(respuesta)) {
+        document.getElementById('resultado-correcto').style.display = 'block';
+        document.getElementById('resultado-incorrecto').style.display = 'none';
+        document.getElementById('respuesta-area').style.display = 'none';
+    } else {
+        intentosRestantes--;
+        actualizarPuntos();
+        if (intentosRestantes <= 0) {
+            document.getElementById('respuesta-correcta').textContent = animalActual.nombre;
+            document.getElementById('resultado-perdiste').style.display = 'block';
+            document.getElementById('resultado-incorrecto').style.display = 'none';
+            document.getElementById('respuesta-area').style.display = 'none';
+        } else {
+            document.getElementById('resultado-incorrecto').style.display = 'block';
+            setTimeout(() => document.getElementById('resultado-incorrecto').style.display = 'none', 1500);
+        }
+    }
+    document.getElementById('respuesta-input').value = '';
+}
+
+function reiniciarJuego() {
+    siguienteAnimal();
+}
+
+function toggleMic() {
+    if (micActivo) {
+        detenerMic();
+    } else {
+        iniciarMic();
+    }
+}
+
+async function iniciarMic() {
+    // Usar Web Speech API si está disponible
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SR();
+        recognition.lang = 'es-ES';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.onresult = (e) => {
+            const texto = e.results[0][0].transcript.toLowerCase();
+            document.getElementById('respuesta-input').value = texto;
+            document.getElementById('mic-estado').textContent = `Escuché: "${texto}"`;
+            detenerMic();
+        };
+        recognition.onerror = () => {
+            document.getElementById('mic-estado').textContent = 'No se pudo reconocer. Escribe tu respuesta.';
+            detenerMic();
+        };
+        recognition.start();
+        micActivo = true;
+        document.getElementById('btn-mic').classList.add('activo');
+        document.getElementById('mic-estado').textContent = '🔴 Escuchando... di el nombre del animal';
+    } else {
+        document.getElementById('mic-estado').textContent = 'Micrófono no disponible. Escribe tu respuesta.';
+    }
+}
+
+function detenerMic() {
+    micActivo = false;
+    if (recognition) { recognition.stop(); recognition = null; }
+    document.getElementById('btn-mic').classList.remove('activo');
+    document.getElementById('mic-estado').textContent = 'Toca para hablar';
+}
+
+document.getElementById('respuesta-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') verificarRespuesta();
+});
+</script>
+{% endblock %}
