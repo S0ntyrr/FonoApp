@@ -150,7 +150,7 @@ body.fondo-blanco {
 .menu-lateral { min-width: 180px; max-width: 220px; padding: 1rem; border-right: 1px solid #eee; }
 .menu-lateral ul { list-style: none; padding-left: 0; }
 .menu-lateral li { margin-bottom: 0.5rem; }
-.contenido-principal { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 1rem; }
+.contenido-principal { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 0.5rem 0 1.5rem; width: 100%; }
 .lista-pacientes { list-style: none; padding-left: 0; margin-top: 1rem; }
 .item-paciente { border: 1.5px solid #f0f0f0; border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 0.6rem; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .nav-links { margin-bottom: 1.2rem; display: flex; gap: 0.8rem; flex-wrap: wrap; }

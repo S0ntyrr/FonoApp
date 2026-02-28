@@ -65,9 +65,16 @@
         practica 5 veces en mismo ejercicio, bríndales compañía y muéstrale como lo haces tú.</p>
     </div>
 
-    <div style="margin-top:1rem; text-align:center;">
-        <a href="/juegos/respiracion" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    <div style="margin-top:1rem; text-align:center; display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
+        <a href="/juegos/respiracion" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Respiración</a>
+        <button onclick="volverInicio()" class="boton-rojo-borde" style="padding:0.5rem 1.2rem; border-radius:4px; cursor:pointer;">🏠 Inicio</button>
     </div>
+<script>
+function volverInicio() {
+    const origen = sessionStorage.getItem('juegos_origen');
+    window.location.href = origen || '/paciente/perfil';
+}
+</script>
 </section>
 
 <style>

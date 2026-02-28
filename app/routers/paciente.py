@@ -95,20 +95,22 @@ async def vista_perfil_paciente(
     else:
         # Selección DETERMINISTA por día y email (mismas actividades todo el día)
         # Usar fecha + email como semilla para que sean consistentes
+        import time as _time
         seed_str = f"{hoy.strftime('%Y-%m-%d')}-{email}"
         seed_val = sum(ord(c) for c in seed_str)
         random_seed(seed_val)
         
-        categorias = list({a["categoria"] for a in ACTIVIDADES_REALES})
+        # Usar lista ORDENADA de categorías para garantizar determinismo
+        categorias = sorted(list({a["categoria"] for a in ACTIVIDADES_REALES}))
+        categorias_elegidas = sample(categorias, min(4, len(categorias)))
         actividades_disponibles_raw = []
-        for cat in sample(categorias, min(4, len(categorias))):
-            opciones_cat = [a for a in ACTIVIDADES_REALES if a["categoria"] == cat]
+        for cat in categorias_elegidas:
+            opciones_cat = sorted([a for a in ACTIVIDADES_REALES if a["categoria"] == cat], key=lambda x: x["actividad"])
             if opciones_cat:
                 actividades_disponibles_raw.append(sample(opciones_cat, 1)[0])
         
-        # Resetear la semilla aleatoria para no afectar otras partes
-        import time
-        random_seed(int(time.time()))
+        # Resetear la semilla aleatoria
+        random_seed(int(_time.time()))
 
     # Agrupar por categoría para la plantilla
     categorias_dict = defaultdict(list)
