@@ -23,22 +23,23 @@
      * @param {number} nivel - Nivel del paciente (opcional)
      */
     function guardarResultadoJuego(categoria, juego, pasoCompletado, totalPasos, completado, puntos=0, nivel=1) {
-        // Obtener email del paciente: sessionStorage → localStorage → URL params → fallback
-        let email = sessionStorage.getItem('paciente_email')
+        // Obtener email del paciente desde la cookie de sesión (establecida al hacer login)
+        // Fallbacks: sessionStorage → localStorage → URL params → cookie → default
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+        
+        let email = getCookie('usuario_email')
+                 || sessionStorage.getItem('paciente_email')
                  || localStorage.getItem('paciente_email_actual');
         if (!email) {
-            // Intentar obtener del URL actual (ej: /paciente/perfil?email=...)
             const urlParams = new URLSearchParams(window.location.search);
             email = urlParams.get('email');
         }
-        if (!email) {
-            // Intentar obtener del referrer URL
-            try {
-                const refUrl = new URL(document.referrer || window.location.href);
-                email = refUrl.searchParams.get('email');
-            } catch(e) {}
-        }
-        if (!email) email = 'paciente@tesis.com'; // Fallback de último recurso
+        if (!email) email = 'paciente@tesis.com';
         const formData = new FormData();
         formData.append('paciente_email', email);
         formData.append('categoria', categoria);

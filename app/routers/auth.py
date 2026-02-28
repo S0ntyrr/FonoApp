@@ -191,13 +191,31 @@ async def procesar_login(
     if rol == "admin":
         destino = "/admin/dashboard"
     elif rol in ("medico", "doctor"):
-        # Pasar el email del médico para personalizar su panel
         destino = f"/doctor/home?email={email_usuario}"
     elif rol == "paciente":
-        # Pasar el email del paciente para cargar su perfil y actividades
         destino = f"/paciente/perfil?email={email_usuario}"
     else:
-        # emisor u otros roles
         destino = "/emisor/home"
 
-    return RedirectResponse(url=destino, status_code=status.HTTP_303_SEE_OTHER)
+    # Crear la respuesta de redirección
+    response = RedirectResponse(url=destino, status_code=status.HTTP_303_SEE_OTHER)
+    
+    # Guardar el email en una cookie de sesión (no segura, solo para desarrollo)
+    # La cookie 'usuario_email' permite que los juegos identifiquen al usuario
+    # sin necesidad de pasar el email por URL en cada página
+    response.set_cookie(
+        key="usuario_email",
+        value=email_usuario,
+        max_age=86400,  # 24 horas
+        httponly=False,  # Accesible desde JavaScript para los juegos
+        samesite="lax",
+    )
+    response.set_cookie(
+        key="usuario_rol",
+        value=rol,
+        max_age=86400,
+        httponly=False,
+        samesite="lax",
+    )
+    
+    return response

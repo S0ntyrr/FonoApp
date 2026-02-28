@@ -85,7 +85,7 @@ ACTIVIDADES_REALES = [
 async def vista_perfil_paciente(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    email: str = "paciente@tesis.com",  # TODO: obtener del token de sesión en producción
+    email: str = "",  # Se obtiene del URL param o de la cookie de sesión
 ):
     """
     Dashboard principal del paciente.
@@ -106,6 +106,11 @@ async def vista_perfil_paciente(
     El progreso de actividades se guarda en localStorage del navegador
     usando la URL de cada actividad como clave (no el índice).
     """
+    # ── Obtener email del paciente ─────────────────────────────────────────────
+    # Prioridad: URL param → cookie de sesión → fallback
+    if not email:
+        email = request.cookies.get("usuario_email", "paciente@tesis.com")
+    
     # ── Cargar perfil del paciente ─────────────────────────────────────────────
     perfil_doc = await db["perfiles_pacientes"].find_one({"paciente_email": email})
     perfil: PerfilPaciente | None = None

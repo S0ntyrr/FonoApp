@@ -84,7 +84,8 @@ JUEGOS_DISPONIBLES = [
 
 @router.get("/home", response_class=HTMLResponse)
 async def home_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    email_doctor = request.query_params.get("email", "doctor@tesis.com")
+    # Obtener email del médico: URL param → cookie de sesión → fallback
+    email_doctor = request.query_params.get("email") or request.cookies.get("usuario_email", "doctor@tesis.com")
     doctor_doc = await db["usuarios"].find_one({"email": email_doctor, "rol": "medico"})
     if not doctor_doc:
         doctor_doc = await db["usuarios"].find_one({"rol": "medico"})
@@ -239,6 +240,14 @@ async def guardar_feedback(historial_id: str, feedback: str = Form(...), db: Asy
 
 
 @router.post("/estado", response_class=RedirectResponse)
-async def cambiar_estado_doctor(estado: str = Form(...), email: str = Form("doctor@tesis.com"), db: AsyncIOMotorDatabase = Depends(get_db)):
+async def cambiar_estado_doctor(
+    request: Request,
+    estado: str = Form(...),
+    email: str = Form(""),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """Cambia el estado del médico. Lee el email de la cookie si no viene en el form."""
+    if not email:
+        email = request.cookies.get("usuario_email", "doctor@tesis.com")
     await db["usuarios"].update_one({"email": email, "rol": "medico"}, {"$set": {"estado": estado}})
-    return RedirectResponse(url=f"/doctor/home?email={email}", status_code=303)
+    return RedirectResponse(url="/doctor/home", status_code=303)
