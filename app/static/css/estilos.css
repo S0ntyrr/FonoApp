@@ -129,7 +129,7 @@ body.fondo-blanco {
 .acceso-juegos-flecha { font-size: 1.5rem; color: rgba(255,255,255,0.5); margin-left: auto; }
 /* Lista actividades */
 .lista-actividades { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.6rem; }
-.categoria-titulo { font-size: 0.72rem; color: var(--color-rojo); margin-top: 0.8rem; font-weight: 700; letter-spacing: 1px; padding-left: 0.3rem; }
+.categoria-titulo { font-size: 0.78rem; color: var(--color-rojo); margin-top: 0.8rem; font-weight: 700; letter-spacing: 0.5px; padding-left: 0.3rem; text-transform: capitalize; }
 .actividad-item { border: 1.5px solid #f0f0f0; border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; background: #fff; cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .actividad-item:hover { border-color: #ffcdd2; background: #fff9f9; transform: translateX(2px); }
 .actividad-item.selected { border-color: var(--color-rojo); background: var(--color-rojo-claro); }

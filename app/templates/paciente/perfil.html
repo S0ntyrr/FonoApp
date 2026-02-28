@@ -178,19 +178,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function marcarActividad(el) {
-    // No prevenir la navegación, solo marcar visualmente al volver
+    // Guardar en localStorage ANTES de navegar (síncrono)
     const idx = Array.from(document.querySelectorAll('.actividad-link')).indexOf(el);
-    setTimeout(() => {
-        el.classList.add('completada');
-        el.querySelector('.actividad-check').textContent = '✓';
-        actividadesCompletadas++;
-        // Guardar en localStorage
-        const key = 'actividades_hoy_' + new Date().toDateString();
-        const completadas = JSON.parse(localStorage.getItem(key) || '[]');
-        if (!completadas.includes(idx)) completadas.push(idx);
+    const key = 'actividades_hoy_' + new Date().toDateString();
+    const completadas = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!completadas.includes(idx)) {
+        completadas.push(idx);
         localStorage.setItem(key, JSON.stringify(completadas));
-        verificarSesionCompleta();
-    }, 100);
+    }
+    // La navegación ocurre normalmente (el href del <a> se ejecuta)
 }
 
 function verificarSesionCompleta() {
