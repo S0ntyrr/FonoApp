@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Fonación</h1>
+
+    <!-- Instrucciones por nivel -->
+    <div id="instruccion-nivel" class="instruccion-escala">
+        <!-- Actualizado por JS -->
+    </div>
+
+    <!-- Área de la flauta / partitura -->
+    <div class="partitura-area">
+        <canvas id="partitura-canvas" width="340" height="120"></canvas>
+        <div class="flauta-container">
+            <svg id="flauta-svg" viewBox="0 0 40 200" xmlns="http://www.w3.org/2000/svg" width="40" height="160">
+                <!-- Cuerpo de la flauta -->
+                <rect x="14" y="5" width="12" height="190" rx="6" fill="#d4a017"/>
+                <rect x="16" y="5" width="8" height="190" rx="4" fill="#e8b820"/>
+                <!-- Agujeros -->
+                <circle cx="20" cy="40" r="3" fill="#8B6914"/>
+                <circle cx="20" cy="60" r="3" fill="#8B6914"/>
+                <circle cx="20" cy="80" r="3" fill="#8B6914"/>
+                <circle cx="20" cy="100" r="3" fill="#8B6914"/>
+                <circle cx="20" cy="120" r="3" fill="#8B6914"/>
+                <circle cx="20" cy="140" r="3" fill="#8B6914"/>
+                <circle cx="20" cy="160" r="3" fill="#8B6914"/>
+                <!-- Boquilla -->
+                <ellipse cx="20" cy="12" rx="8" ry="5" fill="#c49010"/>
+                <!-- Agujero activo (se ilumina) -->
+                <circle id="agujero-activo" cx="20" cy="40" r="3.5" fill="#00e5ff" opacity="0"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Indicador de nota actual -->
+    <div class="nota-actual" id="nota-actual">
+        <span id="nota-nombre">DO</span>
+    </div>
+
+    <!-- Indicador de fase (INHALA / canta) -->
+    <div id="fase-escala" class="fase-escala">
+        <span id="fase-texto-escala">Toca el micrófono para comenzar</span>
+    </div>
+
+    <!-- Progreso de la escala -->
+    <div class="escala-progreso">
+        <div class="notas-progreso" id="notas-progreso">
+            <!-- Generado por JS -->
+        </div>
+    </div>
+
+    <!-- Botón micrófono -->
+    <div style="text-align:center; margin-top:0.8rem;">
+        <button id="btn-mic-escala" class="btn-microfono" onclick="toggleMicEscala()">🎤</button>
+        <p class="texto-pequeño centrado" id="mic-estado-escala">Toca para activar el micrófono</p>
+    </div>
+
+    <!-- Mensaje de completado -->
+    <div id="escala-completada" class="escala-completada oculto">
+        <p>🎉 ¡Has conseguido el objetivo!</p>
+        <p style="color:#d32f2f; font-weight:bold;">¡Felicitaciones!</p>
+        <button class="boton-rojo ancho-completo" onclick="siguienteNivelEscala()">Siguiente nivel →</button>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/fonacion" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.instruccion-escala {
+    background: #fffde7;
+    border: 1px solid #ffd600;
+    border-radius: 10px;
+    padding: 0.7rem;
+    margin-bottom: 0.8rem;
+    font-size: 0.88rem;
+    text-align: center;
+    line-height: 1.5;
+}
+.instruccion-escala .nivel-tag {
+    color: #d32f2f;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+.partitura-area {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f5e6c8;
+    border-radius: 10px;
+    padding: 0.5rem;
+    border: 2px solid #c8a060;
+    margin-bottom: 0.5rem;
+}
+#partitura-canvas {
+    flex: 1;
+    border-radius: 6px;
+}
+.nota-actual {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #d32f2f;
+    min-height: 2.5rem;
+    margin: 0.3rem 0;
+}
+.fase-escala {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 0.5rem;
+    min-height: 1.5rem;
+}
+.escala-progreso {
+    margin: 0.5rem 0;
+}
+.notas-progreso {
+    display: flex;
+    justify-content: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+}
+.nota-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: #555;
+    background: white;
+    transition: background 0.3s, border-color 0.3s;
+}
+.nota-dot.activa { border-color: #1976d2; background: #e3f2fd; color: #1976d2; }
+.nota-dot.completada { border-color: #4caf50; background: #e8f5e9; color: #2e7d32; }
+.btn-microfono {
+    width: 70px; height: 70px; border-radius: 50%;
+    border: 3px solid #d32f2f; background: white;
+    font-size: 2rem; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.btn-microfono.activo { background: #ffebee; animation: pulso 1s infinite; }
+@keyframes pulso {
+    0%,100% { box-shadow: 0 0 0 0 rgba(211,47,47,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(211,47,47,0); }
+}
+.escala-completada {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+.oculto { display: none !important; }
+</style>
+
+<script>
+const NOTAS = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI', 'DO²'];
+const FRECUENCIAS = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+const AGUJEROS_Y = [160, 140, 120, 100, 80, 60, 40, 20];
+
+const NIVELES = [
+    {
+        titulo: 'Imita el sonido produciendo una /a/ prolongada.',
+        subtitulo: 'Toma aire y emite la secuencia con tu voz.',
+        vocal: '/a/',
+        velocidad: 'normal',
+        tag: ''
+    },
+    {
+        titulo: 'Lo haces estupendo, continuemos del tono más alto al más bajo emitiendo la letra a de manera prolongada.',
+        subtitulo: '',
+        vocal: '/a/',
+        velocidad: 'normal',
+        tag: ''
+    },
+    {
+        titulo: 'Ahora imita el sonido pronunciando una /e/ prolongada.',
+        subtitulo: '¡Un poco más rápido!',
+        vocal: '/e/',
+        velocidad: 'rapido',
+        tag: 'Subiste de nivel.'
+    },
+    {
+        titulo: 'Intentémoslo ahora desde el tono más bajo hasta el más alto.',
+        subtitulo: 'Recuerda tomar aire y producir la escala con una sola respiración.',
+        vocal: '/e/',
+        velocidad: 'rapido',
+        tag: ''
+    },
+    {
+        titulo: 'En la recta final. Imita la escala musical pronunciando una /i/ prolongada.',
+        subtitulo: '¡A toda velocidad!',
+        vocal: '/i/',
+        velocidad: 'muy_rapido',
+        tag: 'En la recta final.'
+    },
+    {
+        titulo: 'Llegaste a la meta, finalmente repite el sonido de la flauta, desde el más alto hasta el más bajo.',
+        subtitulo: '',
+        vocal: '/i/',
+        velocidad: 'muy_rapido',
+        tag: ''
+    },
+];
+
+let nivelActual = 0;
+let notaActual = 0;
+let faseEscala = 'inhala'; // inhala, canta
+let audioCtxE = null, analyserE = null, micStreamE = null, micActivoE = false, animFrameE = null;
+let notasCompletadas = 0;
+let timerNota = null;
+let audioCtxSonido = null;
+
+const canvas = document.getElementById('partitura-canvas');
+const ctx = canvas.getContext('2d');
+
+function iniciarNivel() {
+    notaActual = 0;
+    notasCompletadas = 0;
+    faseEscala = 'inhala';
+    document.getElementById('escala-completada').classList.add('oculto');
+
+    const nivel = NIVELES[nivelActual];
+    document.getElementById('instruccion-nivel').innerHTML = `
+        ${nivel.tag ? `<span class="nivel-tag">${nivel.tag}</span>` : ''}
+        <strong>${nivel.titulo}</strong>
+        ${nivel.subtitulo ? `<br><span style="color:#d32f2f;">${nivel.subtitulo}</span>` : ''}
+    `;
+
+    // Crear puntos de progreso
+    const progreso = document.getElementById('notas-progreso');
+    progreso.innerHTML = '';
+    NOTAS.forEach((n, i) => {
+        const dot = document.createElement('div');
+        dot.className = 'nota-dot';
+        dot.id = `dot-${i}`;
+        dot.textContent = n;
+        progreso.appendChild(dot);
+    });
+
+    dibujarPartitura();
+    actualizarNotaActual();
+}
+
+function dibujarPartitura() {
+    const W = canvas.width, H = canvas.height;
+    // Fondo pergamino
+    ctx.fillStyle = '#f5e6c8';
+    ctx.fillRect(0, 0, W, H);
+
+    // Líneas del pentagrama
+    ctx.strokeStyle = '#8B6914';
+    ctx.lineWidth = 1;
+    const lineas = [20, 35, 50, 65, 80];
+    lineas.forEach(y => {
+        ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(W - 20, y); ctx.stroke();
+    });
+
+    // Clave de sol (simplificada)
+    ctx.fillStyle = '#8B6914';
+    ctx.font = 'bold 40px serif';
+    ctx.fillText('𝄞', 15, 75);
+
+    // Notas en el pentagrama
+    const notaX = [70, 100, 130, 160, 190, 220, 250, 280];
+    const notaY = [80, 72, 65, 57, 50, 42, 35, 27];
+
+    NOTAS.forEach((n, i) => {
+        const x = notaX[i], y = notaY[i];
+        if (i === notaActual) {
+            ctx.fillStyle = '#d32f2f';
+            ctx.beginPath(); ctx.ellipse(x, y, 8, 6, -0.3, 0, Math.PI * 2); ctx.fill();
+            // Plica
+            ctx.strokeStyle = '#d32f2f';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(x + 8, y); ctx.lineTo(x + 8, y - 30); ctx.stroke();
+        } else if (i < notaActual) {
+            ctx.fillStyle = '#4caf50';
+            ctx.beginPath(); ctx.ellipse(x, y, 7, 5, -0.3, 0, Math.PI * 2); ctx.fill();
+        } else {
+            ctx.fillStyle = '#8B6914';
+            ctx.beginPath(); ctx.ellipse(x, y, 7, 5, -0.3, 0, Math.PI * 2); ctx.fill();
+        }
+    });
+
+    // Número de nota actual
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(notaActual + 1, canvas.width / 2, H - 5);
+}
+
+function actualizarNotaActual() {
+    const nota = NOTAS[notaActual];
+    document.getElementById('nota-nombre').textContent = nota;
+    document.getElementById('agujero-activo').setAttribute('cy', AGUJEROS_Y[notaActual]);
+    document.getElementById('agujero-activo').setAttribute('opacity', '1');
+
+    // Actualizar dots
+    NOTAS.forEach((_, i) => {
+        const dot = document.getElementById(`dot-${i}`);
+        if (!dot) return;
+        dot.className = 'nota-dot' + (i === notaActual ? ' activa' : i < notaActual ? ' completada' : '');
+    });
+
+    dibujarPartitura();
+    reproducirNota(notaActual);
+}
+
+function reproducirNota(idx) {
+    try {
+        if (!audioCtxSonido) audioCtxSonido = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtxSonido.createOscillator();
+        const gain = audioCtxSonido.createGain();
+        osc.connect(gain); gain.connect(audioCtxSonido.destination);
+        osc.frequency.value = FRECUENCIAS[idx];
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, audioCtxSonido.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxSonido.currentTime + 0.8);
+        osc.start(audioCtxSonido.currentTime);
+        osc.stop(audioCtxSonido.currentTime + 0.8);
+    } catch(e) {}
+}
+
+// ─── Micrófono ────────────────────────────────────────────────────────────────
+function toggleMicEscala() {
+    if (micActivoE) detenerMicEscala();
+    else iniciarMicEscala();
+}
+
+async function iniciarMicEscala() {
+    try {
+        micStreamE = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtxE = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtxE.createMediaStreamSource(micStreamE);
+        analyserE = audioCtxE.createAnalyser();
+        analyserE.fftSize = 2048;
+        source.connect(analyserE);
+        micActivoE = true;
+        document.getElementById('btn-mic-escala').classList.add('activo');
+        document.getElementById('mic-estado-escala').textContent = '🔴 Activo - ¡Canta!';
+        mostrarFaseInhala();
+        medirVozEscala();
+    } catch(e) {
+        document.getElementById('mic-estado-escala').textContent = '❌ Sin acceso al micrófono';
+    }
+}
+
+function detenerMicEscala() {
+    micActivoE = false;
+    if (micStreamE) { micStreamE.getTracks().forEach(t => t.stop()); micStreamE = null; }
+    if (audioCtxE) { audioCtxE.close(); audioCtxE = null; }
+    if (animFrameE) { cancelAnimationFrame(animFrameE); animFrameE = null; }
+    if (timerNota) { clearTimeout(timerNota); timerNota = null; }
+    document.getElementById('btn-mic-escala').classList.remove('activo');
+    document.getElementById('mic-estado-escala').textContent = 'Toca para activar el micrófono';
+    document.getElementById('fase-texto-escala').textContent = 'Toca el micrófono para comenzar';
+}
+
+function mostrarFaseInhala() {
+    faseEscala = 'inhala';
+    document.getElementById('fase-texto-escala').textContent = '😮 INHALA... (prepárate)';
+    timerNota = setTimeout(() => {
+        faseEscala = 'canta';
+        document.getElementById('fase-texto-escala').textContent = `🎵 Canta ${NIVELES[nivelActual].vocal} prolongada...`;
+    }, 2000);
+}
+
+function medirVozEscala() {
+    if (!micActivoE) return;
+    const dataArray = new Uint8Array(analyserE.frequencyBinCount);
+    analyserE.getByteFrequencyData(dataArray);
+    const promedio = dataArray.reduce((a,b) => a+b, 0) / dataArray.length;
+    const volPct = Math.min(100, (promedio / 128) * 100);
+
+    if (faseEscala === 'canta' && volPct > 20) {
+        // Avanzar nota
+        if (!timerNota) {
+            timerNota = setTimeout(() => {
+                timerNota = null;
+                notaActual++;
+                if (notaActual >= NOTAS.length) {
+                    completarEscala();
+                } else {
+                    actualizarNotaActual();
+                    mostrarFaseInhala();
+                }
+            }, 1200);
+        }
+    }
+
+    animFrameE = requestAnimationFrame(medirVozEscala);
+}
+
+function completarEscala() {
+    detenerMicEscala();
+    document.getElementById('escala-completada').classList.remove('oculto');
+    document.getElementById('fase-texto-escala').textContent = '🎉 ¡Escala completada!';
+    // Marcar todos como completados
+    NOTAS.forEach((_, i) => {
+        const dot = document.getElementById(`dot-${i}`);
+        if (dot) dot.className = 'nota-dot completada';
+    });
+}
+
+function siguienteNivelEscala() {
+    nivelActual = (nivelActual + 1) % NIVELES.length;
+    notaActual = 0;
+    iniciarNivel();
+}
+
+window.addEventListener('DOMContentLoaded', iniciarNivel);
+</script>
+{% endblock %}

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Respiración</h1>
+    <p class="centrado" style="font-weight:bold; margin-bottom:0.3rem;">Continuemos con el siguiente nivel.</p>
+    <p class="centrado texto-pequeño" style="margin-bottom:0.5rem;">
+        El molino de viento de la granja de Pepe se ha dañado, ayuda a Pepe a arreglar el molino.
+        <span style="color:#d32f2f; font-weight:bold;">Toma aire y sopla.</span>
+    </p>
+
+    <!-- Molino animado -->
+    <div class="molino-area">
+        <svg id="molino-svg" viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-height:220px;">
+            <!-- Cielo -->
+            <rect width="300" height="220" fill="#87CEEB"/>
+            <!-- Nubes -->
+            <ellipse cx="50" cy="30" rx="30" ry="15" fill="white" opacity="0.8"/>
+            <ellipse cx="70" cy="25" rx="25" ry="12" fill="white" opacity="0.8"/>
+            <ellipse cx="220" cy="40" rx="35" ry="16" fill="white" opacity="0.8"/>
+            <ellipse cx="245" cy="35" rx="28" ry="13" fill="white" opacity="0.8"/>
+            <!-- Suelo -->
+            <rect y="170" width="300" height="50" fill="#7ec850"/>
+            <!-- Torre del molino -->
+            <polygon points="130,170 170,170 160,80 140,80" fill="#d4a96a"/>
+            <!-- Ventana -->
+            <rect x="143" y="120" width="14" height="18" rx="7" fill="#87CEEB" stroke="#a07040" stroke-width="1"/>
+            <!-- Puerta -->
+            <rect x="143" y="148" width="14" height="22" rx="4" fill="#8B4513"/>
+            <!-- Techo -->
+            <polygon points="125,82 175,82 150,55" fill="#c0392b"/>
+            <!-- Aspas del molino (se rotan con JS) -->
+            <g id="aspas" transform="translate(150,82)">
+                <!-- Aspa 1 -->
+                <rect x="-4" y="-60" width="8" height="60" rx="3" fill="#f5deb3" stroke="#c8a060" stroke-width="1"/>
+                <!-- Aspa 2 -->
+                <rect x="-4" y="0" width="8" height="60" rx="3" fill="#f5deb3" stroke="#c8a060" stroke-width="1"/>
+                <!-- Aspa 3 -->
+                <rect x="-60" y="-4" width="60" height="8" rx="3" fill="#f5deb3" stroke="#c8a060" stroke-width="1"/>
+                <!-- Aspa 4 -->
+                <rect x="0" y="-4" width="60" height="8" rx="3" fill="#f5deb3" stroke="#c8a060" stroke-width="1"/>
+                <!-- Centro -->
+                <circle cx="0" cy="0" r="7" fill="#8B4513"/>
+            </g>
+            <!-- Pepe (personaje) -->
+            <g id="pepe" transform="translate(60,140)">
+                <circle cx="0" cy="-30" r="12" fill="#FFDAB9" stroke="#e0a070" stroke-width="1"/>
+                <rect x="-10" y="-18" width="20" height="25" rx="4" fill="#3498db"/>
+                <rect x="-8" y="7" width="7" height="20" rx="3" fill="#2c3e50"/>
+                <rect x="1" y="7" width="7" height="20" rx="3" fill="#2c3e50"/>
+                <!-- Boca soplando -->
+                <ellipse id="boca-pepe" cx="3" cy="-26" rx="4" ry="3" fill="#e74c3c"/>
+                <!-- Líneas de soplo -->
+                <g id="soplo-pepe" opacity="0">
+                    <line x1="8" y1="-26" x2="25" y2="-26" stroke="#87CEEB" stroke-width="2" stroke-dasharray="3,2"/>
+                    <line x1="8" y1="-22" x2="22" y2="-18" stroke="#87CEEB" stroke-width="1.5" stroke-dasharray="3,2"/>
+                    <line x1="8" y1="-30" x2="22" y2="-34" stroke="#87CEEB" stroke-width="1.5" stroke-dasharray="3,2"/>
+                </g>
+            </g>
+            <!-- Indicador de velocidad -->
+            <text id="velocidad-texto" x="150" y="210" text-anchor="middle" font-size="11" fill="#333" font-family="Arial">Velocidad: 0 rpm</text>
+        </svg>
+
+        <!-- Barra de soplo -->
+        <div class="soplo-barra-container">
+            <div class="soplo-label">Fuerza del soplo</div>
+            <div class="soplo-barra-wrap">
+                <div class="soplo-barra" id="soplo-barra"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Puntuación -->
+    <div class="molino-score">
+        <span>Puntos: <strong id="puntos-molino">0</strong></span>
+        <span>Mejor: <strong id="mejor-molino">0</strong></span>
+    </div>
+
+    <!-- Botón micrófono -->
+    <div style="text-align:center; margin-top:0.8rem;">
+        <button id="btn-mic-molino" class="btn-microfono" onclick="toggleMicMolino()">🎤</button>
+        <p class="texto-pequeño centrado" style="margin-top:0.3rem;" id="mic-estado-molino">Toca para activar el micrófono</p>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/respiracion" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.molino-area {
+    background: #f0f8ff;
+    border-radius: 12px;
+    padding: 0.8rem;
+    border: 1px solid #b3d9f5;
+}
+.soplo-barra-container {
+    margin-top: 0.5rem;
+    text-align: center;
+}
+.soplo-label { font-size: 0.8rem; color: #555; margin-bottom: 0.3rem; }
+.soplo-barra-wrap {
+    height: 14px;
+    background: #e0e0e0;
+    border-radius: 7px;
+    overflow: hidden;
+}
+.soplo-barra {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4caf50, #ffeb3b, #f44336);
+    border-radius: 7px;
+    transition: width 0.08s;
+}
+.molino-score {
+    display: flex;
+    justify-content: space-around;
+    background: #f5f5f5;
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+.btn-microfono {
+    width: 70px; height: 70px; border-radius: 50%;
+    border: 3px solid #d32f2f; background: white;
+    font-size: 2rem; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.btn-microfono.activo { background: #ffebee; animation: pulso 1s infinite; }
+.btn-microfono:active { transform: scale(0.95); }
+@keyframes pulso {
+    0%,100% { box-shadow: 0 0 0 0 rgba(211,47,47,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(211,47,47,0); }
+}
+</style>
+
+<script>
+let audioCtxM = null, analyserM = null, micStreamM = null;
+let micActivoM = false, animFrameM = null;
+let anguloAspas = 0;
+let velocidadAspas = 0;
+let puntosM = 0, mejorM = 0;
+let puntosInterval = null;
+
+function toggleMicMolino() {
+    if (micActivoM) detenerMicMolino();
+    else iniciarMicMolino();
+}
+
+async function iniciarMicMolino() {
+    try {
+        micStreamM = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        audioCtxM = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtxM.createMediaStreamSource(micStreamM);
+        analyserM = audioCtxM.createAnalyser();
+        analyserM.fftSize = 256;
+        source.connect(analyserM);
+        micActivoM = true;
+        document.getElementById('btn-mic-molino').classList.add('activo');
+        document.getElementById('mic-estado-molino').textContent = '🔴 Activo - ¡Sopla!';
+        puntosInterval = setInterval(sumarPuntos, 500);
+        animarMolino();
+    } catch(e) {
+        document.getElementById('mic-estado-molino').textContent = '❌ Sin acceso al micrófono';
+    }
+}
+
+function detenerMicMolino() {
+    micActivoM = false;
+    if (micStreamM) { micStreamM.getTracks().forEach(t => t.stop()); micStreamM = null; }
+    if (audioCtxM) { audioCtxM.close(); audioCtxM = null; }
+    if (animFrameM) { cancelAnimationFrame(animFrameM); animFrameM = null; }
+    if (puntosInterval) { clearInterval(puntosInterval); puntosInterval = null; }
+    document.getElementById('btn-mic-molino').classList.remove('activo');
+    document.getElementById('mic-estado-molino').textContent = 'Toca para activar el micrófono';
+    velocidadAspas = 0;
+}
+
+function animarMolino() {
+    if (!micActivoM) return;
+    const dataArray = new Uint8Array(analyserM.frequencyBinCount);
+    analyserM.getByteFrequencyData(dataArray);
+    const promedio = dataArray.reduce((a,b) => a+b, 0) / dataArray.length;
+    const volPct = Math.min(100, (promedio / 128) * 100);
+
+    document.getElementById('soplo-barra').style.width = volPct + '%';
+
+    if (volPct > 10) {
+        velocidadAspas = Math.min(15, velocidadAspas + volPct * 0.08);
+        document.getElementById('soplo-pepe').setAttribute('opacity', '1');
+    } else {
+        velocidadAspas = Math.max(0, velocidadAspas - 0.3);
+        document.getElementById('soplo-pepe').setAttribute('opacity', '0');
+    }
+
+    anguloAspas = (anguloAspas + velocidadAspas) % 360;
+    document.getElementById('aspas').setAttribute('transform', `translate(150,82) rotate(${anguloAspas})`);
+    document.getElementById('velocidad-texto').textContent = `Velocidad: ${Math.round(velocidadAspas * 10)} rpm`;
+
+    animFrameM = requestAnimationFrame(animarMolino);
+}
+
+function sumarPuntos() {
+    if (velocidadAspas > 2) {
+        puntosM += Math.round(velocidadAspas);
+        if (puntosM > mejorM) mejorM = puntosM;
+        document.getElementById('puntos-molino').textContent = puntosM;
+        document.getElementById('mejor-molino').textContent = mejorM;
+    }
+}
+</script>
+{% endblock %}

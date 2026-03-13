@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block contenido %}
+
+<header class="cabecera-app">
+    <div class="titulo-app">🎙️ FonoApp</div>
+    <button class="boton-hamburguesa" id="btn-hamburguesa" aria-label="Abrir perfil">
+        <span class="hamburguesa-icono">☰</span>
+    </button>
+</header>
+
+<div id="splash" class="splash-full">
+    <div class="splash-contenido">
+        <img src="/static/img/splash.svg" alt="FonoApp" class="splash-logo" />
+        <p class="splash-subtitulo">¡Bienvenido/a!</p>
+    </div>
+</div>
+
+<div id="overlay" class="overlay-app"></div>
+
+<aside id="panelPerfil" class="panel-perfil" role="dialog" aria-label="Panel de perfil">
+    <div class="panel-perfil-header">
+        <h2 class="titulo-rojo">👤 Mi perfil</h2>
+        <button class="btn-cerrar-panel" id="btn-cerrar-panel">✕</button>
+    </div>
+    <form method="post" action="/paciente/perfil" class="formulario-movil">
+        <input type="hidden" name="paciente_email" value="{{ email_paciente }}" />
+
+        <label class="etiqueta-campo" for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" class="campo-texto" value="{{ perfil.nombre if perfil else '' }}" placeholder="Tu nombre completo" required />
+
+        <label class="etiqueta-campo" for="edad">Edad</label>
+        <input type="number" id="edad" name="edad" class="campo-texto" min="1" max="120" value="{{ perfil.edad if perfil else '' }}" placeholder="Ej: 8" required />
+
+        <label class="etiqueta-campo" for="escolaridad">Escolaridad</label>
+        <select id="escolaridad" name="escolaridad" class="campo-texto" required>
+            <option value="">Selecciona...</option>
+            {% set esc = perfil.escolaridad if perfil else '' %}
+            <option value="Preescolar"   {% if esc == 'Preescolar'   %}selected{% endif %}>Preescolar</option>
+            <option value="Primaria"     {% if esc == 'Primaria'     %}selected{% endif %}>Primaria</option>
+            <option value="Secundaria"   {% if esc == 'Secundaria'   %}selected{% endif %}>Secundaria</option>
+            <option value="Bachillerato" {% if esc == 'Bachillerato' %}selected{% endif %}>Bachillerato</option>
+            <option value="Universidad"  {% if esc == 'Universidad'  %}selected{% endif %}>Universidad</option>
+            <option value="Otro"         {% if esc == 'Otro'         %}selected{% endif %}>Otro</option>
+        </select>
+
+        <label class="etiqueta-campo" for="genero">Género</label>
+        <select id="genero" name="genero" class="campo-texto" required>
+            <option value="">Selecciona...</option>
+            {% set gen = perfil.genero if perfil else '' %}
+            <option value="Masculino" {% if gen == 'Masculino' %}selected{% endif %}>Masculino</option>
+            <option value="Femenino"  {% if gen == 'Femenino'  %}selected{% endif %}>Femenino</option>
+            <option value="Otro"      {% if gen == 'Otro'      %}selected{% endif %}>Otro</option>
+        </select>
+
+        <label class="etiqueta-campo" for="tutor">Nombre del tutor</label>
+        <input type="text" id="tutor" name="tutor" class="campo-texto" value="{{ perfil.tutor if perfil else '' }}" placeholder="Nombre del tutor" required />
+
+        <label class="etiqueta-campo" for="parentesco">Parentesco</label>
+        <input type="text" id="parentesco" name="parentesco" class="campo-texto" value="{{ perfil.parentesco if perfil else '' }}" placeholder="Ej: Madre, Padre..." required />
+
+        {% if perfil %}
+            <p class="texto-pequeño" style="color:#999;margin-top:0.3rem;">📅 Desde: {{ perfil.fecha_registro.strftime('%d/%m/%Y') if perfil.fecha_registro else '' }}</p>
+        {% endif %}
+
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:1rem;">💾 Guardar perfil</button>
+        <a href="/auth/login" class="boton-rojo-borde ancho-completo" style="display:block;text-align:center;margin-top:0.5rem;text-decoration:none;">🚪 Cerrar sesión</a>
+    </form>
+</aside>
+
+<div class="contenido-principal">
+    <div class="pantalla-movil">
+
+        {% if perfil %}
+        <div class="bienvenida-card">
+            <span class="bienvenida-emoji">👋</span>
+            <div>
+                <p class="bienvenida-nombre">¡Hola, {{ perfil.nombre.split()[0] if perfil.nombre else 'Paciente' }}!</p>
+                <p class="bienvenida-sub">¿Listo para practicar hoy?</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="acceso-juegos-card" onclick="sessionStorage.setItem('juegos_origen','/paciente/perfil'); window.location.href='/juegos/'">
+            <div class="acceso-juegos-icono">🎮</div>
+            <div class="acceso-juegos-info">
+                <h3>Juegos Fonoaudiológicos</h3>
+                <p>Respiración, fonación, resonancia y más</p>
+            </div>
+            <div class="acceso-juegos-flecha">›</div>
+        </div>
+
+        <section style="margin-top:1.5rem;">
+            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📋 Actividades de hoy</h3>
+            <div id="listaActividades" class="lista-actividades">
+                {% if actividades_disponibles %}
+                    {% for cat in actividades_disponibles %}
+                        <div class="categoria-titulo">{{ cat.categoria }}</div>
+                        {% for act in cat.actividades %}
+                            {% if act is mapping %}
+                                <a href="{{ act.url }}" class="actividad-item actividad-link" style="text-decoration:none;" onclick="marcarActividad(this)">
+                                    <span class="actividad-check" id="check-{{ loop.index }}">○</span>
+                                    <div class="actividad-detalle">{{ act.actividad }}</div>
+                                    <div class="marcador">›</div>
+                                </a>
+                            {% else %}
+                                <a href="/juegos/" class="actividad-item actividad-link" style="text-decoration:none;" onclick="marcarActividad(this)">
+                                    <span class="actividad-check">○</span>
+                                    <div class="actividad-detalle">{{ act }}</div>
+                                    <div class="marcador">›</div>
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+
+                    <!-- Mensaje de sesión completada (oculto por defecto) -->
+                    <div id="sesion-completada" class="sesion-completada" style="display:none;">
+                        <span style="font-size:2.5rem;">🏆</span>
+                        <p class="sesion-titulo">¡Excelente trabajo!</p>
+                        <p class="sesion-sub">Completaste todas las actividades de hoy.</p>
+                        <p class="sesion-sub">Vuelve mañana para nuevas actividades 🌟</p>
+                        <button class="boton-rojo ancho-completo" onclick="window.location.href='/juegos/'" style="margin-top:0.8rem;">
+                            🎮 Seguir jugando libremente
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="actividad-vacia">
+                        <span style="font-size:2rem;">📭</span>
+                        <p>No hay actividades asignadas aún.</p>
+                        <p class="texto-pequeño">Tu médico te asignará actividades pronto.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section style="margin-top:1.8rem;">
+            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📅 Mi actividad este mes</h3>
+            <div class="calendario-uso">
+                {% if sesiones_por_dia %}
+                    <div class="calendario-grid">
+                        {% for dia, minutos in sesiones_por_dia.items() %}
+                            <div class="calendario-dia">
+                                <span class="calendario-fecha">{{ dia[8:] }}/{{ dia[5:7] }}</span>
+                                <span class="calendario-minutos">{{ minutos }} min</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="actividad-vacia">
+                        <span style="font-size:1.8rem;">📆</span>
+                        <p class="texto-pequeño">Todavía no hay registros este mes.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<script>
+// Guardar email del paciente en AMBOS storages para máxima compatibilidad
+// sessionStorage: se borra al cerrar el tab
+// localStorage: persiste entre sesiones (se borra al cerrar sesión)
+const _emailPaciente = '{{ email_paciente }}';
+sessionStorage.setItem('paciente_email', _emailPaciente);
+localStorage.setItem('paciente_email_actual', _emailPaciente);
+sessionStorage.setItem('juegos_origen', '/paciente/perfil');
+</script>
+<script src="/static/js/paciente.js"></script>
+<script>
+// Sistema de progreso de actividades del día
+// Usa la URL de cada actividad como clave (no el índice) para ser estable
+const HOY_KEY = 'actividades_completadas_' + new Date().toDateString() + '_{{ email_paciente }}';
+
+document.addEventListener('DOMContentLoaded', function() {
+    const items = document.querySelectorAll('.actividad-link');
+    const completadas = JSON.parse(localStorage.getItem(HOY_KEY) || '[]');
+    
+    items.forEach(item => {
+        const url = item.getAttribute('href');
+        if (completadas.includes(url)) {
+            item.classList.add('completada');
+            const check = item.querySelector('.actividad-check');
+            if (check) check.textContent = '✓';
+        }
+    });
+    
+    verificarSesionCompleta();
+});
+
+function marcarActividad(el) {
+    // Guardar la URL de la actividad en localStorage ANTES de navegar
+    const url = el.getAttribute('href');
+    if (!url) return;
+    const completadas = JSON.parse(localStorage.getItem(HOY_KEY) || '[]');
+    if (!completadas.includes(url)) {
+        completadas.push(url);
+        localStorage.setItem(HOY_KEY, JSON.stringify(completadas));
+    }
+    // La navegación ocurre normalmente
+}
+
+function verificarSesionCompleta() {
+    const total = document.querySelectorAll('.actividad-link').length;
+    const completadas = document.querySelectorAll('.actividad-link.completada').length;
+    if (total > 0 && completadas >= total) {
+        const sesionDiv = document.getElementById('sesion-completada');
+        if (sesionDiv) {
+            sesionDiv.style.display = 'flex';
+            document.querySelectorAll('.actividad-link').forEach(a => a.style.opacity = '0.7');
+        }
+    }
+}
+</script>
+
+<style>
+.actividad-link { color: inherit; }
+.actividad-link.completada { background: #f0fff4 !important; border-color: #4caf50 !important; }
+.actividad-link.completada .actividad-detalle { text-decoration: line-through; color: #888; }
+.actividad-link.completada .marcador { color: #4caf50; }
+.actividad-check { font-size: 1rem; color: #ccc; min-width: 1.2rem; }
+.actividad-link.completada .actividad-check { color: #4caf50; font-weight: 700; }
+.categoria-titulo { font-size: 0.78rem; color: #d32f2f; margin-top: 0.8rem; font-weight: 700; letter-spacing: 0.5px; padding-left: 0.3rem; text-transform: capitalize; }
+.sesion-completada { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1.5rem 1rem; background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-radius: 14px; border: 2px solid #4caf50; margin-top: 0.8rem; }
+.sesion-titulo { margin: 0.5rem 0 0.2rem; font-size: 1.1rem; font-weight: 800; color: #2e7d32; }
+.sesion-sub { margin: 0.2rem 0; font-size: 0.85rem; color: #555; }
+</style>
+{% endblock %}

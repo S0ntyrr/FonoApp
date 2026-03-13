@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/discriminacion" class="btn-volver-cat">← Discriminación</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🖱️ Arrastra al sonido</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <div class="juego-container">
+        <div class="instruccion-card">
+            <p>👆 Escucha el sonido y arrastra la imagen correcta a la zona de respuesta</p>
+        </div>
+
+        <div id="juego-area">
+            <!-- Zona de sonido -->
+            <div class="zona-sonido">
+                <button class="btn-reproducir" id="btn-sonido" onclick="reproducirSonido()">🔊 Escuchar</button>
+                <p class="sonido-estado" id="sonido-estado">Toca para escuchar el sonido</p>
+            </div>
+
+            <!-- Zona de drop -->
+            <div class="zona-drop" id="zona-drop"
+                 ondragover="event.preventDefault()"
+                 ondrop="soltar(event)">
+                <p class="drop-texto" id="drop-texto">⬇️ Arrastra aquí la imagen correcta</p>
+            </div>
+
+            <!-- Imágenes arrastrables -->
+            <div class="imagenes-grid" id="imagenes-grid"></div>
+        </div>
+
+        <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
+            <p>🎉 ¡Correcto!</p>
+            <button class="boton-rojo ancho-completo" onclick="siguienteRonda()">Siguiente →</button>
+        </div>
+        <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
+            <p>❌ Ese no es. Intenta de nuevo</p>
+        </div>
+        <div id="resultado-final" class="resultado-card correcto" style="display:none;">
+            <p>🏆 ¡Completaste el juego!</p>
+            <p id="puntaje-final" style="font-size:0.9rem;color:#555;"></p>
+            <button class="boton-rojo ancho-completo" onclick="reiniciar()">🔄 Jugar de nuevo</button>
+        </div>
+
+        <div class="progreso-bar">
+            <div class="progreso-fill" id="progreso-fill" style="width:0%"></div>
+        </div>
+        <p class="progreso-texto" id="progreso-texto">Ronda 1 de 4</p>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #00838f; color:#00838f; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#e0f7fa; }
+.juego-container { display:flex; flex-direction:column; gap:1rem; }
+.instruccion-card { background:#e0f7fa; border-radius:12px; padding:0.8rem 1rem; border-left:4px solid #00838f; font-size:0.88rem; color:#006064; font-weight:600; }
+.instruccion-card p { margin:0; }
+.zona-sonido { text-align:center; padding:1rem; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.btn-reproducir { background:linear-gradient(135deg,#00838f,#006064); color:#fff; border:none; border-radius:12px; padding:0.8rem 1.5rem; font-size:1rem; cursor:pointer; box-shadow:0 3px 10px rgba(0,131,143,0.3); }
+.btn-reproducir:hover { opacity:0.9; }
+.sonido-estado { margin:0.5rem 0 0; font-size:0.82rem; color:#888; }
+.zona-drop { min-height:80px; border:2.5px dashed #00838f; border-radius:12px; display:flex; align-items:center; justify-content:center; background:#f0fdfe; transition:background 0.2s; }
+.zona-drop.drag-over { background:#b2ebf2; border-color:#006064; }
+.drop-texto { margin:0; font-size:0.88rem; color:#00838f; font-weight:600; }
+.imagenes-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem; }
+.imagen-drag { background:#fff; border:2px solid #e0e0e0; border-radius:10px; padding:0.8rem; font-size:2.2rem; cursor:grab; text-align:center; transition:border-color 0.15s, transform 0.1s; user-select:none; }
+.imagen-drag:hover { border-color:#00838f; transform:scale(1.05); }
+.imagen-drag:active { cursor:grabbing; }
+.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
+.resultado-card p { margin:0 0 0.5rem; font-size:1rem; font-weight:700; }
+.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
+.resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
+.progreso-bar { background:#f0f0f0; border-radius:6px; height:8px; overflow:hidden; }
+.progreso-fill { height:100%; background:linear-gradient(90deg,#00838f,#4dd0e1); border-radius:6px; transition:width 0.4s ease; }
+.progreso-texto { margin:0.3rem 0 0; font-size:0.75rem; color:#888; text-align:center; }
+</style>
+
+<script>
+const RONDAS = [
+    { sonido: "🐕 Guau guau!", descripcion: "Sonido de un animal que ladra", respuesta: "🐶", opciones: ["🐱", "🐶", "🐸", "🐦", "🐮", "🐷"] },
+    { sonido: "🔔 Din don!", descripcion: "Sonido de una campana", respuesta: "🔔", opciones: ["📱", "🔔", "🎸", "🥁", "🎺", "🎹"] },
+    { sonido: "🌧️ Ploc ploc!", descripcion: "Sonido de la lluvia", respuesta: "🌧️", opciones: ["☀️", "❄️", "🌧️", "🌈", "⛅", "🌪️"] },
+    { sonido: "🚗 Brum brum!", descripcion: "Sonido de un vehículo", respuesta: "🚗", opciones: ["✈️", "🚂", "🚗", "🚢", "🚲", "🛵"] },
+];
+
+let indiceActual = 0;
+let aciertos = 0;
+
+function mostrarRonda(idx) {
+    indiceActual = idx;
+    const r = RONDAS[idx];
+    document.getElementById('sonido-estado').textContent = r.descripcion;
+    document.getElementById('resultado-correcto').style.display = 'none';
+    document.getElementById('resultado-incorrecto').style.display = 'none';
+    document.getElementById('resultado-final').style.display = 'none';
+    document.getElementById('juego-area').style.display = 'block';
+    document.getElementById('drop-texto').textContent = '⬇️ Arrastra aquí la imagen correcta';
+    const pct = (idx / RONDAS.length) * 100;
+    document.getElementById('progreso-fill').style.width = pct + '%';
+    document.getElementById('progreso-texto').textContent = `Ronda ${idx + 1} de ${RONDAS.length}`;
+
+    const grid = document.getElementById('imagenes-grid');
+    grid.innerHTML = '';
+    r.opciones.forEach(emoji => {
+        const div = document.createElement('div');
+        div.className = 'imagen-drag';
+        div.textContent = emoji;
+        div.draggable = true;
+        div.dataset.valor = emoji;
+        div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text', emoji); });
+        // Touch support
+        div.addEventListener('touchstart', (e) => { div.dataset.tocando = 'true'; });
+        div.addEventListener('touchend', (e) => { if (div.dataset.tocando) { soltar(null, emoji); div.dataset.tocando = ''; } });
+        grid.appendChild(div);
+    });
+}
+
+function reproducirSonido() {
+    const r = RONDAS[indiceActual];
+    const btn = document.getElementById('btn-sonido');
+    document.getElementById('sonido-estado').textContent = `🔊 ${r.sonido}`;
+    setTimeout(() => { document.getElementById('sonido-estado').textContent = r.descripcion; }, 2000);
+}
+
+function soltar(event, valorTactil) {
+    const valor = valorTactil || (event && event.dataTransfer.getData('text'));
+    if (!valor) return;
+    const r = RONDAS[indiceActual];
+    if (valor === r.respuesta) {
+        document.getElementById('drop-texto').textContent = valor + ' ¡Correcto!';
+        aciertos++;
+        document.getElementById('resultado-correcto').style.display = 'block';
+        document.querySelectorAll('.imagen-drag').forEach(d => d.draggable = false);
+    } else {
+        document.getElementById('resultado-incorrecto').style.display = 'block';
+        setTimeout(() => document.getElementById('resultado-incorrecto').style.display = 'none', 1000);
+    }
+}
+
+function siguienteRonda() {
+    if (indiceActual < RONDAS.length - 1) { mostrarRonda(indiceActual + 1); }
+    else {
+        document.getElementById('juego-area').style.display = 'none';
+        document.getElementById('resultado-correcto').style.display = 'none';
+        document.getElementById('progreso-fill').style.width = '100%';
+        document.getElementById('puntaje-final').textContent = `Acertaste ${aciertos} de ${RONDAS.length} rondas`;
+        document.getElementById('resultado-final').style.display = 'block';
+    }
+}
+
+function reiniciar() { aciertos = 0; mostrarRonda(0); }
+
+const zona = document.getElementById('zona-drop');
+zona.addEventListener('dragover', (e) => { e.preventDefault(); zona.classList.add('drag-over'); });
+zona.addEventListener('dragleave', () => zona.classList.remove('drag-over'));
+zona.addEventListener('drop', (e) => { e.preventDefault(); zona.classList.remove('drag-over'); soltar(e); });
+
+mostrarRonda(0);
+</script>
+{% endblock %}

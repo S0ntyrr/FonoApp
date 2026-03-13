@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/" class="btn-volver-cat">← Juegos</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.2rem;">🗣️ Articulación</h1>
+        <div style="width:70px;"></div>
+    </div>
+    <p class="centrado texto-pequeño" style="margin-bottom:1.5rem;">Aprende a pronunciar letras y palabras correctamente</p>
+
+    <div class="juegos-grid">
+        <a href="/juegos/articulacion/letra-b" class="juego-card articulacion">
+            <div class="juego-icono">🐝</div>
+            <div class="juego-info"><h2>Letra B</h2><p>Practica la pronunciación de la letra B</p></div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/articulacion/letra-d" class="juego-card articulacion">
+            <div class="juego-icono">🐉</div>
+            <div class="juego-info"><h2>Letra D</h2><p>Practica la pronunciación de la letra D</p></div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/articulacion/letra-f" class="juego-card articulacion">
+            <div class="juego-icono">🌸</div>
+            <div class="juego-info"><h2>Letra F</h2><p>Practica la pronunciación de la letra F</p></div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/articulacion/letra-r" class="juego-card articulacion">
+            <div class="juego-icono">🎵</div>
+            <div class="juego-info"><h2>Letra R</h2><p>Practica la pronunciación de la letra R</p></div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/articulacion/completa-palabra" class="juego-card articulacion">
+            <div class="juego-icono">🔤</div>
+            <div class="juego-info"><h2>Completa la palabra</h2><p>Mira la imagen y completa la letra que falta</p></div>
+            <span class="juego-flecha">›</span>
+        </a>
+        <a href="/juegos/articulacion/moto-voz" class="juego-card articulacion">
+            <div class="juego-icono">🏍️</div>
+            <div class="juego-info"><h2>¡Acelera la moto!</h2><p>Habla fuerte con el micrófono para acelerar</p></div>
+            <span class="juego-flecha">›</span>
+        </a>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #e63946; color:#e63946; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#fff0f8; }
+.juegos-grid { display:flex; flex-direction:column; gap:0.9rem; }
+.juego-card { display:flex; align-items:center; gap:1rem; padding:1rem 1.2rem; border-radius:14px; text-decoration:none; color:#333; transition:transform 0.15s, box-shadow 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.juego-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+.juego-card.articulacion { background:linear-gradient(135deg,#fff0f8,#ffd6ee); border-left:4px solid #e63946; }
+.juego-icono { font-size:2.4rem; min-width:3rem; text-align:center; }
+.juego-info h2 { margin:0 0 0.2rem; font-size:1rem; color:#222; font-weight:700; }
+.juego-info p  { margin:0; font-size:0.8rem; color:#666; }
+.juego-flecha  { font-size:1.4rem; color:#bbb; margin-left:auto; padding-left:0.5rem; }
+</style>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/prosodia" class="btn-volver-cat">← Prosodia</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">👅 Trabalenguas</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <div class="juego-container">
+        <!-- Trabalenguas actual -->
+        <div class="trabalenguas-card" id="trabalenguas-card">
+            <p class="trabalenguas-num" id="trabalenguas-num">Trabalenguas 1 de 3</p>
+            <p class="trabalenguas-texto" id="trabalenguas-texto">Toca "Comenzar" para empezar</p>
+        </div>
+
+        <!-- Micrófono -->
+        <div class="mic-area" id="mic-area" style="display:none;">
+            <p class="instruccion-mic">🎤 Activa el micrófono y lee el trabalenguas en voz alta</p>
+            <button class="btn-microfono" id="btn-mic" onclick="toggleMic()">🎤</button>
+            <p class="mic-estado" id="mic-estado">Toca para hablar</p>
+            <button class="boton-rojo ancho-completo" onclick="siguienteTrabale()" style="margin-top:0.5rem;">Siguiente →</button>
+        </div>
+
+        <!-- Registro de palabras difíciles -->
+        <div id="palabras-dificiles" style="display:none;">
+            <div class="palabras-header">
+                <p class="palabras-titulo">📝 ¿Qué palabras se te dificultaron?</p>
+                <p class="palabras-sub">Escríbelas para practicarlas después</p>
+            </div>
+            <div class="palabras-lista" id="palabras-lista">
+                {% for i in range(1, 10) %}
+                <div class="palabra-fila">
+                    <span class="palabra-num">{{ i }}.</span>
+                    <input type="text" class="campo-texto palabra-input" placeholder="Palabra {{ i }}..." />
+                </div>
+                {% endfor %}
+            </div>
+            <button class="boton-rojo ancho-completo" onclick="guardarPalabras()">💾 Guardar y terminar</button>
+        </div>
+
+        <!-- Resultado final -->
+        <div id="resultado-final" style="display:none;">
+            <div class="resultado-card correcto">
+                <p>🎉 ¡Excelente trabajo!</p>
+                <p style="font-size:0.85rem;color:#555;">Tus palabras difíciles han sido guardadas.</p>
+                <button class="boton-rojo ancho-completo" onclick="reiniciar()">🔄 Practicar de nuevo</button>
+            </div>
+        </div>
+
+        <button id="btn-comenzar" class="boton-rojo ancho-completo" onclick="comenzar()">▶ Comenzar</button>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #7b1fa2; color:#7b1fa2; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#f3e5f5; }
+.juego-container { display:flex; flex-direction:column; gap:1rem; }
+.trabalenguas-card { background:linear-gradient(135deg,#f3e5f5,#e1bee7); border-radius:14px; padding:1.5rem; text-align:center; border-left:4px solid #7b1fa2; }
+.trabalenguas-num { margin:0 0 0.5rem; font-size:0.78rem; color:#7b1fa2; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.trabalenguas-texto { margin:0; font-size:1.1rem; color:#1a1a1a; font-weight:600; line-height:1.6; }
+.mic-area { display:flex; flex-direction:column; align-items:center; gap:0.6rem; background:#fff; border-radius:12px; padding:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.instruccion-mic { margin:0; font-size:0.85rem; color:#555; text-align:center; }
+.btn-microfono { width:70px; height:70px; border-radius:50%; border:3px solid #7b1fa2; background:white; font-size:2rem; cursor:pointer; transition:background 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+.btn-microfono.activo { background:#f3e5f5; animation:pulso 1s infinite; }
+@keyframes pulso { 0%,100%{box-shadow:0 0 0 0 rgba(123,31,162,0.4);} 50%{box-shadow:0 0 0 12px rgba(123,31,162,0);} }
+.mic-estado { margin:0; font-size:0.82rem; color:#888; }
+.palabras-header { background:#fff3e0; border-radius:10px; padding:0.8rem; border-left:3px solid #f57c00; margin-bottom:0.8rem; }
+.palabras-titulo { margin:0 0 0.2rem; font-size:0.9rem; font-weight:700; color:#e65100; }
+.palabras-sub { margin:0; font-size:0.78rem; color:#888; }
+.palabras-lista { display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.8rem; }
+.palabra-fila { display:flex; align-items:center; gap:0.5rem; }
+.palabra-num { font-size:0.82rem; color:#888; min-width:20px; }
+.palabra-input { flex:1; padding:0.4rem 0.7rem; font-size:0.85rem; }
+.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
+.resultado-card p { margin:0 0 0.5rem; font-size:1rem; font-weight:700; }
+.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
+</style>
+
+<script>
+const TRABALENGUAS = [
+    "Tres tristes tigres\ntragaban trigo en un trigal.\n¿Cuántos tristes tigres\ntragaban trigo en un trigal?",
+    "Pablito clavó un clavito.\n¿Qué clavito clavó Pablito?\nUn clavito pequeñito\nclavó Pablito.",
+    "El cielo está enladrillado.\n¿Quién lo desenladrillará?\nEl desenladrillador que lo desenladrille,\nbuen desenladrillador será.",
+];
+
+let indiceActual = 0;
+let micActivo = false;
+let recognition = null;
+
+function comenzar() {
+    document.getElementById('btn-comenzar').style.display = 'none';
+    mostrarTrabale(0);
+}
+
+function mostrarTrabale(idx) {
+    indiceActual = idx;
+    document.getElementById('trabalenguas-num').textContent = `Trabalenguas ${idx + 1} de ${TRABALENGUAS.length}`;
+    document.getElementById('trabalenguas-texto').textContent = TRABALENGUAS[idx];
+    document.getElementById('mic-area').style.display = 'flex';
+    document.getElementById('palabras-dificiles').style.display = 'none';
+    document.getElementById('resultado-final').style.display = 'none';
+}
+
+function siguienteTrabale() {
+    detenerMic();
+    if (indiceActual < TRABALENGUAS.length - 1) {
+        mostrarTrabale(indiceActual + 1);
+    } else {
+        // Mostrar registro de palabras difíciles
+        document.getElementById('mic-area').style.display = 'none';
+        document.getElementById('palavras-dificiles') || (document.getElementById('palabras-dificiles').style.display = 'block');
+        document.getElementById('palabras-dificiles').style.display = 'block';
+    }
+}
+
+function guardarPalabras() {
+    document.getElementById('palabras-dificiles').style.display = 'none';
+    document.getElementById('resultado-final').style.display = 'block';
+}
+
+function reiniciar() {
+    document.getElementById('resultado-final').style.display = 'none';
+    document.querySelectorAll('.palabra-input').forEach(i => i.value = '');
+    mostrarTrabale(0);
+}
+
+function toggleMic() {
+    if (micActivo) { detenerMic(); } else { iniciarMic(); }
+}
+
+async function iniciarMic() {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SR();
+        recognition.lang = 'es-ES';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (e) => {
+            const texto = Array.from(e.results).map(r => r[0].transcript).join(' ');
+            document.getElementById('mic-estado').textContent = `🔴 "${texto}"`;
+        };
+        recognition.onerror = () => { detenerMic(); };
+        recognition.start();
+        micActivo = true;
+        document.getElementById('btn-mic').classList.add('activo');
+        document.getElementById('mic-estado').textContent = '🔴 Leyendo... habla claro';
+    } else {
+        document.getElementById('mic-estado').textContent = 'Micrófono no disponible en este navegador';
+    }
+}
+
+function detenerMic() {
+    micActivo = false;
+    if (recognition) { recognition.stop(); recognition = null; }
+    document.getElementById('btn-mic').classList.remove('activo');
+    document.getElementById('mic-estado').textContent = 'Toca para hablar';
+}
+</script>
+{% endblock %}
