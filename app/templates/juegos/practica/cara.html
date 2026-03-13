@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Practica Conmigo</h1>
+    <p class="centrado" style="margin-bottom:0.2rem;">Crea tu personaje gracioso,<br>menciona cada una de las partes.</p>
+    <p class="centrado texto-pequeño" style="color:#888; margin-bottom:1rem;">Realiza la actividad con tus padres.</p>
+
+    <div id="juego-cara">
+        <!-- Área de construcción de cara -->
+        <div class="cara-area">
+            <!-- Canvas de la cara -->
+            <div class="cara-canvas" id="cara-canvas">
+                <!-- Cara base (SVG) -->
+                <svg id="cara-base" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+                    <!-- Cabeza -->
+                    <ellipse cx="100" cy="110" rx="85" ry="100" fill="#FFDAB9" stroke="#e0a070" stroke-width="2"/>
+                    <!-- Cabello -->
+                    <ellipse cx="100" cy="30" rx="85" ry="40" fill="#c0392b"/>
+                    <rect x="15" y="30" width="170" height="30" fill="#c0392b"/>
+                    <!-- Cuello -->
+                    <rect x="75" y="200" width="50" height="20" fill="#FFDAB9"/>
+                    <!-- Camisa -->
+                    <ellipse cx="100" cy="225" rx="70" ry="20" fill="#3498db"/>
+                </svg>
+                <!-- Zona de colocación de partes -->
+                <div id="zona-cara" class="zona-cara">
+                    <!-- Las partes se colocan aquí -->
+                </div>
+            </div>
+
+            <!-- Panel de partes disponibles -->
+            <div class="partes-panel">
+                <div class="partes-grid" id="partes-grid">
+                    <!-- Generadas por JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Etiquetas de partes (para pronunciar) -->
+        <div class="etiquetas-partes" id="etiquetas-partes">
+            <!-- Generadas por JS -->
+        </div>
+
+        <!-- Botones de acción -->
+        <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
+            <button class="boton-rojo" style="flex:1;" onclick="limpiarCara()">🗑 Limpiar</button>
+            <button class="boton-rojo" style="flex:1;" onclick="aleatorio()">🎲 Aleatorio</button>
+        </div>
+
+        <!-- Instrucción de voz -->
+        <div class="instruccion-voz" id="instruccion-voz" style="display:none;">
+            <p>🎤 Di el nombre de la parte: <strong id="parte-nombre"></strong></p>
+            <button class="boton-rojo ancho-completo" onclick="cerrarInstruccion()">✓ Listo</button>
+        </div>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/practica" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.cara-area {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+}
+.cara-canvas {
+    flex: 1;
+    position: relative;
+    min-height: 220px;
+    border: 2px dashed #ddd;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fffaf5;
+}
+.zona-cara {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.parte-colocada {
+    position: absolute;
+    cursor: move;
+    pointer-events: all;
+    user-select: none;
+    font-size: 1.8rem;
+    line-height: 1;
+    transition: transform 0.1s;
+}
+.parte-colocada:hover { transform: scale(1.15); }
+
+.partes-panel {
+    width: 110px;
+    background: #f9f9f9;
+    border-radius: 10px;
+    padding: 0.5rem;
+    border: 1px solid #eee;
+}
+.partes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+}
+.parte-item {
+    background: white;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    padding: 0.3rem;
+    text-align: center;
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: border-color 0.15s, transform 0.1s;
+}
+.parte-item:hover { border-color: #d32f2f; transform: scale(1.1); }
+.parte-item:active { transform: scale(0.95); }
+
+.etiquetas-partes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+    justify-content: center;
+}
+.etiqueta {
+    font-size: 0.95rem;
+    color: #d32f2f;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: #fff5f5;
+    border: 1px solid #ffcdd2;
+    transition: background 0.15s;
+}
+.etiqueta:hover { background: #ffcdd2; }
+
+.instruccion-voz {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+    border-radius: 8px;
+    padding: 0.8rem;
+    margin-top: 0.8rem;
+    text-align: center;
+}
+</style>
+
+<script>
+const PARTES = [
+    { emoji: '👁️', nombre: 'Ojos',    x: 35, y: 38 },
+    { emoji: '👁️', nombre: 'Ojos',    x: 55, y: 38 },
+    { emoji: '👃', nombre: 'Nariz',   x: 44, y: 52 },
+    { emoji: '👄', nombre: 'Boca',    x: 38, y: 68 },
+    { emoji: '👂', nombre: 'Orejas',  x: 5,  y: 45 },
+    { emoji: '👂', nombre: 'Orejas',  x: 80, y: 45 },
+    { emoji: '🥸', nombre: 'Cejas',   x: 28, y: 30 },
+    { emoji: '🥸', nombre: 'Cejas',   x: 52, y: 30 },
+    { emoji: '🕶️', nombre: 'Gafas',   x: 25, y: 42 },
+    { emoji: '🎩', nombre: 'Sombrero',x: 30, y: 2  },
+];
+
+const PARTES_UNICAS = [
+    { emoji: '👁️', nombre: 'Ojos' },
+    { emoji: '👃', nombre: 'Nariz' },
+    { emoji: '👄', nombre: 'Boca' },
+    { emoji: '👂', nombre: 'Orejas' },
+    { emoji: '🥸', nombre: 'Cejas' },
+    { emoji: '🕶️', nombre: 'Gafas' },
+    { emoji: '🎩', nombre: 'Sombrero' },
+    { emoji: '😁', nombre: 'Sonrisa' },
+];
+
+let partesColocadas = [];
+
+function iniciar() {
+    const grid = document.getElementById('partes-grid');
+    grid.innerHTML = '';
+    PARTES_UNICAS.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'parte-item';
+        div.textContent = p.emoji;
+        div.title = p.nombre;
+        div.onclick = () => agregarParte(p);
+        grid.appendChild(div);
+    });
+
+    const etiquetas = document.getElementById('etiquetas-partes');
+    etiquetas.innerHTML = '';
+    ['Nariz','Ojos','cejas','orejas'].forEach(n => {
+        const span = document.createElement('span');
+        span.className = 'etiqueta';
+        span.textContent = n;
+        span.onclick = () => mostrarInstruccion(n);
+        etiquetas.appendChild(span);
+    });
+}
+
+function agregarParte(parte) {
+    const zona = document.getElementById('zona-cara');
+    const div = document.createElement('div');
+    div.className = 'parte-colocada';
+    div.textContent = parte.emoji;
+    div.title = parte.nombre;
+    div.style.left = (20 + Math.random() * 60) + '%';
+    div.style.top  = (20 + Math.random() * 50) + '%';
+
+    // Drag
+    let isDragging = false, startX, startY, origLeft, origTop;
+    div.addEventListener('mousedown', e => {
+        isDragging = true;
+        startX = e.clientX; startY = e.clientY;
+        origLeft = div.offsetLeft; origTop = div.offsetTop;
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        div.style.left = (origLeft + e.clientX - startX) + 'px';
+        div.style.top  = (origTop  + e.clientY - startY) + 'px';
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Touch drag
+    div.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        startX = t.clientX; startY = t.clientY;
+        origLeft = div.offsetLeft; origTop = div.offsetTop;
+    }, {passive:true});
+    div.addEventListener('touchmove', e => {
+        e.preventDefault();
+        const t = e.touches[0];
+        div.style.left = (origLeft + t.clientX - startX) + 'px';
+        div.style.top  = (origTop  + t.clientY - startY) + 'px';
+    }, {passive:false});
+
+    // Doble click para eliminar
+    div.addEventListener('dblclick', () => div.remove());
+
+    zona.appendChild(div);
+    mostrarInstruccion(parte.nombre);
+}
+
+function mostrarInstruccion(nombre) {
+    document.getElementById('parte-nombre').textContent = nombre;
+    document.getElementById('instruccion-voz').style.display = 'block';
+}
+function cerrarInstruccion() {
+    document.getElementById('instruccion-voz').style.display = 'none';
+}
+
+function limpiarCara() {
+    document.getElementById('zona-cara').innerHTML = '';
+}
+
+function aleatorio() {
+    limpiarCara();
+    const seleccion = PARTES.sort(() => Math.random() - 0.5).slice(0, 5);
+    seleccion.forEach(p => agregarParte(p));
+}
+
+window.addEventListener('DOMContentLoaded', iniciar);
+</script>
+{% endblock %}

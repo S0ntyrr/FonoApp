@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Fonación</h1>
+    <div id="instruccion-inicial">
+        <p class="centrado" style="font-weight:bold; margin-bottom:0.3rem;">Intenta hacer un gol.</p>
+        <p class="centrado texto-pequeño" style="margin-bottom:0.5rem;">
+            Una vez hagas gol cántalo
+            <span style="color:#d32f2f; font-weight:bold;">Toma aire y emite la palabra gooooool hasta que se te acabe el aire!</span>
+        </p>
+    </div>
+    <div id="instruccion-felicitaciones" style="display:none;">
+        <p class="centrado" style="color:#d32f2f; font-weight:bold; margin-bottom:0.3rem;">¡Felicitaciones!</p>
+        <p class="centrado texto-pequeño" style="margin-bottom:0.5rem;">
+            Intenta hacer el gol, cántalo y mira la intensidad de tu voz, trata de no sobrepasar el color amarillo.
+            <span style="color:#d32f2f; font-weight:bold;">¡Inténtalo con tu cuidador y compite.</span>
+        </p>
+    </div>
+
+    <!-- Campo de fútbol -->
+    <div class="campo-futbol">
+        <canvas id="campo-canvas" width="380" height="220"></canvas>
+    </div>
+
+    <!-- Marcador de voz -->
+    <div class="marcador-voz" id="marcador-voz" style="display:none;">
+        <div class="velocimetro-container">
+            <canvas id="velocimetro" width="200" height="110"></canvas>
+            <div class="vel-label" id="vel-label">Intensidad de voz</div>
+        </div>
+    </div>
+
+    <!-- Score -->
+    <div class="gol-score">
+        SCORE: <span id="score-gol">0</span>
+    </div>
+
+    <!-- Mensaje de gol -->
+    <div id="mensaje-gol" class="mensaje-gol oculto">
+        <p>⚽ ¡GOOOOOL! ¡Excelente!</p>
+        <p class="texto-pequeño">Ahora canta "goooool" con tu voz</p>
+    </div>
+
+    <!-- Botón micrófono -->
+    <div style="text-align:center; margin-top:0.8rem;">
+        <button id="btn-mic-gol" class="btn-microfono" onclick="toggleMicGol()">🎤</button>
+        <p class="texto-pequeño centrado" id="mic-estado-gol">Toca para activar el micrófono</p>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/fonacion" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.campo-futbol {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #388e3c;
+    margin-bottom: 0.5rem;
+}
+.gol-score {
+    text-align: center;
+    font-weight: bold;
+    color: #d32f2f;
+    font-size: 1.1rem;
+    background: #fff9c4;
+    border: 2px solid #ffd600;
+    border-radius: 6px;
+    padding: 0.3rem;
+    margin: 0.3rem 0;
+}
+.marcador-voz {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0;
+}
+.velocimetro-container {
+    text-align: center;
+}
+.vel-label {
+    font-size: 0.8rem;
+    color: #555;
+    margin-top: 0.2rem;
+}
+.mensaje-gol {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+    border-radius: 10px;
+    padding: 0.8rem;
+    text-align: center;
+    margin: 0.5rem 0;
+}
+.btn-microfono {
+    width: 70px; height: 70px; border-radius: 50%;
+    border: 3px solid #d32f2f; background: white;
+    font-size: 2rem; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.btn-microfono.activo { background: #ffebee; animation: pulso 1s infinite; }
+@keyframes pulso {
+    0%,100% { box-shadow: 0 0 0 0 rgba(211,47,47,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(211,47,47,0); }
+}
+.oculto { display: none !important; }
+</style>
+
+<script>
+// ─── Variables del juego ──────────────────────────────────────────────────────
+const canvas = document.getElementById('campo-canvas');
+const ctx = canvas.getContext('2d');
+const velCanvas = document.getElementById('velocimetro');
+const velCtx = velCanvas.getContext('2d');
+
+let balX = 60, balY = 180;
+let balVX = 0, balVY = 0;
+let golMarcado = false;
+let score = 0;
+let animGol = null;
+let pelotaEnMovimiento = false;
+let nivelVoz = 0;
+
+// Portero
+let porteroX = 300, porteroY = 130, porteroDir = 1;
+
+// Micrófono
+let audioCtxG = null, analyserG = null, micStreamG = null, micActivoG = false, animFrameG = null;
+
+// ─── Dibujo del campo ─────────────────────────────────────────────────────────
+function dibujarCampo() {
+    const W = canvas.width, H = canvas.height;
+    // Cielo
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(0, 0, W, H/2);
+    // Césped
+    const grad = ctx.createLinearGradient(0, H/2, 0, H);
+    grad.addColorStop(0, '#4caf50');
+    grad.addColorStop(1, '#388e3c');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, H/2, W, H/2);
+    // Líneas del campo
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < W; i += 40) {
+        ctx.beginPath(); ctx.moveTo(i, H/2); ctx.lineTo(i, H); ctx.stroke();
+    }
+    // Portería
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(W - 70, H/2 - 10, 65, 80);
+    // Red de la portería
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 0.5;
+    for (let y = H/2 - 10; y < H/2 + 70; y += 10) {
+        ctx.beginPath(); ctx.moveTo(W-70, y); ctx.lineTo(W-5, y); ctx.stroke();
+    }
+    for (let x = W-70; x < W-5; x += 10) {
+        ctx.beginPath(); ctx.moveTo(x, H/2-10); ctx.lineTo(x, H/2+70); ctx.stroke();
+    }
+}
+
+function dibujarPortero() {
+    const px = porteroX, py = porteroY;
+    // Cuerpo
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(px - 12, py - 30, 24, 35);
+    // Cabeza
+    ctx.fillStyle = '#FFDAB9';
+    ctx.beginPath(); ctx.arc(px, py - 38, 14, 0, Math.PI * 2); ctx.fill();
+    // Brazos extendidos
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(px - 30, py - 28, 18, 8);
+    ctx.fillRect(px + 12, py - 28, 18, 8);
+    // Piernas
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(px - 10, py + 5, 9, 20);
+    ctx.fillRect(px + 1, py + 5, 9, 20);
+}
+
+function dibujarPelota(x, y) {
+    ctx.fillStyle = 'white';
+    ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Patrón de pelota
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+}
+
+function dibujarJugador() {
+    const px = balX - 25, py = balY - 10;
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(px - 10, py - 25, 20, 30);
+    ctx.fillStyle = '#FFDAB9';
+    ctx.beginPath(); ctx.arc(px, py - 33, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(px - 8, py + 5, 7, 18);
+    ctx.fillRect(px + 1, py + 5, 7, 18);
+    // Pierna pateando
+    ctx.fillStyle = '#2c3e50';
+    ctx.save();
+    ctx.translate(px + 10, py + 5);
+    ctx.rotate(-0.5);
+    ctx.fillRect(0, 0, 7, 18);
+    ctx.restore();
+}
+
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    dibujarCampo();
+
+    // Mover portero
+    porteroY += porteroDir * 1.5;
+    if (porteroY > 160 || porteroY < 110) porteroDir *= -1;
+    dibujarPortero();
+
+    // Mover pelota
+    if (pelotaEnMovimiento) {
+        balX += balVX;
+        balY += balVY;
+        balVY += 0.15; // gravedad
+        balVX *= 0.99;
+
+        // Verificar gol
+        if (balX > canvas.width - 70 && balY > canvas.height/2 - 10 && balY < canvas.height/2 + 70) {
+            if (!golMarcado) {
+                golMarcado = true;
+                score += 100;
+                document.getElementById('score-gol').textContent = score;
+                document.getElementById('mensaje-gol').classList.remove('oculto');
+                document.getElementById('instruccion-felicitaciones').style.display = 'block';
+                document.getElementById('instruccion-inicial').style.display = 'none';
+                document.getElementById('marcador-voz').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('mensaje-gol').classList.add('oculto');
+                    reiniciarPelota();
+                }, 3000);
+            }
+        }
+
+        // Pelota fuera
+        if (balX > canvas.width + 20 || balY > canvas.height + 20) {
+            reiniciarPelota();
+        }
+    }
+
+    dibujarJugador();
+    dibujarPelota(balX, balY);
+
+    requestAnimationFrame(render);
+}
+
+function reiniciarPelota() {
+    pelotaEnMovimiento = false;
+    golMarcado = false;
+    balX = 60; balY = 180;
+    balVX = 0; balVY = 0;
+}
+
+// Click/touch para patear
+canvas.addEventListener('click', patear);
+canvas.addEventListener('touchend', e => { e.preventDefault(); patear(); });
+
+function patear() {
+    if (pelotaEnMovimiento) return;
+    pelotaEnMovimiento = true;
+    balVX = 5 + Math.random() * 3;
+    balVY = -(3 + Math.random() * 2);
+}
+
+// ─── Velocímetro ──────────────────────────────────────────────────────────────
+function dibujarVelocimetro(nivel) {
+    const W = velCanvas.width, H = velCanvas.height;
+    velCtx.clearRect(0, 0, W, H);
+
+    const cx = W/2, cy = H - 10, r = 80;
+    // Arco de fondo
+    const segmentos = [
+        { color: '#4caf50', inicio: Math.PI, fin: Math.PI * 1.33 },
+        { color: '#8bc34a', inicio: Math.PI * 1.33, fin: Math.PI * 1.55 },
+        { color: '#ffeb3b', inicio: Math.PI * 1.55, fin: Math.PI * 1.75 },
+        { color: '#ff9800', inicio: Math.PI * 1.75, fin: Math.PI * 1.9 },
+        { color: '#f44336', inicio: Math.PI * 1.9, fin: Math.PI * 2 },
+    ];
+    segmentos.forEach(s => {
+        velCtx.beginPath();
+        velCtx.arc(cx, cy, r, s.inicio, s.fin);
+        velCtx.arc(cx, cy, r - 20, s.fin, s.inicio, true);
+        velCtx.fillStyle = s.color;
+        velCtx.fill();
+    });
+
+    // Aguja
+    const angulo = Math.PI + (nivel / 100) * Math.PI;
+    velCtx.save();
+    velCtx.translate(cx, cy);
+    velCtx.rotate(angulo);
+    velCtx.fillStyle = '#333';
+    velCtx.beginPath();
+    velCtx.moveTo(-3, 0);
+    velCtx.lineTo(3, 0);
+    velCtx.lineTo(1, -r + 15);
+    velCtx.lineTo(-1, -r + 15);
+    velCtx.fill();
+    velCtx.restore();
+
+    // Centro
+    velCtx.fillStyle = '#555';
+    velCtx.beginPath(); velCtx.arc(cx, cy, 8, 0, Math.PI * 2); velCtx.fill();
+}
+
+// ─── Micrófono ────────────────────────────────────────────────────────────────
+function toggleMicGol() {
+    if (micActivoG) detenerMicGol();
+    else iniciarMicGol();
+}
+
+async function iniciarMicGol() {
+    try {
+        micStreamG = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtxG = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtxG.createMediaStreamSource(micStreamG);
+        analyserG = audioCtxG.createAnalyser();
+        analyserG.fftSize = 256;
+        source.connect(analyserG);
+        micActivoG = true;
+        document.getElementById('btn-mic-gol').classList.add('activo');
+        document.getElementById('mic-estado-gol').textContent = '🔴 Activo - ¡Canta!';
+        medirVozGol();
+    } catch(e) {
+        document.getElementById('mic-estado-gol').textContent = '❌ Sin acceso al micrófono';
+    }
+}
+
+function detenerMicGol() {
+    micActivoG = false;
+    if (micStreamG) { micStreamG.getTracks().forEach(t => t.stop()); micStreamG = null; }
+    if (audioCtxG) { audioCtxG.close(); audioCtxG = null; }
+    if (animFrameG) { cancelAnimationFrame(animFrameG); animFrameG = null; }
+    document.getElementById('btn-mic-gol').classList.remove('activo');
+    document.getElementById('mic-estado-gol').textContent = 'Toca para activar el micrófono';
+    dibujarVelocimetro(0);
+}
+
+function medirVozGol() {
+    if (!micActivoG) return;
+    const dataArray = new Uint8Array(analyserG.frequencyBinCount);
+    analyserG.getByteFrequencyData(dataArray);
+    const promedio = dataArray.reduce((a,b) => a+b, 0) / dataArray.length;
+    nivelVoz = Math.min(100, (promedio / 128) * 100);
+    dibujarVelocimetro(nivelVoz);
+
+    // Si hay voz fuerte, patear automáticamente
+    if (nivelVoz > 30 && !pelotaEnMovimiento) {
+        patear();
+    }
+
+    animFrameG = requestAnimationFrame(medirVozGol);
+}
+
+// Iniciar
+window.addEventListener('DOMContentLoaded', () => {
+    dibujarVelocimetro(0);
+    render();
+});
+</script>
+{% endblock %}

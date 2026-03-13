@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/prosodia" class="btn-volver-cat">← Prosodia</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🖼️ Relaciona la adivinanza</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <div class="juego-container">
+        <div class="adivinanza-card" id="adivinanza-card">
+            <p class="adivinanza-num" id="adivinanza-num">Adivinanza 1 de 5</p>
+            <p class="adivinanza-texto" id="adivinanza-texto">Toca "Comenzar" para empezar</p>
+        </div>
+
+        <div id="opciones-area" style="display:none;">
+            <p class="instruccion-opciones">👆 Toca la imagen que corresponde a la adivinanza</p>
+            <div class="opciones-grid" id="opciones-grid"></div>
+        </div>
+
+        <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
+            <p>🎉 ¡Correcto!</p>
+            <button class="boton-rojo ancho-completo" onclick="siguienteAdivinanza()">Siguiente →</button>
+        </div>
+        <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
+            <p>❌ Intenta de nuevo</p>
+        </div>
+        <div id="resultado-final" class="resultado-card correcto" style="display:none;">
+            <p>🏆 ¡Completaste todas las adivinanzas!</p>
+            <p id="puntaje-final" style="font-size:0.9rem;color:#555;"></p>
+            <button class="boton-rojo ancho-completo" onclick="reiniciar()">🔄 Jugar de nuevo</button>
+        </div>
+
+        <button id="btn-comenzar" class="boton-rojo ancho-completo" onclick="comenzar()">▶ Comenzar</button>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #7b1fa2; color:#7b1fa2; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#f3e5f5; }
+.juego-container { display:flex; flex-direction:column; gap:1rem; }
+.adivinanza-card { background:linear-gradient(135deg,#f3e5f5,#e1bee7); border-radius:14px; padding:1.5rem; text-align:center; border-left:4px solid #7b1fa2; }
+.adivinanza-num { margin:0 0 0.5rem; font-size:0.78rem; color:#7b1fa2; font-weight:700; text-transform:uppercase; }
+.adivinanza-texto { margin:0; font-size:1rem; color:#1a1a1a; font-weight:600; line-height:1.6; }
+.instruccion-opciones { margin:0 0 0.8rem; font-size:0.85rem; color:#555; text-align:center; }
+.opciones-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0.8rem; }
+.opcion-btn { background:#fff; border:2px solid #e0e0e0; border-radius:12px; padding:1rem; font-size:3rem; cursor:pointer; transition:border-color 0.15s, background 0.15s, transform 0.1s; text-align:center; }
+.opcion-btn:hover { border-color:#7b1fa2; background:#f3e5f5; transform:scale(1.05); }
+.opcion-btn.correcto { border-color:#4caf50; background:#e8f5e9; }
+.opcion-btn.incorrecto { border-color:#ef5350; background:#ffebee; }
+.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
+.resultado-card p { margin:0 0 0.5rem; font-size:1rem; font-weight:700; }
+.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
+.resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
+</style>
+
+<script>
+const ADIVINANZAS = [
+    { texto: "Tengo hojas pero no soy árbol,\ntengo lomo pero no soy animal,\nme puedes leer pero no hablo.\n¿Qué soy?", respuesta: "libro", opciones: ["📚", "🌳", "🐴", "📱"], correcta: 0 },
+    { texto: "Soy redondo como el sol,\nme puedes comer o jugar,\nreboto en el suelo y en la pared.\n¿Qué soy?", respuesta: "pelota", opciones: ["⚽", "🍎", "🌞", "🎈"], correcta: 0 },
+    { texto: "Tengo alas pero no vuelo,\ntengo pico pero no como,\nvivo en el agua fría.\n¿Qué soy?", respuesta: "pinguino", opciones: ["🦅", "🐧", "🐟", "🦆"], correcta: 1 },
+    { texto: "De día duermo,\nde noche vuelo,\nsin ser pájaro tengo alas.\n¿Qué soy?", respuesta: "murcielago", opciones: ["🦇", "🦉", "🐦", "🦋"], correcta: 0 },
+    { texto: "Soy amarillo y brillante,\nde día me ves en el cielo,\nde noche me escondo.\n¿Qué soy?", respuesta: "sol", opciones: ["🌙", "⭐", "☀️", "🌈"], correcta: 2 },
+];
+
+let indiceActual = 0;
+let aciertos = 0;
+
+function comenzar() {
+    document.getElementById('btn-comenzar').style.display = 'none';
+    mostrarAdivinanza(0);
+}
+
+function mostrarAdivinanza(idx) {
+    indiceActual = idx;
+    const a = ADIVINANZAS[idx];
+    document.getElementById('adivinanza-num').textContent = `Adivinanza ${idx + 1} de ${ADIVINANZAS.length}`;
+    document.getElementById('adivinanza-texto').textContent = a.texto;
+    document.getElementById('resultado-correcto').style.display = 'none';
+    document.getElementById('resultado-incorrecto').style.display = 'none';
+    document.getElementById('resultado-final').style.display = 'none';
+
+    // Crear opciones
+    const grid = document.getElementById('opciones-grid');
+    grid.innerHTML = '';
+    a.opciones.forEach((emoji, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'opcion-btn';
+        btn.textContent = emoji;
+        btn.onclick = () => verificar(i, btn);
+        grid.appendChild(btn);
+    });
+    document.getElementById('opciones-area').style.display = 'block';
+}
+
+function verificar(idx, btn) {
+    const a = ADIVINANZAS[indiceActual];
+    if (idx === a.correcta) {
+        btn.classList.add('correcto');
+        aciertos++;
+        document.getElementById('resultado-correcto').style.display = 'block';
+        document.querySelectorAll('.opcion-btn').forEach(b => b.disabled = true);
+    } else {
+        btn.classList.add('incorrecto');
+        document.getElementById('resultado-incorrecto').style.display = 'block';
+        setTimeout(() => {
+            btn.classList.remove('incorrecto');
+            document.getElementById('resultado-incorrecto').style.display = 'none';
+        }, 1000);
+    }
+}
+
+function siguienteAdivinanza() {
+    if (indiceActual < ADIVINANZAS.length - 1) {
+        mostrarAdivinanza(indiceActual + 1);
+    } else {
+        document.getElementById('opciones-area').style.display = 'none';
+        document.getElementById('resultado-correcto').style.display = 'none';
+        document.getElementById('puntaje-final').textContent = `Acertaste ${aciertos} de ${ADIVINANZAS.length} adivinanzas`;
+        document.getElementById('resultado-final').style.display = 'block';
+    }
+}
+
+function reiniciar() {
+    aciertos = 0;
+    mostrarAdivinanza(0);
+}
+</script>
+{% endblock %}

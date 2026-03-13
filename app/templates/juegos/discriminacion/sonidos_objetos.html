@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil">
+    <div class="juegos-header">
+        <a href="/juegos/discriminacion" class="btn-volver-cat">← Discriminación</a>
+        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🔊 Sonidos de objetos</h1>
+        <div style="width:70px;"></div>
+    </div>
+
+    <div class="juego-container">
+        <div class="instruccion-card">
+            <p>👂 Escucha atentamente y selecciona el objeto al que pertenece cada sonido</p>
+        </div>
+
+        <div id="pregunta-area">
+            <div class="sonido-display">
+                <button class="btn-reproducir" id="btn-sonido" onclick="reproducirSonido()">🔊 Escuchar sonido</button>
+                <p class="sonido-estado" id="sonido-estado">Toca para escuchar</p>
+            </div>
+            <div class="opciones-grid" id="opciones-grid"></div>
+        </div>
+
+        <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
+            <p>🎉 ¡Correcto!</p>
+            <button class="boton-rojo ancho-completo" onclick="siguientePregunta()">Siguiente →</button>
+        </div>
+        <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
+            <p>❌ Intenta de nuevo</p>
+        </div>
+        <div id="resultado-final" class="resultado-card correcto" style="display:none;">
+            <p>🏆 ¡Completaste el juego!</p>
+            <p id="puntaje-final" style="font-size:0.9rem;color:#555;"></p>
+            <button class="boton-rojo ancho-completo" onclick="reiniciar()">🔄 Jugar de nuevo</button>
+        </div>
+
+        <div class="progreso-bar">
+            <div class="progreso-fill" id="progreso-fill" style="width:0%"></div>
+        </div>
+        <p class="progreso-texto" id="progreso-texto">Pregunta 1 de 5</p>
+    </div>
+</section>
+
+<style>
+.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.btn-volver-cat { background:none; border:1px solid #00838f; color:#00838f; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#e0f7fa; }
+.juego-container { display:flex; flex-direction:column; gap:1rem; }
+.instruccion-card { background:#e0f7fa; border-radius:12px; padding:0.8rem 1rem; border-left:4px solid #00838f; font-size:0.88rem; color:#006064; font-weight:600; }
+.instruccion-card p { margin:0; }
+.sonido-display { text-align:center; padding:1rem; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.btn-reproducir { background:linear-gradient(135deg,#00838f,#006064); color:#fff; border:none; border-radius:12px; padding:1rem 2rem; font-size:1.1rem; cursor:pointer; transition:opacity 0.15s; box-shadow:0 3px 10px rgba(0,131,143,0.3); }
+.btn-reproducir:hover { opacity:0.9; }
+.btn-reproducir.reproduciendo { animation:pulso-verde 0.8s infinite; }
+@keyframes pulso-verde { 0%,100%{box-shadow:0 0 0 0 rgba(0,131,143,0.4);} 50%{box-shadow:0 0 0 12px rgba(0,131,143,0);} }
+.sonido-estado { margin:0.5rem 0 0; font-size:0.82rem; color:#888; }
+.opciones-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0.8rem; }
+.opcion-btn { background:#fff; border:2px solid #e0e0e0; border-radius:12px; padding:1rem; font-size:2.5rem; cursor:pointer; transition:border-color 0.15s, background 0.15s, transform 0.1s; text-align:center; }
+.opcion-btn:hover { border-color:#00838f; background:#e0f7fa; transform:scale(1.05); }
+.opcion-btn.correcto { border-color:#4caf50; background:#e8f5e9; }
+.opcion-btn.incorrecto { border-color:#ef5350; background:#ffebee; }
+.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
+.resultado-card p { margin:0 0 0.5rem; font-size:1rem; font-weight:700; }
+.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
+.resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
+.progreso-bar { background:#f0f0f0; border-radius:6px; height:8px; overflow:hidden; }
+.progreso-fill { height:100%; background:linear-gradient(90deg,#00838f,#4dd0e1); border-radius:6px; transition:width 0.4s ease; }
+.progreso-texto { margin:0.3rem 0 0; font-size:0.75rem; color:#888; text-align:center; }
+</style>
+
+<script>
+const PREGUNTAS = [
+    { sonido: "🔔 Din don din don!", descripcion: "Escucha: algo que suena en una iglesia o puerta", respuesta: "campana", opciones: ["🔔", "📱", "🎸", "🥁"], correcta: 0 },
+    { sonido: "🚗 Brum brum brum!", descripcion: "Escucha: algo que se mueve por la calle", respuesta: "carro", opciones: ["✈️", "🚂", "🚗", "🚢"], correcta: 2 },
+    { sonido: "🎸 Tan tan tan!", descripcion: "Escucha: un instrumento musical de cuerdas", respuesta: "guitarra", opciones: ["🎹", "🎸", "🥁", "🎺"], correcta: 1 },
+    { sonido: "📱 Ring ring ring!", descripcion: "Escucha: algo que usas para llamar", respuesta: "telefono", opciones: ["💻", "📺", "📻", "📱"], correcta: 3 },
+    { sonido: "🌧️ Ploc ploc ploc!", descripcion: "Escucha: algo que cae del cielo", respuesta: "lluvia", opciones: ["☀️", "🌧️", "❄️", "🌈"], correcta: 1 },
+];
+
+let indiceActual = 0;
+let aciertos = 0;
+
+function mostrarPregunta(idx) {
+    indiceActual = idx;
+    const p = PREGUNTAS[idx];
+    document.getElementById('sonido-estado').textContent = p.descripcion;
+    document.getElementById('resultado-correcto').style.display = 'none';
+    document.getElementById('resultado-incorrecto').style.display = 'none';
+    document.getElementById('resultado-final').style.display = 'none';
+    document.getElementById('pregunta-area').style.display = 'block';
+    const pct = (idx / PREGUNTAS.length) * 100;
+    document.getElementById('progreso-fill').style.width = pct + '%';
+    document.getElementById('progreso-texto').textContent = `Pregunta ${idx + 1} de ${PREGUNTAS.length}`;
+    const grid = document.getElementById('opciones-grid');
+    grid.innerHTML = '';
+    p.opciones.forEach((emoji, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'opcion-btn';
+        btn.textContent = emoji;
+        btn.onclick = () => verificar(i, btn);
+        grid.appendChild(btn);
+    });
+}
+
+function reproducirSonido() {
+    const p = PREGUNTAS[indiceActual];
+    const btn = document.getElementById('btn-sonido');
+    btn.classList.add('reproduciendo');
+    document.getElementById('sonido-estado').textContent = `🔊 ${p.sonido}`;
+    setTimeout(() => { btn.classList.remove('reproduciendo'); document.getElementById('sonido-estado').textContent = p.descripcion; }, 2000);
+}
+
+function verificar(idx, btn) {
+    const p = PREGUNTAS[indiceActual];
+    if (idx === p.correcta) {
+        btn.classList.add('correcto'); aciertos++;
+        document.getElementById('resultado-correcto').style.display = 'block';
+        document.querySelectorAll('.opcion-btn').forEach(b => b.disabled = true);
+    } else {
+        btn.classList.add('incorrecto');
+        document.getElementById('resultado-incorrecto').style.display = 'block';
+        setTimeout(() => { btn.classList.remove('incorrecto'); document.getElementById('resultado-incorrecto').style.display = 'none'; }, 1000);
+    }
+}
+
+function siguientePregunta() {
+    if (indiceActual < PREGUNTAS.length - 1) { mostrarPregunta(indiceActual + 1); }
+    else {
+        document.getElementById('pregunta-area').style.display = 'none';
+        document.getElementById('resultado-correcto').style.display = 'none';
+        document.getElementById('progreso-fill').style.width = '100%';
+        document.getElementById('puntaje-final').textContent = `Acertaste ${aciertos} de ${PREGUNTAS.length} sonidos`;
+        document.getElementById('resultado-final').style.display = 'block';
+    }
+}
+
+function reiniciar() { aciertos = 0; mostrarPregunta(0); }
+mostrarPregunta(0);
+</script>
+{% endblock %}

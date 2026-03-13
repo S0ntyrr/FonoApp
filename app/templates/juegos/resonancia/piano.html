@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<section class="pantalla-movil">
+    <h1 class="titulo-rojo centrado">Resonancia</h1>
+
+    <!-- Instrucción -->
+    <div class="instruccion-piano">
+        <p id="instruccion-piano-texto"><strong>Toca la canción de Estrellita en el piano, coge las notas musicales.</strong></p>
+    </div>
+
+    <!-- Notas cayendo (visualización) -->
+    <div class="notas-cayendo-area" id="notas-cayendo-area">
+        <canvas id="notas-canvas" width="340" height="120"></canvas>
+    </div>
+
+    <!-- Piano -->
+    <div class="piano-container" id="piano-container">
+        <!-- Generado por JS -->
+    </div>
+
+    <!-- Indicador de nota actual -->
+    <div class="nota-piano-actual" id="nota-piano-actual">
+        Toca las teclas para comenzar
+    </div>
+
+    <!-- Fase 2: Cantar -->
+    <div id="fase-cantar" style="display:none;">
+        <div class="instruccion-piano" style="background:#e8f5e9; border-color:#4caf50;">
+            <p><strong>Ahora vamos a cantarla. Así</strong></p>
+            <button class="btn-audio" onclick="reproducirMelodia()">🔊 Escuchar melodía</button>
+            <p class="texto-pequeño" style="margin-top:0.4rem;">Repite conmigo, invita a tus papas.</p>
+        </div>
+
+        <!-- Confeti de celebración -->
+        <div id="confeti-area" class="confeti-area oculto">
+            <div class="confeti-texto">
+                <span style="font-size:1.5rem; font-weight:bold; color:#d32f2f;">¡Buen trabajo, lo hiciste!</span>
+            </div>
+        </div>
+
+        <!-- Botón micrófono para cantar -->
+        <div style="text-align:center; margin-top:0.8rem;">
+            <button id="btn-mic-piano" class="btn-microfono" onclick="toggleMicPiano()">🎤</button>
+            <p class="texto-pequeño centrado" id="mic-estado-piano">Toca para cantar</p>
+        </div>
+    </div>
+
+    <!-- Puntuación -->
+    <div class="piano-score">
+        Puntos: <strong id="puntos-piano">0</strong>
+    </div>
+
+    <div style="margin-top:1rem; text-align:center;">
+        <a href="/juegos/resonancia" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Volver</a>
+    </div>
+</section>
+
+<style>
+.instruccion-piano {
+    background: #fff8e1;
+    border: 1px solid #ffd600;
+    border-radius: 10px;
+    padding: 0.7rem;
+    margin-bottom: 0.8rem;
+    font-size: 0.88rem;
+    text-align: center;
+    line-height: 1.5;
+}
+.btn-audio {
+    background: #f5f5f5; border: 1px solid #ccc; border-radius: 6px;
+    padding: 0.3rem 0.8rem; cursor: pointer; font-size: 0.9rem; margin: 0.3rem 0;
+}
+.btn-audio:hover { background: #e0e0e0; }
+.notas-cayendo-area {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 0.5rem;
+    background: #1a1a2e;
+}
+.piano-container {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    height: 90px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    border-radius: 0 0 8px 8px;
+    border: 2px solid #333;
+    background: #222;
+}
+.tecla-blanca {
+    width: calc(100% / 7);
+    height: 85px;
+    background: white;
+    border: 1px solid #999;
+    border-radius: 0 0 4px 4px;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: background 0.05s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 4px;
+    font-size: 0.65rem;
+    color: #555;
+    font-weight: bold;
+    user-select: none;
+}
+.tecla-blanca:active, .tecla-blanca.presionada { background: #e0e0e0; }
+.tecla-blanca.activa-melodia { background: #ffeb3b; }
+.tecla-negra {
+    width: calc(100% / 12);
+    height: 55px;
+    background: #222;
+    border: 1px solid #000;
+    border-radius: 0 0 3px 3px;
+    cursor: pointer;
+    position: absolute;
+    z-index: 2;
+    transition: background 0.05s;
+    user-select: none;
+}
+.tecla-negra:active, .tecla-negra.presionada { background: #555; }
+.nota-piano-actual {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #555;
+    min-height: 1.5rem;
+    margin-bottom: 0.3rem;
+}
+.piano-score {
+    text-align: center;
+    font-weight: bold;
+    color: #d32f2f;
+    font-size: 1rem;
+    background: #fff9c4;
+    border: 1px solid #ffd600;
+    border-radius: 6px;
+    padding: 0.3rem;
+    margin-top: 0.5rem;
+}
+.confeti-area {
+    background: linear-gradient(135deg, #fff9c4, #e8f5e9);
+    border: 2px solid #4caf50;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    margin: 0.5rem 0;
+    animation: celebrar 0.5s ease-in-out;
+}
+@keyframes celebrar {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.btn-microfono {
+    width: 70px; height: 70px; border-radius: 50%;
+    border: 3px solid #d32f2f; background: white;
+    font-size: 2rem; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.btn-microfono.activo { background: #ffebee; animation: pulso 1s infinite; }
+@keyframes pulso {
+    0%,100% { box-shadow: 0 0 0 0 rgba(211,47,47,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(211,47,47,0); }
+}
+.oculto { display: none !important; }
+</style>
+
+<script>
+// ─── Notas del piano ──────────────────────────────────────────────────────────
+const NOTAS_PIANO = [
+    { nombre: 'DO', freq: 261.63, tipo: 'blanca', color: '#f44336' },
+    { nombre: 'RE', freq: 293.66, tipo: 'blanca', color: '#ff9800' },
+    { nombre: 'MI', freq: 329.63, tipo: 'blanca', color: '#ffeb3b' },
+    { nombre: 'FA', freq: 349.23, tipo: 'blanca', color: '#4caf50' },
+    { nombre: 'SOL', freq: 392.00, tipo: 'blanca', color: '#4caf50' },
+    { nombre: 'LA', freq: 440.00, tipo: 'blanca', color: '#4caf50' },
+    { nombre: 'SI', freq: 493.88, tipo: 'blanca', color: '#4caf50' },
+];
+
+// Estrellita: DO DO SOL SOL LA LA SOL | FA FA MI MI RE RE DO
+const MELODIA_ESTRELLITA = [0,0,4,4,5,5,4, 3,3,2,2,1,1,0];
+const NOMBRES_MELODIA = ['DO','DO','SOL','SOL','LA','LA','SOL','FA','FA','MI','MI','RE','RE','DO'];
+
+let audioCtxP = null;
+let puntosP = 0;
+let notaMelodiaActual = 0;
+let faseCantar = false;
+let micActivoP = false, micStreamP = null, analyserP = null, animFrameP = null;
+
+// Canvas de notas cayendo
+const notasCanvas = document.getElementById('notas-canvas');
+const notasCtx = notasCanvas.getContext('2d');
+let notasCayendo = [];
+let animNotasFrame = null;
+
+function iniciarPiano() {
+    const container = document.getElementById('piano-container');
+    container.innerHTML = '';
+
+    const totalBlancos = NOTAS_PIANO.length;
+    const anchoTecla = 100 / totalBlancos;
+
+    NOTAS_PIANO.forEach((nota, i) => {
+        const tecla = document.createElement('div');
+        tecla.className = 'tecla-blanca';
+        tecla.id = `tecla-${i}`;
+        tecla.textContent = nota.nombre;
+        tecla.style.width = anchoTecla + '%';
+        tecla.addEventListener('mousedown', () => tocarNota(i));
+        tecla.addEventListener('touchstart', e => { e.preventDefault(); tocarNota(i); }, {passive:false});
+        container.appendChild(tecla);
+    });
+
+    animarNotasCayendo();
+}
+
+function tocarNota(idx) {
+    const nota = NOTAS_PIANO[idx];
+    reproducirFrecuencia(nota.freq, 0.5);
+
+    // Efecto visual
+    const tecla = document.getElementById(`tecla-${idx}`);
+    if (tecla) {
+        tecla.classList.add('presionada');
+        setTimeout(() => tecla.classList.remove('presionada'), 200);
+    }
+
+    // Agregar nota cayendo
+    notasCayendo.push({
+        x: (idx / NOTAS_PIANO.length) * notasCanvas.width + (notasCanvas.width / NOTAS_PIANO.length / 2),
+        y: notasCanvas.height,
+        color: nota.color,
+        nombre: nota.nombre,
+        vy: -3,
+        alpha: 1,
+    });
+
+    document.getElementById('nota-piano-actual').textContent = `🎵 ${nota.nombre}`;
+    puntosP += 5;
+    document.getElementById('puntos-piano').textContent = puntosP;
+
+    // Verificar melodía
+    if (!faseCantar && MELODIA_ESTRELLITA[notaMelodiaActual] === idx) {
+        notaMelodiaActual++;
+        if (notaMelodiaActual >= MELODIA_ESTRELLITA.length) {
+            setTimeout(activarFaseCantar, 500);
+        }
+    }
+}
+
+function activarFaseCantar() {
+    faseCantar = true;
+    document.getElementById('fase-cantar').style.display = 'block';
+    document.getElementById('instruccion-piano-texto').textContent = '¡Muy bien! Ahora vamos a cantarla.';
+}
+
+function reproducirFrecuencia(freq, duracion) {
+    try {
+        if (!audioCtxP) audioCtxP = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtxP.createOscillator();
+        const gain = audioCtxP.createGain();
+        osc.connect(gain); gain.connect(audioCtxP.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.4, audioCtxP.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxP.currentTime + duracion);
+        osc.start(audioCtxP.currentTime);
+        osc.stop(audioCtxP.currentTime + duracion);
+    } catch(e) {}
+}
+
+function reproducirMelodia() {
+    if (!audioCtxP) audioCtxP = new (window.AudioContext || window.webkitAudioContext)();
+    MELODIA_ESTRELLITA.forEach((idx, i) => {
+        const freq = NOTAS_PIANO[idx].freq;
+        const t = audioCtxP.currentTime + i * 0.5;
+        const osc = audioCtxP.createOscillator();
+        const gain = audioCtxP.createGain();
+        osc.connect(gain); gain.connect(audioCtxP.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        osc.start(t);
+        osc.stop(t + 0.45);
+
+        // Iluminar tecla
+        setTimeout(() => {
+            const tecla = document.getElementById(`tecla-${idx}`);
+            if (tecla) {
+                tecla.classList.add('activa-melodia');
+                setTimeout(() => tecla.classList.remove('activa-melodia'), 400);
+            }
+        }, i * 500);
+    });
+}
+
+// ─── Animación de notas cayendo ───────────────────────────────────────────────
+function animarNotasCayendo() {
+    notasCtx.clearRect(0, 0, notasCanvas.width, notasCanvas.height);
+    notasCtx.fillStyle = '#1a1a2e';
+    notasCtx.fillRect(0, 0, notasCanvas.width, notasCanvas.height);
+
+    // Líneas de guía
+    NOTAS_PIANO.forEach((_, i) => {
+        const x = (i / NOTAS_PIANO.length) * notasCanvas.width + (notasCanvas.width / NOTAS_PIANO.length / 2);
+        notasCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+        notasCtx.lineWidth = 1;
+        notasCtx.beginPath(); notasCtx.moveTo(x, 0); notasCtx.lineTo(x, notasCanvas.height); notasCtx.stroke();
+    });
+
+    notasCayendo = notasCayendo.filter(n => n.alpha > 0.05);
+    notasCayendo.forEach(n => {
+        n.y += n.vy;
+        n.alpha -= 0.015;
+        notasCtx.globalAlpha = n.alpha;
+        notasCtx.fillStyle = n.color;
+        notasCtx.beginPath();
+        notasCtx.roundRect(n.x - 15, n.y - 12, 30, 20, 4);
+        notasCtx.fill();
+        notasCtx.fillStyle = 'white';
+        notasCtx.font = 'bold 10px Arial';
+        notasCtx.textAlign = 'center';
+        notasCtx.fillText(n.nombre, n.x, n.y + 2);
+        notasCtx.globalAlpha = 1;
+    });
+
+    animNotasFrame = requestAnimationFrame(animarNotasCayendo);
+}
+
+// ─── Micrófono para cantar ────────────────────────────────────────────────────
+function toggleMicPiano() {
+    if (micActivoP) detenerMicPiano();
+    else iniciarMicPiano();
+}
+
+async function iniciarMicPiano() {
+    try {
+        micStreamP = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+        const source = ctx2.createMediaStreamSource(micStreamP);
+        analyserP = ctx2.createAnalyser();
+        analyserP.fftSize = 256;
+        source.connect(analyserP);
+        micActivoP = true;
+        document.getElementById('btn-mic-piano').classList.add('activo');
+        document.getElementById('mic-estado-piano').textContent = '🔴 Activo - ¡Canta!';
+        medirVozPiano();
+    } catch(e) {
+        document.getElementById('mic-estado-piano').textContent = '❌ Sin acceso al micrófono';
+    }
+}
+
+function detenerMicPiano() {
+    micActivoP = false;
+    if (micStreamP) { micStreamP.getTracks().forEach(t => t.stop()); micStreamP = null; }
+    if (animFrameP) { cancelAnimationFrame(animFrameP); animFrameP = null; }
+    document.getElementById('btn-mic-piano').classList.remove('activo');
+    document.getElementById('mic-estado-piano').textContent = 'Toca para cantar';
+}
+
+let cantandoTimer = null;
+let segundosCantando = 0;
+
+function medirVozPiano() {
+    if (!micActivoP) return;
+    const dataArray = new Uint8Array(analyserP.frequencyBinCount);
+    analyserP.getByteFrequencyData(dataArray);
+    const promedio = dataArray.reduce((a,b) => a+b, 0) / dataArray.length;
+    const volPct = Math.min(100, (promedio / 128) * 100);
+
+    if (volPct > 15) {
+        puntosP += 2;
+        document.getElementById('puntos-piano').textContent = puntosP;
+        segundosCantando++;
+        if (segundosCantando > 30) {
+            // Mostrar celebración
+            document.getElementById('confeti-area').classList.remove('oculto');
+            detenerMicPiano();
+            return;
+        }
+    }
+
+    animFrameP = requestAnimationFrame(medirVozPiano);
+}
+
+window.addEventListener('DOMContentLoaded', iniciarPiano);
+</script>
+{% endblock %}

@@ -1,0 +1,168 @@
+================================================================================
+FONOAPP - REQUERIMIENTOS FUNCIONALES Y NO FUNCIONALES
+================================================================================
+Proyecto: FonoApp - Plataforma web de fonoaudiología interactiva
+Versión: 2.0.0
+Fecha: Febrero 2026
+================================================================================
+
+
+================================================================================
+REQUERIMIENTOS FUNCIONALES
+================================================================================
+
+RF-01: AUTENTICACIÓN Y ACCESO
+-------------------------------
+RF-01.1  El sistema debe permitir a los usuarios iniciar sesión con email y contraseña.
+RF-01.2  El sistema debe redirigir al usuario según su rol después del login:
+         - Administrador → Panel de administración
+         - Médico → Panel del médico
+         - Paciente → Dashboard del paciente
+RF-01.3  Los nuevos pacientes deben poder registrarse con nombre, email y contraseña.
+RF-01.4  El sistema debe validar que el email no esté ya registrado al crear una cuenta.
+RF-01.5  El sistema debe mantener la sesión del usuario mediante cookies (24 horas).
+RF-01.6  El usuario debe poder cerrar sesión desde cualquier pantalla.
+
+
+RF-02: MÓDULO DEL PACIENTE
+----------------------------
+RF-02.1  El paciente debe ver un dashboard personalizado con su nombre.
+RF-02.2  El dashboard debe mostrar 4 actividades del día (deterministas por fecha y email).
+RF-02.3  Las actividades del día deben cambiar automáticamente al día siguiente.
+RF-02.4  Si el médico asignó actividades específicas, estas deben mostrarse en lugar de las aleatorias.
+RF-02.5  El paciente debe poder editar su perfil (nombre, edad, escolaridad, género, tutor, parentesco).
+RF-02.6  El sistema debe mostrar un calendario de uso mensual con los días y minutos de actividad.
+RF-02.7  El paciente debe poder marcar actividades como completadas.
+RF-02.8  Al completar todas las actividades del día, debe aparecer un mensaje de felicitación.
+RF-02.9  El paciente debe poder acceder al hub de juegos desde el dashboard.
+
+
+RF-03: MÓDULO DE JUEGOS FONOAUDIOLÓGICOS
+------------------------------------------
+RF-03.1  El sistema debe ofrecer 23 juegos organizados en 7 categorías:
+         - Respiración (2 juegos): Infla el globo, El molino de Pepe
+         - Fonación (2 juegos): ¡Haz un gol!, Escala musical
+         - Resonancia (3 juegos): Escaleras, Piano-Estrellita, ¡Veo veo!
+         - Articulación (6 juegos): Letras B/D/F/R, Completa la palabra, Moto
+         - Prosodia (4 juegos): Adivina el animal, Trabalenguas, Adivinanza, Canción
+         - Discriminación Auditiva (3 juegos): Sonidos animales/objetos, Arrastra
+         - Practica Conmigo (3 juegos): Rompecabezas, Cara, Asociación
+RF-03.2  Los juegos que usan micrófono deben solicitar permiso al usuario.
+RF-03.3  Al completar un juego, el resultado debe guardarse automáticamente en la base de datos.
+RF-03.4  Cada juego debe tener un botón para volver a la categoría y un botón para ir al inicio.
+RF-03.5  El botón "🏠 Inicio" debe llevar al dashboard del usuario que inició el juego.
+RF-03.6  Los resultados completados deben registrarse en el historial para evaluación del médico.
+
+
+RF-04: MÓDULO DEL MÉDICO
+--------------------------
+RF-04.1  El médico debe ver un panel con su estado actual (disponible/ocupado/en consulta).
+RF-04.2  El médico debe poder cambiar su estado y este debe reflejarse en el panel admin.
+RF-04.3  El médico debe ver la lista de pacientes con estadísticas de juegos completados.
+RF-04.4  Al seleccionar un paciente, debe ver su perfil con gráfica de progreso por categoría.
+RF-04.5  El médico debe ver las actividades pendientes de evaluación (sin feedback).
+RF-04.6  El médico debe poder escribir feedback para cada actividad completada.
+RF-04.7  El médico debe ver el historial completo de actividades con filtros.
+RF-04.8  El médico debe ver los resultados de juegos de todos sus pacientes.
+RF-04.9  El médico debe poder aceptar o cancelar asignaciones.
+
+
+RF-05: MÓDULO DEL ADMINISTRADOR
+---------------------------------
+RF-05.1  El administrador debe ver un dashboard con estadísticas del sistema en tiempo real.
+RF-05.2  El administrador debe poder crear, editar y eliminar pacientes.
+RF-05.3  El administrador debe poder crear, editar y eliminar médicos.
+RF-05.4  El administrador debe poder cambiar el estado de los médicos.
+RF-05.5  El administrador debe poder crear asignaciones automáticas (médico al azar).
+RF-05.6  El administrador debe poder crear asignaciones manuales (médico específico).
+RF-05.7  El administrador debe ver el historial de todas las actividades con estadísticas.
+RF-05.8  El administrador debe ver los resultados de juegos con estadísticas por paciente y por juego.
+RF-05.9  El administrador debe poder gestionar el contenido del sistema (textos, imágenes, videos).
+RF-05.10 El administrador debe poder actualizar el catálogo de actividades en la base de datos.
+
+
+RF-06: BASE DE DATOS
+---------------------
+RF-06.1  El sistema debe guardar los resultados de juegos en la colección 'resultados_juegos'.
+RF-06.2  Al completar un juego, debe crearse automáticamente un registro en 'historial_actividades'.
+RF-06.3  El sistema debe mantener un catálogo de juegos en la colección 'actividades'.
+RF-06.4  El sistema debe registrar las sesiones de uso del paciente en 'sesiones_app'.
+RF-06.5  El sistema debe mantener perfiles extendidos de pacientes en 'perfiles_pacientes'.
+
+
+================================================================================
+REQUERIMIENTOS NO FUNCIONALES
+================================================================================
+
+RNF-01: RENDIMIENTO
+--------------------
+RNF-01.1  Las páginas deben cargar en menos de 3 segundos con conexión normal.
+RNF-01.2  Las operaciones de base de datos deben ser asíncronas para no bloquear el servidor.
+RNF-01.3  El sistema debe soportar al menos 50 usuarios concurrentes.
+
+
+RNF-02: USABILIDAD
+-------------------
+RNF-02.1  La interfaz debe ser responsive y funcionar en dispositivos móviles (mínimo 360px).
+RNF-02.2  El diseño debe seguir la paleta de colores definida (rojo #d32f2f / blanco).
+RNF-02.3  Los juegos deben ser intuitivos para niños y personas con poca experiencia tecnológica.
+RNF-02.4  Cada pantalla debe tener un botón de regreso claramente visible.
+RNF-02.5  El splash screen debe mostrarse al iniciar sesión y desaparecer suavemente.
+RNF-02.6  Los mensajes de error deben ser claros y en español.
+
+
+RNF-03: SEGURIDAD
+------------------
+RNF-03.1  Las contraseñas deben encriptarse antes de almacenarse (pendiente: usar bcrypt).
+RNF-03.2  Las sesiones deben expirar después de 24 horas de inactividad.
+RNF-03.3  El sistema debe validar que el usuario tenga el rol correcto para acceder a cada sección.
+RNF-03.4  Los datos sensibles (contraseñas, emails) no deben exponerse en URLs.
+RNF-03.5  La conexión a MongoDB debe usar credenciales seguras (no hardcodeadas en el código).
+
+
+RNF-04: DISPONIBILIDAD
+-----------------------
+RNF-04.1  El sistema debe estar disponible 24/7.
+RNF-04.2  La base de datos (MongoDB Atlas) debe tener respaldo automático.
+RNF-04.3  El sistema debe manejar errores de conexión a la BD de forma elegante.
+
+
+RNF-05: MANTENIBILIDAD
+-----------------------
+RNF-05.1  El código debe estar documentado con docstrings en Python y comentarios en JS/CSS.
+RNF-05.2  La arquitectura debe separar claramente las rutas por rol (admin, doctor, paciente, juegos).
+RNF-05.3  Los templates HTML deben usar herencia (base.html) para evitar duplicación.
+RNF-05.4  Los diagramas de arquitectura deben mantenerse actualizados en la carpeta DOCS/.
+
+
+RNF-06: COMPATIBILIDAD
+-----------------------
+RNF-06.1  El sistema debe funcionar en los navegadores modernos: Chrome, Firefox, Safari, Edge.
+RNF-06.2  Los juegos con micrófono requieren HTTPS en producción (Web Audio API).
+RNF-06.3  El sistema debe funcionar en dispositivos Android e iOS desde el navegador.
+RNF-06.4  La fuente Inter debe cargarse desde Google Fonts con fallback a Segoe UI.
+
+
+RNF-07: ESCALABILIDAD
+----------------------
+RNF-07.1  La arquitectura debe permitir agregar nuevos juegos sin modificar el código existente.
+RNF-07.2  El catálogo de actividades debe poder actualizarse desde el panel admin.
+RNF-07.3  El sistema debe permitir agregar nuevas categorías de juegos.
+
+
+================================================================================
+PENDIENTES PARA PRODUCCIÓN
+================================================================================
+
+P-01  Implementar encriptación de contraseñas con bcrypt.
+P-02  Implementar autenticación JWT para sesiones más seguras.
+P-03  Agregar HTTPS (requerido para Web Audio API en producción).
+P-04  Implementar notificaciones push para el médico cuando un paciente completa actividades.
+P-05  Agregar sistema de niveles y puntos funcional (actualmente los campos existen pero no se actualizan).
+P-06  Implementar recuperación de contraseña por email.
+P-07  Agregar sonidos reales en los juegos de discriminación auditiva.
+P-08  Implementar exportación de reportes a PDF/Excel.
+P-09  Convertir la app del paciente en PWA (Progressive Web App) para instalación en celular.
+P-10  Agregar tests automatizados con pytest.
+
+================================================================================
