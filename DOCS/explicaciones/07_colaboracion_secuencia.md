@@ -1,30 +1,25 @@
 # Explicación: Secuencia y Colaboración
 
-**Archivos:** `diagrama_colaboracion.puml` y `diagrama_secuencia.puml`
+**Archivos:** `diagrama_colaboracion.puml` y archivos en la carpeta `diagramas_secuencia/`
 
 ## Descripción
-Estos diagramas (hermanos desde la perspectiva UML) se enfocan en procesos inter-servicios de FonoApp. Entienden qué hace cada capa del servidor y en qué momento o milisegundo transfiere su resultado.
+Estos diagramas (hermanos desde la perspectiva UML) se enfocan en los procesos e interacciones algorítmicas de FonoApp. Entienden qué hace cada capa del servidor (Frontend, Router o Base de datos) y en qué orden interactúan con el actor.
 
-### Diagrama de Secuencia (El flujo Administrativo-Médico)
-El Caso de Asignación Automática:
-- Muestra una línea de vida vertical de cada *router* de FastAPI y a MongoDB de fondo.
-1. Admin da click. 
-2. Router `POST` -> llama la capa de Lógica (`UsuariosRepo` y luego `AsignacionesRepo`).
-3. El Repositorio extrae los perfiles médicos de Base de Datos.
-4. Elige uno *Random* / Balanceado según la heurística y lo inserta en `Asignaciones`.
-5. Se responde el ciclo completo devolviendo a la UI la confirmación.
+### Diagramas de Secuencia (El flujo vertical del tiempo)
 
-Un cambio en el código no debe saltarse la Lógica o "Repositorios" para consultar la DB de frente, por ello, respeta la arquitectura en capas.
+La arquitectura define 4 procesos vitales desglosados en secuencias exactas:
 
-### Diagrama de Colaboración (El flujo del Paciente)
-El Caso de Completar el Juego:
-- Expresado libremente, los nodos no tienen tiempo vertical. FonoApp, el Web Client del niño y el Motor FastAPI envían mensajes del número **(1)** al **(8)**:
-1. Ejecución del Web Audio JS/Micrófono.
-2. Éxito de la lógica cliente JS.
-3. Se invoca **`POST /juegos/resultado`**.
-4. Pydantic procesa como Resultado_juegos.
-5. El sistema paraleliza (o condiciona) y si se acreditó éxito, crea a la vez una fila en Estadísticas Globales (Historial).
-6. FastAPI manda un HTTP 200 al Client.
-7. Dispara la visualización de Victoria.
+1. **`01_asignacion.puml` (Asignación Automática):** 
+   - El administrador oprime un botón, el sistema consulta a todos los médicos activos en MongoDB, aleatoriza/balancea una selección y asigna la terapia creando el documento respectivo, retornando luego la vista HTML con el resultado.
+2. **`02_login_sistema.puml` (Login por Roles):**
+   - Refleja el embudo inicial. El Usuario da email/contraseña. El Backend comprueba el HASH. Si es correcto, lee su variable `rol` y lo expulsa mediante una redirección HTTP 303 hacia una rama bloqueada (Panel admin, Panel de Doctor o Dashboard del Niño).
+3. **`03_jugar_actividad.puml` (Jugar Actividad):**
+   - El niño se enfrenta a un desafío interactivo. Si gana, el Frontend ejecuta un _POST_ Ajax hacia el Repositorio, guardando 2 cosas simultáneamente: un Resultado (técnico) y un Historial (para el médico), antes de mostrar finalmente el modal de Victoria.
+4. **`04_evaluacion_medica.puml` (Dar Feedback Médico):**
+   - El médico entra a la bandeja de pendientes, la Base de Datos le filtra únicamente resultados que carecen de feedback (`feedback: null`). El médico escribe, pulsa Enviar, y la DB hace un Update (PUT/PATCH conceptual) cerrando el ciclo clínico del niño.
 
-> Falla sin este flujo: Un juego en FonoApp que no guarde a BD, es inútil para la Terapia, porque carece de "Evidencia objetiva para el médico". Todo juego agregado en el panel Admin debe terminar cumpliendo este flujo de colaboración REST.
+### Diagrama de Colaboración (El flujo físico)
+**Archivo:** `diagrama_colaboracion.puml` (El Caso de Completar el Juego)
+- Expresado espacialmente libre, los nodos y actores se enumeran del **(1)** al **(8)** detallando el tránsito de variables cuando el niño interactúa usando el Micrófono (`Web Audio API`) y cómo ese mensaje rebota entre la API local y el Clúster de Mongo, logrando un código 200 OK de vuelta al navegador.
+
+> Falla sin este flujo: Un juego en FonoApp que no guarde resultados en Database carece de "Evidencia objetiva para el médico". Todo juego implementado debe obedecer esta cadena Restful para certificarse en Producción.

@@ -1,20 +1,22 @@
-# Explicación: Diagrama de Estados FonoApp
+# Explicación: Diagramas de Estados FonoApp
 
-**Archivo:** `diagrama_estados.puml`
+**Archivos:** Carpeta `diagramas_estados/` (`01_usuario_medico.puml`, `02_paciente_asignacion.puml`, `03_resultados_historial.puml`, `04_sesion_bd.puml`)
 
 ## Descripción
-Modela el "ciclo de vida" temporal de los dos recursos más importantes de la plataforma una vez en acción.
+Modelan el "ciclo de vida" o la máquina de estados temporal de los diferentes componentes y actores del sistema. Al dividirse por dominio, permiten analizar qué transiciones son válidas para cada recurso de FonoApp.
 
-### 1. Estado del Médico (Actor Terapeuta)
-Este diagrama explica cómo se ve el status social/disponibilidad del Doctor que atiende:
-- **Offline / Inactivo**.
-- Pasa a `Disponible` (En su panel).
-- Cambia a `Ocupado` o `En Consulta` virtual, impactando al panel de Administración, notificando indirectamente a la base si sus tareas varían o rechaza la asignación de pacientes.
+### 1. Estado de Usuarios y Médicos
+- **Usuario General:** Nace `NoRegistrado`, fluye a `Registrado` y puede ser marcado como `Activo` o `Inactivo`.
+- **Médico:** Tiene estados paralelos muy específicos; comienza `Activo` (Disponible), pero mediante su panel puede auto-marcarse `Ocupado` (no recibe nuevos pacientes) o `EnConsulta` (atendiendo en tiempo real). Esto influye directamente en las asignaciones del sistema.
 
-### 2. Estado de una Asignación (Tarea de Terapia)
-El *Core* terapéutico de FonoApp, las tareas que el doctor asigna a un niño:
-- Nace como **`Pendiente`** tras asignarse manual o automáticamente.
-- Puede quedar **`Cancelada`** si el médico o sistema la rechaza.
-- Eventualmente transita a **`Aceptada / En Progreso`** cuando el médico acepta la tutela.
-- Queda **`Completada`** cuando todas las submétricas del juego evaluaron positivo en completitud.
-- Finaliza su vida cuando adopta el estado de **`Evaluada`**: Cuando el médico leyó el récord y dejó un _Feedback_ de evolución terapéutica, validando el esfuerzo.
+### 2. Estado de Pacientes y Asignaciones
+- **Paciente:** Nace `SinPerfil` tras su registro rápido en la pantalla de Auth. Cuando llena sus datos básicos (tutor, edad), queda con `PerfilCompleto`. Finalmente adopta el estado `ConActividades` una vez el terapeuta interviene.
+- **Asignación (Tarea Terapéutica):** El núcleo que conecta al médico y paciente. Nace `Pendiente`. Si el médico no puede, pasa a `Cancelada`. Si asume el caso, llega a `Aceptada` y se da por finalizada una vez que es procesada.
+
+### 3. Resultados e Historial
+- **ResultadoJuego:** Cuando un niño entra a inflar un globo o atrapar letras, el juego está `EnProgreso`. Si abandona prematuramente reporta un estado `Parcial`. Si lo logra, alcanza la meta `Completado` y se congela en la base de datos.
+- **HistorialActividad:** Fila maestra global. Entra en estado `Registrada` y permanece estancado a la espera del médico. Alcanza su paz final transitando a `Evaluada` (cuando el doctor redacta un texto de retrospectiva/feedback).
+
+### 4. Sesión y Base de Datos
+- **Sesión de App:** Rastrea el *screen time* terapéutico. `Iniciada` (login) -> `Activa` (sumando minutos_conectado) -> `Finalizada` (logout o cierre).
+- **Conexión MongoDB:** El motor de vida de la aplicación. `Desconectada` -> `Conectando` (lifespan FastAPI) -> `Conectada` -> `Desconectando`. Si esto falla, el sistema entero entra en error.
