@@ -1,0 +1,24 @@
+@startuml FonoApp - Diagrama de Secuencia por Proceso (Asignación Automática)
+
+actor Admin
+participant "Panel Admin" as UI
+participant "AdminRouter" as Router
+participant "AsignacionesRepo" as Repo
+participant "UsuariosRepo" as Usuarios
+participant "MongoDB" as DB
+
+Admin -> UI : Solicitar Asignación Automática
+UI -> Router : POST /admin/asignacion/automatica
+Router -> Usuarios : get_medicos_activos()
+Usuarios -> DB : find({rol: "medico", estado: "activo"})
+DB --> Usuarios : lista_medicos
+Usuarios --> Router : lista_medicos
+Router -> Router : Selecciona médico aleatorio
+Router -> Repo : crear_asignacion(datos)
+Repo -> DB : insert_one(asignaciones)
+DB --> Repo : success
+Repo --> Router : true
+Router --> UI : Redirige con mensaje de éxito
+UI --> Admin : Muestra asignación creada
+
+@enduml

@@ -1,0 +1,26 @@
+@startuml FonoApp - Diagrama de Distribución
+
+node "Dispositivo del Cliente" {
+  node "Navegador Web (Chrome/Firefox/Safari)" {
+    artifact "Frontend (HTML, CSS, JS)"
+  }
+}
+
+node "Servidor de Aplicación (Render / VPS)" {
+  node "Entorno Python 3.10+" {
+    component "Gunicorn / Uvicorn" {
+      artifact "FonoApp FastAPI"
+    }
+  }
+}
+
+node "Servidor de Base de Datos" {
+  cloud "MongoDB Atlas" {
+    database "fonoapp_db"
+  }
+}
+
+"Dispositivo del Cliente" -down-> "Servidor de Aplicación (Render / VPS)" : HTTP/HTTPS
+"Servidor de Aplicación (Render / VPS)" -down-> "Servidor de Base de Datos" : Protocolo Mongo (mongodb+srv)
+
+@enduml

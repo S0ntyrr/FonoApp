@@ -1,0 +1,40 @@
+@startuml FonoApp - Diagramas de Estado: Resultados e Historial
+
+!define STATE_COLOR #E1F5FF
+!define TRANSITION_COLOR #4A90E2
+
+' ============================================
+' DIAGRAMA DE ESTADO: ResultadoJuego
+' ============================================
+state "ResultadoJuego" as ResultadoState {
+  [*] --> EnProgreso : paciente inicia juego
+
+  EnProgreso --> EnProgreso : avanza pasos\npaso_completado++
+
+  EnProgreso --> Completado : paso_completado == total_pasos\ncompletado = true
+
+  EnProgreso --> Parcial : paciente abandona\ncompletado = false
+
+  Completado --> [*] : guardado en DB
+  Parcial --> [*] : guardado en DB
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: HistorialActividad
+' ============================================
+state "HistorialActividad" as HistorialState {
+  [*] --> Registrada : actividad completada\nregistro creado
+
+  Registrada --> Evaluada : doctor proporciona feedback\nfeedback != null
+
+  Registrada --> [*] : sin evaluar (queda en historial)
+  Evaluada --> [*] : registro finalizado
+
+  note right of Evaluada
+    Feedback del doctor:
+    - Comentarios
+    - Recomendaciones
+  end note
+}
+
+@enduml

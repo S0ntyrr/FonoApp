@@ -1,0 +1,43 @@
+@startuml FonoApp - Diagramas de Estado: Sesión y Base de Datos
+
+!define STATE_COLOR #E1F5FF
+!define TRANSITION_COLOR #4A90E2
+
+' ============================================
+' DIAGRAMA DE ESTADO: SesionApp
+' ============================================
+state "SesionApp" as SesionState {
+  [*] --> Iniciada : paciente abre app\nfecha establecida
+
+  Iniciada --> Activa : paciente usa la app\nminutos_conectado > 0
+
+  Activa --> Activa : paciente continúa usando\nminutos_conectado incrementa
+
+  Activa --> Finalizada : paciente cierra app\nminutos_conectado registrado
+
+  Iniciada --> Finalizada : paciente cierra inmediatamente\nminutos_conectado = 0
+
+  Finalizada --> [*] : sesión guardada\nvisible en calendario
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: Conexión Base de Datos
+' ============================================
+state "Database Connection" as DatabaseState {
+  [*] --> Desconectada : inicio aplicación
+
+  Desconectada --> Conectando : connect_to_mongo()\non_startup()
+
+  Conectando --> Conectada : conexión exitosa\nmongo_client inicializado
+
+  Conectada --> Conectada : operaciones CRUD\nget_db()
+
+  Conectada --> Desconectando : close_mongo_connection()\non_shutdown()
+
+  Desconectando --> Desconectada : conexión cerrada
+
+  Conectando --> Error : error de conexión
+  Error --> Desconectada : reintentar
+}
+
+@enduml

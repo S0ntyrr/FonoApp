@@ -1,0 +1,44 @@
+@startuml FonoApp - Diagramas de Estado: Pacientes y Asignaciones
+
+!define STATE_COLOR #E1F5FF
+!define TRANSITION_COLOR #4A90E2
+
+' ============================================
+' DIAGRAMA DE ESTADO: Paciente
+' ============================================
+state "Paciente" as PacienteState {
+  [*] --> SinPerfil : registro exitoso
+
+  SinPerfil --> PerfilCompleto : crear perfil\nPOST /paciente/perfil
+
+  PerfilCompleto --> PerfilCompleto : actualizar perfil\nPOST /paciente/perfil
+
+  PerfilCompleto --> ConActividades : asignación aceptada\npor doctor
+
+  ConActividades --> ConActividades : realizar juego\n→ guarda ResultadoJuego
+
+  ConActividades --> [*] : eliminar paciente
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: Asignacion
+' ============================================
+state "Asignacion" as AsignacionState {
+  [*] --> Pendiente : crear asignación automática\nPOST /admin/asignaciones/auto
+
+  Pendiente --> Aceptada : doctor acepta\nPOST /doctor/asignaciones/{id}/aceptar
+
+  Pendiente --> Cancelada : doctor cancela\nPOST /doctor/asignaciones/{id}/cancelar
+
+  Aceptada --> Cancelada : doctor cancela\nPOST /doctor/asignaciones/{id}/cancelar
+
+  Aceptada --> [*] : finalizada
+  Cancelada --> [*] : finalizada
+
+  note right of Pendiente
+    Contiene: paciente_email, medico_email,
+    actividades_asignadas[], dificultad
+  end note
+}
+
+@enduml

@@ -1,0 +1,21 @@
+@startuml FonoApp - Secuencia: Evaluación Médica (Dar Feedback)
+
+actor Medico
+participant "Panel Doctor" as UI
+participant "RoutesDoctor" as Router
+participant "MongoDB" as DB
+
+Medico -> UI : Abre evaluaciones pendientes
+UI -> Router : GET /doctor/evaluaciones-pendientes
+Router -> DB : find({"feedback": null})
+DB --> Router : Lista de actividades sin evaluar
+Router --> UI : Renderiza vista HTML
+
+Medico -> UI : Escribe evaluación y guarda
+UI -> Router : POST /doctor/evaluaciones/{id}/feedback\n(texto_feedback)
+Router -> DB : update_one({"_id": id}, {"$set": {"feedback": texto_feedback}})
+DB --> Router : UpdateResult(success=True)
+Router --> UI : Redirect 303 (/doctor/historial)
+UI --> Medico : Muestra historial actualizado con la evaluación
+
+@enduml

@@ -1,0 +1,17 @@
+@startuml FonoApp - Diagrama de Colaboración por Proceso (Completar Juego)
+
+actor Paciente
+participant "Juego UI" as Juego
+participant "Backend Router (/juegos)" as Backend
+participant "Base de Datos (MongoDB)" as DB
+
+Paciente -> Juego : 1. Inicia y juega actividad
+Juego -> Juego : 2. Finaliza actividad con éxito
+Juego -> Backend : 3. POST /juegos/resultado (datos_resultado)
+Backend -> DB : 4. insert(resultados_juegos)
+Backend -> DB : 5. Si completado=True, insert(historial_actividades)
+DB --> Backend : 6. confirmación de guardado
+Backend --> Juego : 7. 200 OK
+Juego --> Paciente : 8. Muestra pantalla de victoria y opciones de navegación
+
+@enduml

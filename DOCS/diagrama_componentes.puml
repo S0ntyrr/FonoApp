@@ -1,0 +1,23 @@
+@startuml FonoApp - Diagrama de Componentes
+
+package "Frontend (Cliente)" {
+  [Navegador Web] - [HTML/Jinja2 Templates]
+  [HTML/Jinja2 Templates] ..> [Archivos Estáticos (CSS, JS)]
+  [Navegador Web] ..> [Web Audio API] : Interfaz de Voz
+}
+
+package "Backend (FastAPI)" {
+  [FastAPI App] - [Routers (routers/)]
+  [Routers (routers/)] --> [Repositories (repositories/)]
+  [Routers (routers/)] --> [Modelos Pydantic (models.py)]
+  [Repositories (repositories/)] --> [Motor_AsyncIO (database.py)]
+}
+
+package "Base de Datos" {
+  [MongoDB Atlas] 
+}
+
+[Motor_AsyncIO (database.py)] <--> [MongoDB Atlas] : Conexión TCP/IP
+[Navegador Web] <--> [FastAPI App] : HTTP/HTTPS Requests
+
+@enduml

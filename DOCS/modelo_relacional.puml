@@ -1,0 +1,100 @@
+@startuml FonoApp - Modelo Relacional de la Base de Datos
+
+entity "usuarios" as usuarios {
+  * _id: ObjectId
+  --
+  * nombre: String
+  * email: String (Unique)
+  * password_hash: String
+  * rol: String (admin, medico, paciente, emisor)
+  * activo: Boolean
+  * estado: String
+}
+
+entity "perfiles_pacientes" as perfiles {
+  * _id: ObjectId
+  --
+  * paciente_email: String (Ref: usuarios.email)
+  * nombre: String
+  * edad: Integer
+  * escolaridad: String
+  * genero: String
+  * tutor: String
+  * parentesco: String
+  * fecha_registro: Date
+}
+
+entity "actividades" as actividades {
+  * _id: ObjectId
+  --
+  * categoria: String
+  * nombre: String
+  * url: String
+  * descripcion: String
+  * min_edad: Integer
+  * max_edad: Integer
+  * metadata_adicional: Object
+}
+note right of actividades
+  *Escalabilidad:*
+  Al añadir un doc a esta colección,
+  el front detecta el nuevo juego.
+end note
+
+entity "asignaciones" as asignaciones {
+  * _id: ObjectId
+  --
+  * paciente_email: String
+  * medico_email: String
+  * actividades_asignadas: Array[Object]
+  * dificultad: String
+  * fecha_asignacion: Date
+  * estado: String
+  * tipo: String
+}
+
+entity "historial_actividades" as historial {
+  * _id: ObjectId
+  --
+  * paciente_email: String
+  * categoria: String
+  * actividad: String
+  * puntos_obtenidos: Integer
+  * nivel: Integer
+  * fecha: Date
+  * feedback: String
+}
+
+entity "resultados_juegos" as resultados_juegos {
+  * _id: ObjectId
+  --
+  * paciente_email: String
+  * categoria: String
+  * juego: String
+  * paso_completado: Integer
+  * total_pasos: Integer
+  * completado: Boolean
+  * fecha: Date
+  * notas: String
+  * puntos: Integer
+  * nivel: Integer
+}
+
+entity "sesiones_app" as sesiones {
+  * _id: ObjectId
+  --
+  * paciente_email: String
+  * fecha: Date
+  * minutos_conectado: Integer
+}
+
+usuarios ||--o{ perfiles : "1:1..0"
+usuarios ||--o{ asignaciones : "paciente_email"
+usuarios ||--o{ asignaciones : "medico_email"
+usuarios ||--o{ historial : "paciente_email"
+usuarios ||--o{ resultados_juegos : "paciente_email"
+usuarios ||--o{ sesiones : "paciente_email"
+actividades ||--o{ historial : "categoria, nombre"
+actividades ||--o{ resultados_juegos : "categoria, juego"
+
+@enduml

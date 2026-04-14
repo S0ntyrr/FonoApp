@@ -125,11 +125,13 @@ class ResultadoJuego {
 }
 
 note right of ResultadoJuego
-  23 juegos en 7 categorías:
-  respiracion (2), fonacion (2),
-  resonancia (3), articulacion (6),
-  prosodia (4), discriminacion_auditiva (3),
-  practica_conmigo (3)
+  Catálogo y Resultados
+  Dinámicamente Escalables:
+  Nuevos juegos y categorías se 
+  añaden creando un documento
+  en BD en 'actividades'.
+  El motor los renderiza sin
+  necesidad de alterar este Modelo.
 end note
 
 ' ── Routers activos ───────────────────────────────────────
@@ -178,19 +180,22 @@ class RoutesDoctor {
 
 class RoutesJuegos {
   + prefix: "/juegos"
-  + hub principal (7 categorías)
-  + respiracion (2 juegos)
-  + fonacion (2 juegos)
-  + resonancia (3 juegos)
-  + articulacion (6 juegos)
-  + prosodia (4 juegos)
-  + discriminacion (3 juegos)
-  + practica (3 juegos)
+  + hub principal dinámico
+  + category_routes() GET
+  + load_dynamic_game() GET
   + resultado() POST
   + seed_actividades() GET
 }
 
 note right of RoutesJuegos
+  Sistema de Juegos Escalable:
+  Los juegos se cargan desde
+  la base de datos, por lo que 
+  se pueden añadir infinitos 
+  juegos renderizando templates 
+  sin cambiar explícitamente el código
+  de las rutas de Backend.
+
   POST /juegos/resultado:
   - Guarda en resultados_juegos
   - Si completado=true, también
@@ -243,6 +248,8 @@ FastAPIApp ..> EmisorRouter : incluye
 FastAPIApp ..> RoutesAdmin : incluye
 FastAPIApp ..> RoutesDoctor : incluye
 FastAPIApp ..> RoutesJuegos : incluye
+
+@enduml
 
 Asignacion ..> UsuarioBase : referencia
 HistorialActividad ..> UsuarioBase : referencia

@@ -32,7 +32,7 @@ from fastapi.templating import Jinja2Templates
 
 from .database import connect_to_mongo, close_mongo_connection
 from .routers import auth, emisor, paciente
-from .web import routes_admin, routes_doctor, routes_juegos
+from .routers import routes_admin, routes_doctor, routes_juegos
 
 
 @asynccontextmanager

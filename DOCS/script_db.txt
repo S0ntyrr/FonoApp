@@ -1,0 +1,37 @@
+================================================================================
+SCRIPT DE GENERACIÓN DE LA BASE DE DATOS (MongoDB)
+================================================================================
+// Para crear los índices requeridos y colecciones base en MongoDB shell (mongosh)
+
+use fonoapp_db;
+
+// 1. Colección de usuarios
+db.createCollection("usuarios");
+db.usuarios.createIndex({ "email": 1 }, { unique: true });
+
+// 2. Colección de perfiles_pacientes
+db.createCollection("perfiles_pacientes");
+db.perfiles_pacientes.createIndex({ "paciente_email": 1 }, { unique: true });
+
+// 3. Colección de actividades
+db.createCollection("actividades");
+db.actividades.createIndex({ "categoria": 1, "nombre": 1 });
+
+// 4. Colección de asignaciones
+db.createCollection("asignaciones");
+db.asignaciones.createIndex({ "paciente_email": 1 });
+db.asignaciones.createIndex({ "medico_email": 1 });
+
+// 5. Colección de historial_actividades
+db.createCollection("historial_actividades");
+db.historial_actividades.createIndex({ "paciente_email": 1 });
+
+// 6. Colección de resultados_juegos
+db.createCollection("resultados_juegos");
+db.resultados_juegos.createIndex({ "paciente_email": 1 });
+
+// 7. Colección de sesiones_app
+db.createCollection("sesiones_app");
+db.sesiones_app.createIndex({ "paciente_email": 1 });
+
+print("Estructura de base de datos creada exitosamente.");

@@ -1,0 +1,27 @@
+@startuml FonoApp - Secuencia: Jugar Actividad Terapéutica
+
+actor Paciente
+participant "Frontend (Navegador)" as UI
+participant "RoutesJuegos" as Router
+participant "MongoDB" as DB
+
+Paciente -> UI : Interactúa con el juego
+UI -> UI : Evalúa condición de victoria\n(ej: paso_completado == total_pasos)
+
+alt Completa el juego con éxito
+    UI -> Router : POST /juegos/resultado (datos, completado=true)
+    Router -> DB : insert_one(resultados_juegos)
+    Router -> DB : insert_one(historial_actividades)
+    DB --> Router : success
+    Router --> UI : 200 OK JSON
+    UI -> UI : Mostrar modal de victoria
+    UI --> Paciente : "¡Felicidades!"
+else Abandona o falla el juego
+    Paciente -> UI : Cierra o pierde
+    UI -> Router : POST /juegos/resultado (datos, completado=false)
+    Router -> DB : insert_one(resultados_juegos)
+    DB --> Router : success
+    Router --> UI : 200 OK JSON
+end
+
+@enduml
