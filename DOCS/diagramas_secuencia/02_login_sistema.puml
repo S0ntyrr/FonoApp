@@ -1,0 +1,31 @@
+@startuml FonoApp - Secuencia: Iniciar Sesión (Login)
+
+actor Usuario
+participant "Navegador" as UI
+participant "AuthRouter" as Router
+participant "MongoDB" as DB
+
+Usuario -> UI : Ingresa email y password
+UI -> Router : POST /auth/login (email, pwd)
+Router -> DB : find_one({"email": email})
+DB --> Router : Datos del usuario (password_hash, rol)
+Router -> Router : verify_password(pwd, hash)
+
+alt Credenciales Válidas
+    Router -> Router : set_cookie("usuario_email", email)
+    Router -> Router : set_cookie("usuario_rol", rol)
+    
+    alt rol == "admin"
+        Router --> UI : Redirect 303 (/admin/dashboard)
+    else rol == "medico"
+        Router --> UI : Redirect 303 (/doctor/home)
+    else rol == "paciente"
+        Router --> UI : Redirect 303 (/paciente/perfil)
+    end
+    UI --> Usuario : Muestra panel correspondiente
+else Credenciales Inválidas
+    Router --> UI : 401 Unauthorized (Template login con error)
+    UI --> Usuario : Muestra mensaje de error
+end
+
+@enduml

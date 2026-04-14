@@ -1,0 +1,50 @@
+@startuml FonoApp - Diagramas de Estado: Usuarios y Médicos
+
+!define STATE_COLOR #E1F5FF
+!define TRANSITION_COLOR #4A90E2
+
+' ============================================
+' DIAGRAMA DE ESTADO: Usuario
+' ============================================
+state "Usuario" as UsuarioState {
+  [*] --> NoRegistrado : inicio
+
+  NoRegistrado --> Registrado : registrarse()\n/crear usuario en DB
+
+  Registrado --> Activo : activar()\nactivo = true
+
+  Activo --> Inactivo : desactivar()\nactivo = false
+  Inactivo --> Activo : activar()\nactivo = true
+
+  Activo --> [*] : eliminar()
+  Inactivo --> [*] : eliminar()
+
+  note right of Registrado
+    Roles disponibles:
+    - admin
+    - medico (doctor)
+    - paciente
+    - emisor
+  end note
+}
+
+' ============================================
+' DIAGRAMA DE ESTADO: Médico (Doctor)
+' ============================================
+state "Médico" as MedicoState {
+  [*] --> Activo : creado por admin
+
+  Activo --> Ocupado : cambiar_estado("ocupado")\nPOST /doctor/estado
+  Activo --> EnConsulta : cambiar_estado("consulta")\nPOST /doctor/estado
+
+  Ocupado --> Activo : cambiar_estado("activo")
+  EnConsulta --> Activo : cambiar_estado("activo")
+  Ocupado --> EnConsulta : cambiar_estado("consulta")
+  EnConsulta --> Ocupado : cambiar_estado("ocupado")
+
+  Activo --> [*] : eliminar por admin
+  Ocupado --> [*] : eliminar por admin
+  EnConsulta --> [*] : eliminar por admin
+}
+
+@enduml

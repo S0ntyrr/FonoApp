@@ -50,13 +50,10 @@ package "Gestión Paciente" {
   usecase UC33 as "Guardar Perfil" <<include>>
 }
 
-package "Juegos Fonoaudiológicos" {
-  usecase UC40 as "Ver Hub de Juegos"
-  usecase UC41 as "Juegos de Respiración\n(globo, molino)"
-  usecase UC42 as "Juegos de Fonación\n(gol, escala musical)"
-  usecase UC43 as "Juegos de Resonancia\n(escaleras, piano, veo-veo)"
-  usecase UC44 as "Juegos de Articulación\n(letras B, D, F, R)"
-  usecase UC45 as "Practica Conmigo\n(rompecabezas, cara, asociación)"
+package "Juegos Fonoaudiológicos (Escalable)" {
+  usecase UC40 as "Ver Hub de Categorías"
+  usecase UC41 as "Acceder a Juegos por Categoría\n(Respiración, Fonación, etc.)"
+  usecase UC42 as "Jugar Actividad Fonoaudiológica\n(Catálogo Dinámico)"
   usecase UC46 as "Guardar Resultado\nde Juego" <<include>>
 }
 
@@ -106,9 +103,6 @@ paciente --> UC32
 paciente --> UC40
 paciente --> UC41
 paciente --> UC42
-paciente --> UC43
-paciente --> UC44
-paciente --> UC45
 
 ' Relaciones Emisor
 emisor --> UC01
@@ -141,11 +135,8 @@ UC30 ..> UC60 : <<include>>
 UC30 ..> UC62 : <<include>>
 UC31 ..> UC33 : <<include>>
 UC32 ..> UC62 : <<include>>
-UC41 ..> UC46 : <<include>>
+UC41 ..> UC42 : <<include>>
 UC42 ..> UC46 : <<include>>
-UC43 ..> UC46 : <<include>>
-UC44 ..> UC46 : <<include>>
-UC45 ..> UC46 : <<include>>
 UC46 ..> UC62 : <<include>>
 
 ' Relaciones de Extensión (extend)
@@ -179,12 +170,12 @@ note right of UC26
 end note
 
 note right of UC40
-  Categorías de juegos:
-  - Respiración
-  - Fonación
-  - Resonancia
-  - Articulación
-  - Practica Conmigo
+  Sistema escalable:
+  Las categorías y juegos
+  se obtienen de la Base
+  de Datos, lo que permite
+  añadir nuevos módulos
+  sin modificar los Casos de Uso.
 end note
 
 note right of UC46

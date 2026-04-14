@@ -1,0 +1,19 @@
+@startuml FonoApp - Casos de Uso Extendidos
+
+left to right direction
+
+actor Paciente
+
+usecase "Jugar Actividad Fonoaudiológica" as Jugar
+usecase "Registrar Resultado" as Registrar
+usecase "Validar Permisos de Micrófono" as Permisos
+usecase "Actualizar Historial" as Historial
+usecase "Mostrar Feedback de Victoria" as Feedback
+
+Paciente --> Jugar
+Jugar ..> Registrar : <<include>>
+Jugar <.. Permisos : <<extend>> \n(Solo aplicable si el juego\nrequiere Reconocimiento de Voz)
+Registrar ..> Historial : <<include>>
+Jugar <.. Feedback : <<extend>> \n(Si completado=true)
+
+@enduml
