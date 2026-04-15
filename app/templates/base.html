@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/estilos.css?v=6" />
+    <link rel="stylesheet" href="/static/css/estilos.css?v=9" />
     <style>body { font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif; }</style>
     <script>
     /**
@@ -61,27 +61,49 @@
         window.location.href = origen || '/paciente/perfil';
     }
 
-    // Auto-agregar botón 🏠 Inicio en páginas de juegos si hay sessionStorage.juegos_origen
+    // Controlar el splash screen
+    var splashTimerSet = false;
+    
     document.addEventListener('DOMContentLoaded', function() {
+        if (splashTimerSet) return; // Evitar ejecutar múltiples veces
+        splashTimerSet = true;
+        
+        const splash = document.getElementById('splash');
+        if (splash) {
+            // Después de 2.5 segundos, ocultar el splash
+            setTimeout(function() {
+                splash.style.opacity = '0';
+                splash.style.visibility = 'hidden';
+                splash.style.pointerEvents = 'none';
+                
+                // Remover del DOM después del fade
+                setTimeout(function() {
+                    if (splash && splash.parentNode) {
+                        splash.parentNode.removeChild(splash);
+                    }
+                }, 600);
+            }, 2500);
+        }
+
+        // Auto-agregar botón 🏠 Inicio en páginas de juegos
         const origen = sessionStorage.getItem('juegos_origen');
-        if (!origen) return;
-        // Buscar botones/links de "← Volver" en páginas de juegos
-        const volverLinks = document.querySelectorAll('a.boton-rojo-borde, a.btn-volver-cat');
-        volverLinks.forEach(link => {
-            const href = link.getAttribute('href') || '';
-            // Solo agregar en páginas de juegos (no en admin/doctor)
-            if (href.includes('/juegos/') || href === '/juegos/') {
-                const parent = link.parentElement;
-                if (parent && !parent.querySelector('.btn-inicio-global')) {
-                    const btnInicio = document.createElement('button');
-                    btnInicio.className = 'btn-inicio-global boton-rojo-borde';
-                    btnInicio.style.cssText = 'padding:0.5rem 1rem;border-radius:4px;cursor:pointer;margin-left:0.5rem;';
-                    btnInicio.textContent = '🏠 Inicio';
-                    btnInicio.onclick = volverInicio;
-                    parent.appendChild(btnInicio);
+        if (origen) {
+            const volverLinks = document.querySelectorAll('a.boton-rojo-borde, a.btn-volver-cat');
+            volverLinks.forEach(link => {
+                const href = link.getAttribute('href') || '';
+                if (href.includes('/juegos/') || href === '/juegos/') {
+                    const parent = link.parentElement;
+                    if (parent && !parent.querySelector('.btn-inicio-global')) {
+                        const btnInicio = document.createElement('button');
+                        btnInicio.className = 'btn-inicio-global boton-rojo-borde';
+                        btnInicio.style.cssText = 'padding:0.5rem 1rem;border-radius:4px;cursor:pointer;margin-left:0.5rem;';
+                        btnInicio.textContent = '🏠 Inicio';
+                        btnInicio.onclick = volverInicio;
+                        parent.appendChild(btnInicio);
+                    }
                 }
-            }
-        });
+            });
+        }
     });
     </script>
 </head>
