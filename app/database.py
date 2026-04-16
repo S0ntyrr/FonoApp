@@ -1,9 +1,9 @@
 """
-FonoApp - Conexión a MongoDB
+FonoApp - Conexion a MongoDB
 =============================
-Maneja la conexión asíncrona a MongoDB usando Motor (driver async de PyMongo).
+La conexion asincrona a MongoDB usando Motor (driver async de PyMongo).
 
-La conexión se abre al iniciar la aplicación (lifespan en main.py)
+La conexion se abre al iniciar la aplicacion (lifespan en main.py)
 y se cierra al apagarla.
 
 Uso en routers:
@@ -24,12 +24,12 @@ mongo_client: AsyncIOMotorClient | None = None
 
 async def connect_to_mongo() -> None:
     """
-    Abre la conexión global a MongoDB usando Motor (async).
+    Abre la conexion global a MongoDB usando Motor (async).
     
-    Se ejecuta automáticamente al iniciar la aplicación
+    Se ejecuta automa al iniciar la aplicación
     a través del lifespan context manager en main.py.
     
-    La URI de conexión viene de settings.MONGODB_URI (archivo .env).
+    La URI de conexion viene de settings.MONGODB_URI 
     """
     global mongo_client
     mongo_client = AsyncIOMotorClient(settings.MONGODB_URI)
@@ -37,10 +37,10 @@ async def connect_to_mongo() -> None:
 
 async def close_mongo_connection() -> None:
     """
-    Cierra la conexión global a MongoDB.
+    Cierra la conexion global a MongoDB.
     
-    Se ejecuta automáticamente al apagar la aplicación
-    a través del lifespan context manager en main.py.
+    Se ejecuta auto al apagar la app
+    apartir del lifespan context manager en main.py.
     """
     global mongo_client
     if mongo_client is not None:
@@ -57,11 +57,11 @@ def get_db():
     Retorna la referencia a la base de datos principal (settings.MONGODB_DB_NAME).
     
     Raises:
-        RuntimeError: Si la conexión no fue inicializada (no se llamó connect_to_mongo)
+        RuntimeError: Si la conexión no fue inicializada (no se genera llamado de connect_to_mongo)
     """
     if mongo_client is None:
         raise RuntimeError(
-            "La conexión a MongoDB no está inicializada. "
-            "Asegúrate de que la aplicación se inició correctamente."
+            "La conexion a MongoDB no esta inicializada. "
+            "Asegurate de que la aplicación se inició correctamente."
         )
     return mongo_client[settings.MONGODB_DB_NAME]
