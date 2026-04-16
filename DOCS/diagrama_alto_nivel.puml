@@ -1,0 +1,49 @@
+@startuml
+title FonoApp - Diagrama de Alto Nivel
+
+left to right direction
+
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam defaultFontColor black
+skinparam defaultFontSize 11
+
+actor Medico
+actor Paciente
+actor Administrador
+actor Emisor
+
+package "FonoApp - Sistema Central" {
+    component "Autenticacion / Seguridad" as auth
+    component "Hub de Juegos (23 Actividades)" as juegos
+    component "Gestion de Terapia / Evaluaciones" as terapia
+    component "Administracion / Control" as admin_module
+    component "Dashboard / Perfiles" as dashboard
+}
+
+database "MongoDB Atlas" as db
+
+Medico --> auth : Inicia Sesion
+Medico --> terapia : Evalua Pacientes
+Medico --> dashboard : Ver Reportes
+
+Paciente --> auth : Inicia Sesion
+Paciente --> juegos : Juega Actividades
+Paciente --> dashboard : Ver Progreso
+
+Administrador --> auth : Inicia Sesion
+Administrador --> admin_module : Gestiona Sistema
+Administrador --> dashboard : Ver Estadisticas
+
+Emisor -.-> auth : Acceso Futuro
+
+auth --> db : Valida Usuarios
+juegos --> db : Guarda Resultados
+terapia --> db : Almacena Evaluaciones
+dashboard --> db : Consulta Datos
+admin_module --> db : CRUD Completo
+
+terapia -.-> juegos : Asigna Categorias
+dashboard -.-> terapia : Sincroniza Datos
+
+@enduml

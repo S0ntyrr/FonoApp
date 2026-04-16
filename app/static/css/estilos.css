@@ -313,7 +313,7 @@ body.fondo-blanco {
 }
 
 .splash-logo { 
-    width: 200px; 
+    width: 250px; 
     max-width: 70vw; 
     filter: drop-shadow(0 10px 30px rgba(255, 255, 255, 0.3));
     animation: logoRebote 1.2s cubic-bezier(0.36, 0, 0.66, -0.56);
