@@ -1,11 +1,9 @@
 """
 FonoApp - Modelos Pydantic
 ==========================
-Define los modelos de datos usados para validación y serialización.
-Cada modelo corresponde a una colección en MongoDB.
+Define los modelos de datos usados para validacion y serializacion.
+Cada modelo corresponde a una coleccion en MongoDB.
 
-Nota: Los documentos de MongoDB se almacenan como dicts.
-      Estos modelos se usan para validar datos de entrada/salida.
 """
 
 from pydantic import BaseModel, EmailStr, Field
@@ -22,14 +20,14 @@ class UsuarioBase(BaseModel):
     
     Roles disponibles:
     - 'admin': Administrador con acceso completo
-    - 'medico': Médico/terapeuta que evalúa pacientes
+    - 'medico': Especialista que evalúa pacientes
     - 'paciente': Paciente que realiza los juegos
     - 'emisor': Rol auxiliar (placeholder)
     
     Estados disponibles (para médicos):
     - 'activo': Disponible para recibir asignaciones
     - 'ocupado': No disponible temporalmente
-    - 'consulta': En sesión activa con un paciente
+    - 'consulta': En sesion activa con un paciente o realizando evaluaciones
     """
     nombre: str = Field(default="", description="Nombre completo del usuario")
     email: EmailStr
@@ -42,9 +40,6 @@ class UsuarioCreate(UsuarioBase):
     """
     Datos necesarios para crear un nuevo usuario.
     Usado en el formulario de registro y en el panel admin.
-    
-    IMPORTANTE: La contraseña se almacena en texto plano.
-    En producción, usar bcrypt o similar para encriptarla.
     """
     password: str = Field(min_length=6, description="Contraseña (mínimo 6 caracteres)")
     acepta_terminos: bool = True
@@ -52,7 +47,7 @@ class UsuarioCreate(UsuarioBase):
 
 class UsuarioPublico(UsuarioBase):
     """
-    Representación pública del usuario (sin contraseña).
+    Representacion publica del usuario (sin contraseña).
     Usado en respuestas de API.
     """
     id: str = Field(alias="_id")
@@ -65,7 +60,7 @@ class ActividadCategoria(BaseModel):
     Categoría de actividades/juegos.
     Colección MongoDB: 'actividades'
     
-    Categorías actuales:
+    Categorias actuales:
     - respiracion: Infla el globo, El molino de Pepe
     - fonacion: ¡Haz un gol!, Escala musical
     - resonancia: Escaleras, Piano, ¡Veo veo!
@@ -86,17 +81,17 @@ class ActividadCategoria(BaseModel):
 
 class Asignacion(BaseModel):
     """
-    Asignación de un médico a un paciente.
-    Colección MongoDB: 'asignaciones'
+    Asignacion de un medico a un paciente.
+    Coleccion MongoDB: 'asignaciones'
     
     Estados:
-    - 'pendiente': Creada por el admin, esperando que el médico acepte
-    - 'aceptada': El médico aceptó y está atendiendo al paciente
-    - 'cancelada': El médico rechazó o se canceló la asignación
+    - 'pendiente': Creada por el admin, esperando que el medico acepte
+    - 'aceptada': El medico aceptó y está atendiendo al paciente
+    - 'cancelada': El medico rechazo o se canceló la asignación
     
     Tipos:
-    - 'automatica': El sistema eligió el médico al azar
-    - 'manual': El admin eligió el médico específico
+    - 'automatica': El sistema elige el medico al azar
+    - 'manual': El admin elige el médico específico
     """
     id: str = Field(alias="_id")
     paciente_email: EmailStr
@@ -113,11 +108,11 @@ class Asignacion(BaseModel):
 class ContenidoAdmin(BaseModel):
     """
     Contenido multimedia del sistema.
-    Colección MongoDB: 'contenido_admin' (solo hay un documento)
-    
+    Colección MongoDB: 'contenido_admin'
+
     Gestionado desde /admin/contenido con 3 tabs:
     - Textos: instrucciones, avisos, reglas
-    - Media: imágenes y videos subidos
+    - Media: imagenes y videos subidos
     - Juegos: referencia de juegos implementados
     """
     id: str = Field(alias="_id")
@@ -133,12 +128,12 @@ class ContenidoAdmin(BaseModel):
 class HistorialActividad(BaseModel):
     """
     Registro de una actividad completada por un paciente.
-    Colección MongoDB: 'historial_actividades'
+    Coleccion MongoDB: 'historial_actividades'
     
-    Se crea automáticamente cuando:
-    - El paciente completa un juego (POST /juegos/resultado con completado=true)
+    Se crea automaticamente cuando:
+    - El paciente completa un juego
     
-    El médico puede:
+    El medico puede:
     - Ver actividades sin feedback en /doctor/evaluaciones-pendientes
     - Agregar feedback desde el formulario de evaluación
     
@@ -158,8 +153,8 @@ class HistorialActividad(BaseModel):
 
 class PerfilPaciente(BaseModel):
     """
-    Información extendida del paciente.
-    Colección MongoDB: 'perfiles_pacientes'
+    Informacion extendida del paciente.
+    Coleccion MongoDB: 'perfiles_pacientes'
     
     Se crea/actualiza desde /paciente/perfil (panel lateral del paciente).
     Incluye datos del tutor/cuidador ya que los pacientes suelen ser menores.

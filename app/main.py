@@ -1,7 +1,7 @@
 """
-FonoApp - Aplicación web de fonoaudiología interactiva
+FonoApp - App web de fono interactiva
 =======================================================
-Punto de entrada principal de la aplicación FastAPI.
+Punto de entrada principal de la app FastAPI.
 
 Arquitectura:
 - /auth/*      → Autenticación (login, registro)
@@ -38,7 +38,7 @@ from .routers import routes_admin, routes_doctor, routes_juegos
 @asynccontextmanager
 async def lifespan(app):
     """
-    Ciclo de vida de la aplicación:
+    Ciclo de vida de la app:
     - Al iniciar: conecta a MongoDB Atlas
     - Al apagar: cierra la conexión
     """
@@ -58,7 +58,7 @@ app = FastAPI(
 @app.get("/", include_in_schema=False)
 async def raiz():
     """
-    Ruta raíz: redirige automáticamente al login.
+    Ruta raiz: redirige automaticamente al login.
     Todos los usuarios deben autenticarse antes de acceder.
     """
     return RedirectResponse(url="/auth/login")
