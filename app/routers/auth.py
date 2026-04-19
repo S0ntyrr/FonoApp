@@ -21,10 +21,11 @@ ARQUITECTURA DE SEGURIDAD:
     - Mejora rendimiento de login
 
 RUTAS:
-  GET  /auth/login     → Muestra el formulario de login
-  POST /auth/login     → Procesa el login (autoconvierte text plano → bcrypt)
-  GET  /auth/registro  → Muestra el formulario de registro
-  POST /auth/registro  → Crea nuevo paciente (contraseña ya hasheada)
+  GET  /auth/login              → Muestra el formulario de login
+  POST /auth/login              → Procesa el login (autoconvierte text plano → bcrypt)
+  GET  /auth/registro           → Muestra el formulario de registro
+  POST /auth/registro           → Crea nuevo paciente (contraseña ya hasheada)
+  GET  /auth/terminos-condiciones → Muestra la página de términos y condiciones
 
 FLUJO DE LOGIN:
   1. Usuario ingresa email y contraseña
@@ -88,6 +89,24 @@ async def mostrar_pantalla_registro(request: Request):
         {
             "request": request,
             "titulo_pagina": "Crear cuenta",
+        },
+    )
+
+
+@router.get("/terminos-condiciones", response_class=HTMLResponse)
+async def mostrar_terminos_condiciones(request: Request):
+    """
+    Muestra la página de términos y condiciones de FonoApp.
+    
+    Template: auth/terminos_condiciones.html
+    Accesible por todos (especialmente desde el formulario de registro).
+    Se puede abrir en modal o en nueva pestaña.
+    """
+    return templates.TemplateResponse(
+        "auth/terminos_condiciones.html",
+        {
+            "request": request,
+            "titulo_pagina": "Términos y Condiciones",
         },
     )
 
