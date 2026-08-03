@@ -4,17 +4,8 @@ FonoApp - Router de Autenticación
 Maneja el login y registro de usuarios con seguridad mejorada.
 
 ARQUITECTURA DE SEGURIDAD:
-  
-  REGISTRO (nuevos usuarios):
-    - Las contraseñas se HASHEAN INMEDIATAMENTE con bcrypt
-    - No se almacenan nunca en texto plano
-    - Hash con 12 rounds de complejidad
-  
-  LOGIN (usuarios existentes):
-    - Soporta contraseñas ANTIGAS en texto plano
-    - Las convierte automáticamente a bcrypt en el primer login
-    - Migración TRANSPARENTE sin scripts manuales
-    - Demo solo ocurre UNA VEZ por usuario
+  - Sesiones firmadas con SessionMiddleware
+  - Contraseñas con bcrypt
   
   ÍNDICES:
     - Email indexado (UNIQUE) para búsquedas rápidas (~50ms)
@@ -25,6 +16,7 @@ RUTAS:
   POST /auth/login              → Procesa el login (autoconvierte text plano → bcrypt)
   GET  /auth/registro           → Muestra el formulario de registro
   POST /auth/registro           → Crea nuevo paciente (contraseña ya hasheada)
+  GET  /auth/logout             → Cierra sesión real (borra sesión/cookies)
   GET  /auth/terminos-condiciones → Muestra la página de términos y condiciones
 
 FLUJO DE LOGIN:
@@ -192,16 +184,10 @@ async def procesar_login(
     """
     Procesa el formulario de login.
     
-    ARQUITECTURA DE SEGURIDAD:
-    - Todas las contraseñas NUEVAS se hashean automáticamente en el REGISTRO
-    - Las contraseñas ANTIGUAS se hashean automáticamente en el PRIMER LOGIN
-    - Esto permite migración transparente sin scripts manuales
-    
     Flujo:
     1. Busca el usuario por email en la colección 'usuarios'
-    2. Verifica la contraseña (soporta bcrypt y texto plano)
-    3. Si está en texto plano, la hashea automáticamente (background)
-    4. Redirige según el rol del usuario:
+    2. Verifica la contraseña bcrypt
+    3. Redirige según el rol del usuario:
        - admin   → /admin/dashboard
        - medico  → /doctor/home?email=...
        - paciente → /paciente/perfil?email=...
@@ -237,23 +223,6 @@ async def procesar_login(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     
-    # AUTO-MIGRACIÓN: Si la contraseña está en texto plano, hashearla transparentemente
-    # Esto permite migración automática sin necesidad de scripts manuales
-    # Solo ocurre UNA VEZ por usuario (en el primer login después de la migración)
-    if stored_password and not stored_password.startswith(('$2a$', '$2b$', '$2y$')):
-        try:
-            # Hashear la contraseña en background
-            hashed = hash_password(password)
-            # Actualizar en la BD sin bloquear el flujo del usuario
-            await db["usuarios"].update_one(
-                {"_id": usuario["_id"]},
-                {"$set": {"password": hashed}}
-            )
-            # Silenciosamente actualizado - el usuario no se entera
-        except Exception:
-            # Si algo falla en el hashing, no afecta el login (ya pasó la verificación)
-            pass
-
     # Determinar destino según el rol
     rol = usuario.get("rol", "paciente")
     email_usuario = usuario.get("email", email)
@@ -267,25 +236,17 @@ async def procesar_login(
     else:
         destino = "/emisor/home"
 
-    # Crear la respuesta de redirección
+    # Crear sesión firmada y redirección
     response = RedirectResponse(url=destino, status_code=status.HTTP_303_SEE_OTHER)
-    
-    # Guardar el email en una cookie de sesión (no segura, solo para desarrollo)
-    # La cookie 'usuario_email' permite que los juegos identifiquen al usuario
-    # sin necesidad de pasar el email por URL en cada página
-    response.set_cookie(
-        key="usuario_email",
-        value=email_usuario,
-        max_age=86400,  # 24 horas
-        httponly=False,  # Accesible desde JavaScript para los juegos
-        samesite="lax",
-    )
-    response.set_cookie(
-        key="usuario_rol",
-        value=rol,
-        max_age=86400,
-        httponly=False,
-        samesite="lax",
-    )
-    
+    request.session["usuario_email"] = email_usuario
+    request.session["usuario_rol"] = rol
+    return response
+
+
+@router.get("/logout")
+async def logout(request: Request):
+    response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
+    request.session.clear()
+    response.delete_cookie("usuario_email")
+    response.delete_cookie("usuario_rol")
     return response

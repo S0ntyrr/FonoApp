@@ -6,9 +6,13 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 from ..database import get_db
-from ..security import get_current_user
+from ..security import get_current_user, require_role
 
-router = APIRouter(prefix="/doctor", tags=["doctor-web"])
+router = APIRouter(
+    prefix="/doctor",
+    tags=["doctor-web"],
+    dependencies=[Depends(require_role(["medico", "doctor"]))],
+)
 templates = Jinja2Templates(directory="app/templates")
 
 JUEGOS_DISPONIBLES = [

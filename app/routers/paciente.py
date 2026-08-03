@@ -39,9 +39,13 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
 from ..models import PerfilPaciente, SesionApp
-from ..security import get_current_user
+from ..security import require_role
 
-router = APIRouter(prefix="/paciente", tags=["paciente-app"])
+router = APIRouter(
+    prefix="/paciente",
+    tags=["paciente-app"],
+    dependencies=[Depends(require_role(["paciente", "admin", "medico", "doctor"]))],
+)
 templates = Jinja2Templates(directory="app/templates")
 
 # ── Catálogo de actividades reales ─────────────────────────────────────────────
@@ -111,11 +115,6 @@ async def vista_perfil_paciente(
     El progreso de actividades se guarda en localStorage del navegador
     usando la URL de cada actividad como clave (no el índice).
     """
-    # Verificar que el usuario sea paciente (o admin/médico que revisa)
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse(url="/auth/login", status_code=303)
-    
     # ── Obtener email del paciente ─────────────────────────────────────────────
     # Prioridad: URL param → cookie de sesión → fallback
     if not email:

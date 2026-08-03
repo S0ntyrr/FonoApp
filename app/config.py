@@ -25,6 +25,9 @@ class AppSettings(BaseSettings):
      """
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "fono_app"
+    SESSION_SECRET_KEY: str = "change-this-in-production"
+    SESSION_MAX_AGE: int = 86400
+    SESSION_HTTPS_ONLY: bool = True
 
     class Config:
         env_file = ".env"

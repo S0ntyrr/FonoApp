@@ -52,16 +52,9 @@ def verify_password(password: str, hashed: str) -> bool:
     Returns:
         True si la contraseña es correcta, False si no
     """
-    # Verificar si el hash es un hash bcrypt (empieza con $2b$ o $2a$)
-    if hashed.startswith('$2b$') or hashed.startswith('$2a$'):
-        try:
-            return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-        except Exception:
-            return False
-    else:
-        # Compatibilidad con contraseñas en texto plano (cuentas antiguas)
-        # En producción, forzar el cambio de contraseña
-        return password == hashed
+    if not hashed or not (hashed.startswith("$2b$") or hashed.startswith("$2a$") or hashed.startswith("$2y$")):
+        return False
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def get_current_user(request: Request) -> dict:
@@ -71,9 +64,15 @@ def get_current_user(request: Request) -> dict:
     Returns:
         dict con 'email' y 'rol' del usuario, o None si no hay sesión
     """
-    email = request.cookies.get("usuario_email")
-    rol = request.cookies.get("usuario_rol")
-    
+    sesion = getattr(request, "session", {})
+    email = sesion.get("usuario_email")
+    rol = sesion.get("usuario_rol")
+
+    if not email or not rol:
+        # Compatibilidad temporal para cookies antiguas
+        email = request.cookies.get("usuario_email")
+        rol = request.cookies.get("usuario_rol")
+
     if not email or not rol:
         return None
     

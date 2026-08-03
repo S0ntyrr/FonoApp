@@ -50,17 +50,23 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime, timezone
+import os
 from pathlib import Path
 from random import choice
+from uuid import uuid4
 from bson import ObjectId
 from bson.errors import InvalidId
 from collections import defaultdict
 
 from ..database import get_db
 from ..models import ContenidoAdmin, HistorialActividad
-from ..security import get_current_user, hash_password
+from ..security import hash_password, require_role
 
-router = APIRouter(prefix="/admin", tags=["admin-web"])
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin-web"],
+    dependencies=[Depends(require_role(["admin"]))],
+)
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -125,16 +131,34 @@ def _actividades_por_dificultad(dificultad: str) -> list[dict]:
     return catalogo[:cantidad]
 
 
+def _guardar_upload_seguro(
+    archivo: UploadFile,
+    upload_dir: Path,
+    prefijo: str,
+    extensiones_permitidas: set[str],
+    max_bytes: int,
+) -> str:
+    extension = Path(archivo.filename or "").suffix.lower()
+    if extension not in extensiones_permitidas:
+        raise HTTPException(status_code=400, detail="Tipo de archivo no permitido")
+
+    contenido = archivo.file.read(max_bytes + 1)
+    if len(contenido) > max_bytes:
+        raise HTTPException(status_code=413, detail="Archivo demasiado grande")
+
+    nombre_archivo = f"{prefijo}_{uuid4().hex}{extension}"
+    ruta_archivo = upload_dir / nombre_archivo
+    with ruta_archivo.open("wb") as destino:
+        destino.write(contenido)
+
+    return f"/static/uploads/{nombre_archivo}"
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def vista_dashboard_admin(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    # Verificar que el usuario sea admin
-    user = get_current_user(request)
-    if not user or user.get("rol") != "admin":
-        return RedirectResponse(url="/auth/login", status_code=303)
-    
     usuarios_total = await db["usuarios"].count_documents({})
     pacientes_total = await db["usuarios"].count_documents({"rol": "paciente"})
     medicos_total = await db["usuarios"].count_documents({"rol": "medico"})
@@ -359,7 +383,7 @@ async def editar_medico_admin(
 ):
     update_data = {"nombre": nombre, "email": email}
     if password:
-        update_data["password"] = password
+        update_data["password"] = hash_password(password)
     object_id = _parse_object_id(medico_id)
     if not object_id:
         return RedirectResponse(url="/admin/medicos?error=id_invalido", status_code=status.HTTP_303_SEE_OTHER)
@@ -507,15 +531,18 @@ async def subir_media_admin(
     upload_dir = Path("app/static/uploads")
     upload_dir.mkdir(parents=True, exist_ok=True)
 
+    max_imagen_bytes = 5 * 1024 * 1024
+    max_video_bytes = 30 * 1024 * 1024
+    allowed_images = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    allowed_videos = {".mp4", ".webm", ".mov"}
+
     if imagen and imagen.filename:
-        nombre_imagen = f"{int(datetime.utcnow().timestamp())}_{imagen.filename}"
-        (upload_dir / nombre_imagen).write_bytes(await imagen.read())
-        imagenes.append(f"/static/uploads/{nombre_imagen}")
+        url_imagen = _guardar_upload_seguro(imagen, upload_dir, "img", allowed_images, max_imagen_bytes)
+        imagenes.append(url_imagen)
 
     if video and video.filename:
-        nombre_video = f"{int(datetime.utcnow().timestamp())}_{video.filename}"
-        (upload_dir / nombre_video).write_bytes(await video.read())
-        videos.append(f"/static/uploads/{nombre_video}")
+        url_video = _guardar_upload_seguro(video, upload_dir, "vid", allowed_videos, max_video_bytes)
+        videos.append(url_video)
 
     await db["contenido_admin"].update_one(
         {"_id": doc["_id"]},
@@ -536,9 +563,17 @@ async def eliminar_media_admin(
         if tipo == "imagen":
             imagenes = [i for i in doc.get("imagenes", []) if i != url]
             await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"imagenes": imagenes}})
+            if url.startswith("/static/uploads/"):
+                ruta = Path("app") / url.lstrip("/")
+                if ruta.exists():
+                    os.remove(ruta)
         elif tipo == "video":
             videos = [v for v in doc.get("videos", []) if v != url]
             await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"videos": videos}})
+            if url.startswith("/static/uploads/"):
+                ruta = Path("app") / url.lstrip("/")
+                if ruta.exists():
+                    os.remove(ruta)
     return RedirectResponse(url="/admin/contenido", status_code=status.HTTP_303_SEE_OTHER)
 
 
