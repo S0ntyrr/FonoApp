@@ -55,7 +55,7 @@ Sistema de guardado de resultados:
      para que el médico pueda evaluarlo en /doctor/evaluaciones-pendientes
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -425,15 +425,18 @@ async def guardar_resultado_juego(
     notas: str = Form(""),
     puntos: int = Form(0),
     nivel: int = Form(1),
+    ruta: str = Form(""),
 ):
     """
     Guarda el resultado de un juego completado por un paciente.
     También registra en historial_actividades para que el doctor pueda ver el progreso.
     Llamado desde el frontend JS al finalizar cada juego.
     """
-    ahora = datetime.utcnow()
+    ahora = datetime.now()
+    inicio_dia = datetime(ahora.year, ahora.month, ahora.day)
+    fin_dia = inicio_dia + timedelta(days=1)
 
-    # 1. Guardar en resultados_juegos (detalle técnico del juego)
+    # 1. Guardar/actualizar en resultados_juegos (1 registro por paciente+juego+día)
     resultado = {
         "paciente_email": paciente_email,
         "categoria": categoria,
@@ -442,25 +445,53 @@ async def guardar_resultado_juego(
         "total_pasos": total_pasos,
         "completado": completado,
         "fecha": ahora,
+        "fecha_dia": inicio_dia,
+        "ruta": ruta,
         "notas": notas,
         "puntos": puntos,
         "nivel": nivel,
     }
-    await db["resultados_juegos"].insert_one(resultado)
+    await db["resultados_juegos"].update_one(
+        {
+            "paciente_email": paciente_email,
+            "categoria": categoria,
+            "juego": juego,
+            "fecha": {"$gte": inicio_dia, "$lt": fin_dia},
+        },
+        {"$set": resultado},
+        upsert=True,
+    )
 
     # 2. Si el juego fue completado, registrar en historial_actividades
     # para que el doctor pueda ver y evaluar el progreso
     if completado:
+        actividad = juego.replace("_", " ").replace("-", " ").title()
         historial_entry = {
             "paciente_email": paciente_email,
             "categoria": categoria,
-            "actividad": juego.replace("_", " ").replace("-", " ").title(),
+            "actividad": actividad,
+            "juego": juego,
             "puntos_obtenidos": puntos if puntos > 0 else paso_completado * 10,
             "nivel": nivel,
             "fecha": ahora,
-            "feedback": None,  # El doctor lo completará después
         }
-        await db["historial_actividades"].insert_one(historial_entry)
+        await db["historial_actividades"].update_one(
+            {
+                "paciente_email": paciente_email,
+                "categoria": categoria,
+                "juego": juego,
+                "fecha": {"$gte": inicio_dia, "$lt": fin_dia},
+            },
+            {"$set": historial_entry, "$setOnInsert": {"feedback": None}},
+            upsert=True,
+        )
+
+    # 3. Registrar uso diario para el calendario de actividad
+    await db["sesiones_app"].update_one(
+        {"paciente_email": paciente_email, "fecha": inicio_dia},
+        {"$inc": {"minutos_conectado": 1}, "$setOnInsert": {"fecha": inicio_dia}},
+        upsert=True,
+    )
 
     return {"status": "ok", "completado": completado, "puntos": puntos}
 

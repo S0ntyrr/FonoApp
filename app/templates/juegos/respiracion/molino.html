@@ -143,6 +143,7 @@ let anguloAspas = 0;
 let velocidadAspas = 0;
 let puntosM = 0, mejorM = 0;
 let puntosInterval = null;
+let resultadoMolinoGuardado = false;
 
 function toggleMicMolino() {
     if (micActivoM) detenerMicMolino();
@@ -208,6 +209,10 @@ function sumarPuntos() {
         if (puntosM > mejorM) mejorM = puntosM;
         document.getElementById('puntos-molino').textContent = puntosM;
         document.getElementById('mejor-molino').textContent = mejorM;
+        if (!resultadoMolinoGuardado && puntosM >= 80) {
+            resultadoMolinoGuardado = true;
+            guardarResultadoJuego('respiracion', 'molino', 1, 1, true, puntosM, 1);
+        }
     }
 }
 </script>

@@ -119,6 +119,7 @@ function siguienteAdivinanza() {
         document.getElementById('resultado-correcto').style.display = 'none';
         document.getElementById('puntaje-final').textContent = `Acertaste ${aciertos} de ${ADIVINANZAS.length} adivinanzas`;
         document.getElementById('resultado-final').style.display = 'block';
+        guardarResultadoJuego('prosodia', 'adivinanza_imagen', ADIVINANZAS.length, ADIVINANZAS.length, true, aciertos * 10, 1);
     }
 }
 

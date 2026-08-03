@@ -405,6 +405,7 @@ function completarEscala() {
     detenerMicEscala();
     document.getElementById('escala-completada').classList.remove('oculto');
     document.getElementById('fase-texto-escala').textContent = '🎉 ¡Escala completada!';
+    guardarResultadoJuego('fonacion', 'escala', nivelActual + 1, NIVELES.length, true, 80 + (nivelActual * 10), 1);
     // Marcar todos como completados
     NOTAS.forEach((_, i) => {
         const dot = document.getElementById(`dot-${i}`);

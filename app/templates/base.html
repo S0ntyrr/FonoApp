@@ -49,7 +49,8 @@
         formData.append('completado', completado);
         formData.append('puntos', puntos);
         formData.append('nivel', nivel);
-        fetch('/juegos/resultado', { method: 'POST', body: formData })
+        formData.append('ruta', window.location.pathname || '');
+        return fetch('/juegos/resultado', { method: 'POST', body: formData })
             .then(r => r.json())
             .then(data => console.log('Resultado guardado:', data))
             .catch(e => console.warn('No se pudo guardar resultado:', e));

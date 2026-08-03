@@ -146,6 +146,7 @@ function siguientePregunta() {
         document.getElementById('resultado-correcto').style.display = 'none';
         document.getElementById('puntaje-final').textContent = `Completaste ${aciertos} de ${PALABRAS.length} palabras`;
         document.getElementById('resultado-final').style.display = 'block';
+        guardarResultadoJuego('articulacion', 'completa_palabra', PALABRAS.length, PALABRAS.length, true, aciertos * 10, 1);
     }
 }
 

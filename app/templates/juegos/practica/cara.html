@@ -172,6 +172,8 @@ const PARTES_UNICAS = [
 ];
 
 let partesColocadas = [];
+let partesNombradas = new Set();
+let resultadoCaraGuardado = false;
 
 function iniciar() {
     const grid = document.getElementById('partes-grid');
@@ -237,6 +239,11 @@ function agregarParte(parte) {
     div.addEventListener('dblclick', () => div.remove());
 
     zona.appendChild(div);
+    partesNombradas.add(parte.nombre.toLowerCase());
+    if (!resultadoCaraGuardado && partesNombradas.size >= 4) {
+        resultadoCaraGuardado = true;
+        guardarResultadoJuego('practica_conmigo', 'cara', partesNombradas.size, 4, true, 40, 1);
+    }
     mostrarInstruccion(parte.nombre);
 }
 
@@ -250,6 +257,8 @@ function cerrarInstruccion() {
 
 function limpiarCara() {
     document.getElementById('zona-cara').innerHTML = '';
+    partesNombradas = new Set();
+    resultadoCaraGuardado = false;
 }
 
 function aleatorio() {

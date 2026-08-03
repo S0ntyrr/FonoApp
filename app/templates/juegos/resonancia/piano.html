@@ -190,6 +190,7 @@ let audioCtxP = null;
 let puntosP = 0;
 let notaMelodiaActual = 0;
 let faseCantar = false;
+let resultadoPianoGuardado = false;
 let micActivoP = false, micStreamP = null, analyserP = null, animFrameP = null;
 
 // Canvas de notas cayendo
@@ -382,6 +383,10 @@ function medirVozPiano() {
             // Mostrar celebración
             document.getElementById('confeti-area').classList.remove('oculto');
             detenerMicPiano();
+            if (!resultadoPianoGuardado) {
+                resultadoPianoGuardado = true;
+                guardarResultadoJuego('resonancia', 'piano', 2, 2, true, puntosP, 1);
+            }
             return;
         }
     }

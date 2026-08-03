@@ -53,6 +53,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from random import choice
 from bson import ObjectId
+from bson.errors import InvalidId
 from collections import defaultdict
 
 from ..database import get_db
@@ -83,6 +84,19 @@ JUEGOS_DISPONIBLES = [
         {"nombre": "Letra D", "url": "/juegos/articulacion/letra-d"},
         {"nombre": "Letra F", "url": "/juegos/articulacion/letra-f"},
         {"nombre": "Letra R", "url": "/juegos/articulacion/letra-r"},
+        {"nombre": "Completa la palabra", "url": "/juegos/articulacion/completa-palabra"},
+        {"nombre": "¡Acelera la moto!", "url": "/juegos/articulacion/moto-voz"},
+    ]},
+    {"categoria": "Prosodia", "juegos": [
+        {"nombre": "Adivina el animal", "url": "/juegos/prosodia/adivina-animal"},
+        {"nombre": "Trabalenguas", "url": "/juegos/prosodia/trabalenguas"},
+        {"nombre": "Relaciona la adivinanza", "url": "/juegos/prosodia/adivinanza-imagen"},
+        {"nombre": "Completa la canción", "url": "/juegos/prosodia/completa-cancion"},
+    ]},
+    {"categoria": "Discriminación Auditiva", "juegos": [
+        {"nombre": "Sonidos de animales", "url": "/juegos/discriminacion/sonidos-animales"},
+        {"nombre": "Sonidos de objetos", "url": "/juegos/discriminacion/sonidos-objetos"},
+        {"nombre": "Arrastra al sonido", "url": "/juegos/discriminacion/arrastra-sonido"},
     ]},
     {"categoria": "Practica Conmigo", "juegos": [
         {"nombre": "Rompecabezas", "url": "/juegos/practica/rompecabezas"},
@@ -90,6 +104,25 @@ JUEGOS_DISPONIBLES = [
         {"nombre": "Asociación de imágenes", "url": "/juegos/practica/asociacion"},
     ]},
 ]
+
+
+def _parse_object_id(value: str) -> ObjectId | None:
+    try:
+        return ObjectId(value)
+    except InvalidId:
+        return None
+
+
+def _actividades_por_dificultad(dificultad: str) -> list[dict]:
+    cantidad = {"facil": 3, "media": 4, "dificil": 6}.get((dificultad or "").lower(), 4)
+    catalogo = []
+    for categoria in JUEGOS_DISPONIBLES:
+        for juego in categoria["juegos"]:
+            catalogo.append({
+                "categoria": categoria["categoria"],
+                "actividad": juego["nombre"],
+            })
+    return catalogo[:cantidad]
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -196,7 +229,22 @@ async def eliminar_paciente_admin(
     paciente_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    await db["usuarios"].delete_one({"_id": ObjectId(paciente_id)})
+    object_id = _parse_object_id(paciente_id)
+    if not object_id:
+        return RedirectResponse(url="/admin/pacientes?error=id_invalido", status_code=status.HTTP_303_SEE_OTHER)
+
+    paciente = await db["usuarios"].find_one({"_id": object_id, "rol": "paciente"})
+    if not paciente:
+        return RedirectResponse(url="/admin/pacientes?error=no_encontrado", status_code=status.HTTP_303_SEE_OTHER)
+
+    paciente_email = paciente.get("email")
+    await db["usuarios"].delete_one({"_id": object_id})
+    if paciente_email:
+        await db["perfiles_pacientes"].delete_many({"paciente_email": paciente_email})
+        await db["asignaciones"].delete_many({"paciente_email": paciente_email})
+        await db["resultados_juegos"].delete_many({"paciente_email": paciente_email})
+        await db["historial_actividades"].delete_many({"paciente_email": paciente_email})
+        await db["sesiones_app"].delete_many({"paciente_email": paciente_email})
     return RedirectResponse(url="/admin/pacientes", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -261,7 +309,10 @@ async def eliminar_medico_admin(
     medico_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    await db["usuarios"].delete_one({"_id": ObjectId(medico_id)})
+    object_id = _parse_object_id(medico_id)
+    if not object_id:
+        return RedirectResponse(url="/admin/medicos?error=id_invalido", status_code=status.HTTP_303_SEE_OTHER)
+    await db["usuarios"].delete_one({"_id": object_id})
     return RedirectResponse(url="/admin/medicos", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -271,7 +322,10 @@ async def cambiar_estado_medico_admin(
     estado: str = Form(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    await db["usuarios"].update_one({"_id": ObjectId(medico_id)}, {"$set": {"estado": estado}})
+    object_id = _parse_object_id(medico_id)
+    if not object_id:
+        return RedirectResponse(url="/admin/medicos?error=id_invalido", status_code=status.HTTP_303_SEE_OTHER)
+    await db["usuarios"].update_one({"_id": object_id}, {"$set": {"estado": estado}})
     return RedirectResponse(url="/admin/medicos", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -281,7 +335,10 @@ async def editar_medico_form_admin(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    doc = await db["usuarios"].find_one({"_id": ObjectId(medico_id)})
+    object_id = _parse_object_id(medico_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="ID de médico inválido")
+    doc = await db["usuarios"].find_one({"_id": object_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Médico no encontrado")
     doc["_id"] = str(doc["_id"])
@@ -303,7 +360,10 @@ async def editar_medico_admin(
     update_data = {"nombre": nombre, "email": email}
     if password:
         update_data["password"] = password
-    await db["usuarios"].update_one({"_id": ObjectId(medico_id)}, {"$set": update_data})
+    object_id = _parse_object_id(medico_id)
+    if not object_id:
+        return RedirectResponse(url="/admin/medicos?error=id_invalido", status_code=status.HTTP_303_SEE_OTHER)
+    await db["usuarios"].update_one({"_id": object_id}, {"$set": update_data})
     return RedirectResponse(url="/admin/medicos", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -313,7 +373,10 @@ async def ver_consultas_medico_admin(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    medico = await db["usuarios"].find_one({"_id": ObjectId(medico_id)})
+    object_id = _parse_object_id(medico_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="ID de médico inválido")
+    medico = await db["usuarios"].find_one({"_id": object_id})
     if not medico:
         raise HTTPException(status_code=404, detail="Médico no encontrado")
     cursor = db["asignaciones"].find({"medico_email": medico["email"]})
@@ -534,6 +597,13 @@ async def crear_asignacion_automatica(
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     """Asignación automática: elige médico disponible al azar."""
+    asignacion_existente = await db["asignaciones"].find_one({
+        "paciente_email": paciente_email,
+        "estado": {"$in": ["pendiente", "aceptada"]},
+    })
+    if asignacion_existente:
+        return RedirectResponse(url="/admin/asignaciones?error=asignacion_duplicada", status_code=status.HTTP_303_SEE_OTHER)
+
     cursor_medicos = db["usuarios"].find({"rol": "medico", "estado": {"$nin": ["ocupado", "consulta"]}})
     medicos = []
     async for m in cursor_medicos:
@@ -546,7 +616,7 @@ async def crear_asignacion_automatica(
     nueva_asignacion = {
         "paciente_email": paciente_email,
         "medico_email": medico_elegido.get("email"),
-        "actividades_asignadas": [],
+        "actividades_asignadas": _actividades_por_dificultad(dificultad),
         "dificultad": dificultad,
         "fecha_asignacion": datetime.utcnow(),
         "estado": "pendiente",
@@ -564,10 +634,17 @@ async def crear_asignacion_manual(
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     """Asignación manual: el admin elige el médico específico."""
+    asignacion_existente = await db["asignaciones"].find_one({
+        "paciente_email": paciente_email,
+        "estado": {"$in": ["pendiente", "aceptada"]},
+    })
+    if asignacion_existente:
+        return RedirectResponse(url="/admin/asignaciones?error=asignacion_duplicada", status_code=status.HTTP_303_SEE_OTHER)
+
     nueva_asignacion = {
         "paciente_email": paciente_email,
         "medico_email": medico_email,
-        "actividades_asignadas": [],
+        "actividades_asignadas": _actividades_por_dificultad(dificultad),
         "dificultad": dificultad,
         "fecha_asignacion": datetime.utcnow(),
         "estado": "pendiente",
@@ -583,7 +660,10 @@ async def eliminar_asignacion_admin(
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     """Elimina una asignación."""
-    await db["asignaciones"].delete_one({"_id": ObjectId(asignacion_id)})
+    object_id = _parse_object_id(asignacion_id)
+    if not object_id:
+        return RedirectResponse(url="/admin/asignaciones?error=id_invalido", status_code=status.HTTP_303_SEE_OTHER)
+    await db["asignaciones"].delete_one({"_id": object_id})
     return RedirectResponse(url="/admin/asignaciones", status_code=status.HTTP_303_SEE_OTHER)
 
 

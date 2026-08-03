@@ -176,12 +176,14 @@ let timerInterval = null;
 let segundos = 0;
 let sonidoActivo = true;
 let piezasCorrectas = 0;
+let resultadoRompecabezasGuardado = false;
 
 function iniciarJuego() {
     clearInterval(timerInterval);
     segundos = 0;
     piezasCorrectas = 0;
     document.getElementById('mensaje-exito').classList.add('oculto');
+    resultadoRompecabezasGuardado = false;
     document.getElementById('score').textContent = score;
     actualizarTimer();
     timerInterval = setInterval(() => {
@@ -338,6 +340,10 @@ function verificarPiezas() {
         score += 100 + bonus;
         document.getElementById('score').textContent = score;
         document.getElementById('mensaje-exito').classList.remove('oculto');
+        if (!resultadoRompecabezasGuardado) {
+            resultadoRompecabezasGuardado = true;
+            guardarResultadoJuego('practica_conmigo', 'rompecabezas', total, total, true, score, 1);
+        }
         if (sonidoActivo) reproducirSonidoExito();
     }
 }

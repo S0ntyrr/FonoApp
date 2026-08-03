@@ -147,6 +147,7 @@ function siguienteRonda() {
         document.getElementById('progreso-fill').style.width = '100%';
         document.getElementById('puntaje-final').textContent = `Acertaste ${aciertos} de ${RONDAS.length} rondas`;
         document.getElementById('resultado-final').style.display = 'block';
+        guardarResultadoJuego('discriminacion_auditiva', 'arrastra_sonido', RONDAS.length, RONDAS.length, true, aciertos * 10, 1);
     }
 }
 

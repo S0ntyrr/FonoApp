@@ -118,6 +118,7 @@ let balX = 60, balY = 180;
 let balVX = 0, balVY = 0;
 let golMarcado = false;
 let score = 0;
+let resultadoGolGuardado = false;
 let animGol = null;
 let pelotaEnMovimiento = false;
 let nivelVoz = 0;
@@ -234,6 +235,10 @@ function render() {
                 document.getElementById('instruccion-felicitaciones').style.display = 'block';
                 document.getElementById('instruccion-inicial').style.display = 'none';
                 document.getElementById('marcador-voz').style.display = 'flex';
+                if (!resultadoGolGuardado) {
+                    resultadoGolGuardado = true;
+                    guardarResultadoJuego('fonacion', 'gol', 1, 1, true, score, 1);
+                }
                 setTimeout(() => {
                     document.getElementById('mensaje-gol').classList.add('oculto');
                     reiniciarPelota();

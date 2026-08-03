@@ -28,7 +28,7 @@ Colecciones MongoDB usadas:
   - asignaciones: actividades asignadas por el médico
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 from random import sample, seed as random_seed
 
@@ -82,6 +82,10 @@ ACTIVIDADES_REALES = [
 ]
 
 
+def _normalizar(valor: str) -> str:
+    return (valor or "").strip().lower()
+
+
 @router.get("/perfil", response_class=HTMLResponse)
 async def vista_perfil_paciente(
     request: Request,
@@ -117,15 +121,30 @@ async def vista_perfil_paciente(
     if not email:
         email = request.cookies.get("usuario_email", "paciente@tesis.com")
     
-    # ── Cargar perfil del paciente ─────────────────────────────────────────────
+    # ── Cargar usuario/perfil del paciente ─────────────────────────────────────
+    usuario_doc = await db["usuarios"].find_one({"email": email, "rol": "paciente"})
+    nombre_paciente = ""
+    if usuario_doc:
+        nombre_paciente = usuario_doc.get("nombre", "")
+
     perfil_doc = await db["perfiles_pacientes"].find_one({"paciente_email": email})
     perfil: PerfilPaciente | None = None
     if perfil_doc:
         perfil_doc["_id"] = str(perfil_doc["_id"])
         perfil = PerfilPaciente(**perfil_doc)
 
+    hoy = datetime.now()
+    inicio_dia = datetime(hoy.year, hoy.month, hoy.day)
+    fin_dia = inicio_dia + timedelta(days=1)
+
+    # ── Registrar sesión diaria para calendario de uso ─────────────────────────
+    await db["sesiones_app"].update_one(
+        {"paciente_email": email, "fecha": inicio_dia},
+        {"$inc": {"minutos_conectado": 1}, "$setOnInsert": {"fecha": inicio_dia}},
+        upsert=True,
+    )
+
     # ── Cargar sesiones del mes actual para el calendario ──────────────────────
-    hoy = datetime.utcnow()
     cursor = db["sesiones_app"].find({
         "paciente_email": email,
         "fecha": {"$gte": datetime(hoy.year, hoy.month, 1)},
@@ -148,8 +167,15 @@ async def vista_perfil_paciente(
         for act in actividades_asignadas:
             cat = act.get("categoria", "")
             nombre = act.get("actividad", "")
-            # Buscar la actividad real correspondiente por categoría
-            match = next((a for a in ACTIVIDADES_REALES if a["categoria"].lower() == cat.lower()), None)
+            # Buscar por categoría + nombre para evitar colisiones en una misma categoría
+            match = next(
+                (
+                    a for a in ACTIVIDADES_REALES
+                    if _normalizar(a["categoria"]) == _normalizar(cat)
+                    and _normalizar(a["actividad"]) == _normalizar(nombre)
+                ),
+                None,
+            )
             if match:
                 actividades_disponibles_raw.append(match)
             else:
@@ -184,6 +210,26 @@ async def vista_perfil_paciente(
         # Resetear la semilla aleatoria para no afectar otras partes del código
         random_seed(int(_time.time()))
 
+    # ── Actividades completadas hoy (fuente de verdad: MongoDB) ────────────────
+    mapa_url_por_juego = {}
+    for act in ACTIVIDADES_REALES:
+        slug = act["url"].rstrip("/").split("/")[-1].replace("-", "_")
+        mapa_url_por_juego[(_normalizar(act["categoria"]), _normalizar(slug))] = act["url"]
+
+    actividades_completadas_urls = set()
+    cursor_resultados = db["resultados_juegos"].find(
+        {
+            "paciente_email": email,
+            "completado": True,
+            "fecha": {"$gte": inicio_dia, "$lt": fin_dia},
+        }
+    )
+    async for res in cursor_resultados:
+        clave = (_normalizar(res.get("categoria", "")), _normalizar(res.get("juego", "")))
+        url = mapa_url_por_juego.get(clave)
+        if url:
+            actividades_completadas_urls.add(url)
+
     # ── Agrupar actividades por categoría para la plantilla ────────────────────
     categorias_dict = defaultdict(list)
     for act in actividades_disponibles_raw:
@@ -200,9 +246,11 @@ async def vista_perfil_paciente(
             "request": request,
             "titulo_pagina": "Mi perfil",
             "perfil": perfil,
+            "nombre_paciente": nombre_paciente,
             "sesiones_por_dia": sesiones_por_dia,
             "email_paciente": email,
             "actividades_disponibles": actividades_disponibles,
+            "actividades_completadas_urls": sorted(actividades_completadas_urls),
         },
     )
 

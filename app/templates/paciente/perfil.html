@@ -91,15 +91,13 @@
 <div class="contenido-principal">
     <div class="pantalla-movil">
 
-        {% if perfil %}
         <div class="bienvenida-card">
             <span class="bienvenida-emoji">👋</span>
             <div>
-                <p class="bienvenida-nombre">¡Hola, {{ perfil.nombre.split()[0] if perfil.nombre else 'Paciente' }}!</p>
+                <p class="bienvenida-nombre">¡Hola, {{ (perfil.nombre if perfil and perfil.nombre else nombre_paciente).split()[0] if (perfil and perfil.nombre) or nombre_paciente else 'Paciente' }}!</p>
                 <p class="bienvenida-sub">¿Listo para practicar hoy?</p>
             </div>
         </div>
-        {% endif %}
 
         <div class="acceso-juegos-card" onclick="sessionStorage.setItem('juegos_origen','/paciente/perfil'); window.location.href='/juegos/'">
             <div class="acceso-juegos-icono">🎮</div>
@@ -118,13 +116,13 @@
                         <div class="categoria-titulo">{{ cat.categoria }}</div>
                         {% for act in cat.actividades %}
                             {% if act is mapping %}
-                                <a href="{{ act.url }}" class="actividad-item actividad-link" style="text-decoration:none;" onclick="marcarActividad(this)">
-                                    <span class="actividad-check" id="check-{{ loop.index }}">○</span>
+                                <a href="{{ act.url }}" class="actividad-item actividad-link" style="text-decoration:none;" data-url="{{ act.url }}">
+                                    <span class="actividad-check" id="check-{{ loop.parent.index0 }}-{{ loop.index0 }}">○</span>
                                     <div class="actividad-detalle">{{ act.actividad }}</div>
                                     <div class="marcador">›</div>
                                 </a>
                             {% else %}
-                                <a href="/juegos/" class="actividad-item actividad-link" style="text-decoration:none;" onclick="marcarActividad(this)">
+                                <a href="/juegos/" class="actividad-item actividad-link" style="text-decoration:none;" data-url="/juegos/">
                                     <span class="actividad-check">○</span>
                                     <div class="actividad-detalle">{{ act }}</div>
                                     <div class="marcador">›</div>
@@ -188,39 +186,20 @@ sessionStorage.setItem('juegos_origen', '/paciente/perfil');
 </script>
 <script src="/static/js/paciente.js"></script>
 <script>
-// Sistema de progreso de actividades del día
-// Usa la URL de cada actividad como clave (no el índice) para ser estable
-const HOY_KEY = 'actividades_completadas_' + new Date().toDateString() + '_{{ email_paciente }}';
+const ACTIVIDADES_COMPLETADAS = new Set({{ actividades_completadas_urls | tojson }});
 
 document.addEventListener('DOMContentLoaded', function() {
     const items = document.querySelectorAll('.actividad-link');
-    const completadas = JSON.parse(localStorage.getItem(HOY_KEY) || '[]');
-    
+
     items.forEach(item => {
-        const url = item.getAttribute('href');
-        if (completadas.includes(url)) {
+        const url = item.dataset.url || item.getAttribute('href');
+        if (ACTIVIDADES_COMPLETADAS.has(url)) {
             item.classList.add('completada');
             const check = item.querySelector('.actividad-check');
             if (check) check.textContent = '✓';
         }
     });
-    
-    verificarSesionCompleta();
-});
 
-function marcarActividad(el) {
-    // Guardar la URL de la actividad en localStorage ANTES de navegar
-    const url = el.getAttribute('href');
-    if (!url) return;
-    const completadas = JSON.parse(localStorage.getItem(HOY_KEY) || '[]');
-    if (!completadas.includes(url)) {
-        completadas.push(url);
-        localStorage.setItem(HOY_KEY, JSON.stringify(completadas));
-    }
-    // La navegación ocurre normalmente
-}
-
-function verificarSesionCompleta() {
     const total = document.querySelectorAll('.actividad-link').length;
     const completadas = document.querySelectorAll('.actividad-link.completada').length;
     if (total > 0 && completadas >= total) {
@@ -230,7 +209,7 @@ function verificarSesionCompleta() {
             document.querySelectorAll('.actividad-link').forEach(a => a.style.opacity = '0.7');
         }
     }
-}
+});
 </script>
 
 <style>

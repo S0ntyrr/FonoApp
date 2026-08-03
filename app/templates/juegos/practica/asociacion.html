@@ -239,6 +239,7 @@ function siguientePregunta() {
         document.getElementById('btn-siguiente').classList.add('oculto');
         document.getElementById('puntos-final').textContent = puntos;
         document.getElementById('fin-juego').classList.remove('oculto');
+        guardarResultadoJuego('practica_conmigo', 'asociacion', PREGUNTAS.length, PREGUNTAS.length, true, puntos, 1);
     } else {
         mostrarPregunta();
     }

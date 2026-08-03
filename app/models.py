@@ -6,14 +6,18 @@ Cada modelo corresponde a una coleccion en MongoDB.
 
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from typing import List, Any, Optional
 
 
+class ModeloBase(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+
 # ── Usuarios ───────────────────────────────────────────────────────────────────
 
-class UsuarioBase(BaseModel):
+class UsuarioBase(ModeloBase):
     """
     Modelo base para todos los usuarios del sistema.
     Colección MongoDB: 'usuarios'
@@ -55,7 +59,7 @@ class UsuarioPublico(UsuarioBase):
 
 # ── Actividades ────────────────────────────────────────────────────────────────
 
-class ActividadCategoria(BaseModel):
+class ActividadCategoria(ModeloBase):
     """
     Categoría de actividades/juegos.
     Colección MongoDB: 'actividades'
@@ -79,7 +83,7 @@ class ActividadCategoria(BaseModel):
 
 # ── Asignaciones ───────────────────────────────────────────────────────────────
 
-class Asignacion(BaseModel):
+class Asignacion(ModeloBase):
     """
     Asignacion de un medico a un paciente.
     Coleccion MongoDB: 'asignaciones'
@@ -105,7 +109,7 @@ class Asignacion(BaseModel):
 
 # ── Contenido del sistema ──────────────────────────────────────────────────────
 
-class ContenidoAdmin(BaseModel):
+class ContenidoAdmin(ModeloBase):
     """
     Contenido multimedia del sistema.
     Colección MongoDB: 'contenido_admin'
@@ -125,7 +129,7 @@ class ContenidoAdmin(BaseModel):
 
 # ── Historial de actividades ───────────────────────────────────────────────────
 
-class HistorialActividad(BaseModel):
+class HistorialActividad(ModeloBase):
     """
     Registro de una actividad completada por un paciente.
     Coleccion MongoDB: 'historial_actividades'
@@ -151,7 +155,7 @@ class HistorialActividad(BaseModel):
 
 # ── Perfil del paciente ────────────────────────────────────────────────────────
 
-class PerfilPaciente(BaseModel):
+class PerfilPaciente(ModeloBase):
     """
     Informacion extendida del paciente.
     Coleccion MongoDB: 'perfiles_pacientes'
@@ -172,7 +176,7 @@ class PerfilPaciente(BaseModel):
 
 # ── Sesiones de uso ────────────────────────────────────────────────────────────
 
-class SesionApp(BaseModel):
+class SesionApp(ModeloBase):
     """
     Registro de uso diario de la app por un paciente.
     Colección MongoDB: 'sesiones_app'
@@ -188,7 +192,7 @@ class SesionApp(BaseModel):
 
 # ── Resultados de juegos ───────────────────────────────────────────────────────
 
-class ResultadoJuego(BaseModel):
+class ResultadoJuego(ModeloBase):
     """
     Resultado detallado de un juego completado (o en progreso).
     Colección MongoDB: 'resultados_juegos'

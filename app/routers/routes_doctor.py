@@ -1,55 +1,11 @@
-"""
-FonoApp - Router del Médico/Terapeuta
-=======================================
-Panel del médico con acceso a sus pacientes y herramientas de evaluación.
-
-Rutas principales:
-  GET  /doctor/home                          → Panel principal del médico
-  POST /doctor/estado                        → Cambiar estado (activo/ocupado/consulta)
-  
-  Gestión de pacientes:
-  GET  /doctor/pacientes                     → Lista de pacientes con stats de juegos
-  GET  /doctor/pacientes/{id}                → Perfil detallado con gráfica de progreso
-  POST /doctor/pacientes/{id}/editar         → Editar datos básicos del paciente
-  
-  Actividades y juegos:
-  GET  /doctor/actividades                   → Lista de juegos disponibles (23 juegos)
-  
-  Asignaciones:
-  GET  /doctor/asignaciones                  → Ver asignaciones + pacientes sin asignar
-  POST /doctor/asignaciones/{id}/aceptar     → Aceptar asignación
-  POST /doctor/asignaciones/{id}/cancelar    → Cancelar asignación
-  
-  Evaluación y seguimiento:
-  GET  /doctor/historial                     → Historial de actividades con filtros
-  GET  /doctor/resultados                    → Resultados de juegos de todos los pacientes
-  GET  /doctor/evaluaciones-pendientes       → Actividades sin feedback del médico
-  POST /doctor/evaluaciones/{id}/feedback    → Guardar evaluación/feedback
-
-Estado del médico:
-  El estado se guarda en la colección 'usuarios' y es visible desde el panel admin.
-  Estados: 'activo' (disponible), 'ocupado', 'consulta' (en sesión activa)
-  
-  NOTA: El email del médico se pasa como query param (?email=...).
-  En producción, obtener del token de sesión.
-
-Colecciones MongoDB usadas:
-  - usuarios: datos del médico y pacientes
-  - asignaciones: asignaciones médico-paciente
-  - historial_actividades: actividades completadas (con/sin feedback)
-  - resultados_juegos: resultados detallados de juegos
-  - perfiles_pacientes: datos extendidos del paciente
-"""
-
-from datetime import datetime
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from starlette import status
 from bson import ObjectId
+from bson.errors import InvalidId
+
 from ..database import get_db
-from ..models import Asignacion, HistorialActividad
 from ..security import get_current_user
 
 router = APIRouter(prefix="/doctor", tags=["doctor-web"])
@@ -74,6 +30,19 @@ JUEGOS_DISPONIBLES = [
         {"nombre": "Letra D", "url": "/juegos/articulacion/letra-d"},
         {"nombre": "Letra F", "url": "/juegos/articulacion/letra-f"},
         {"nombre": "Letra R", "url": "/juegos/articulacion/letra-r"},
+        {"nombre": "Completa la palabra", "url": "/juegos/articulacion/completa-palabra"},
+        {"nombre": "¡Acelera la moto!", "url": "/juegos/articulacion/moto-voz"},
+    ]},
+    {"categoria": "Prosodia", "juegos": [
+        {"nombre": "Adivina el animal", "url": "/juegos/prosodia/adivina-animal"},
+        {"nombre": "Trabalenguas", "url": "/juegos/prosodia/trabalenguas"},
+        {"nombre": "Relaciona la adivinanza", "url": "/juegos/prosodia/adivinanza-imagen"},
+        {"nombre": "Completa la canción", "url": "/juegos/prosodia/completa-cancion"},
+    ]},
+    {"categoria": "Discriminación Auditiva", "juegos": [
+        {"nombre": "Sonidos de animales", "url": "/juegos/discriminacion/sonidos-animales"},
+        {"nombre": "Sonidos de objetos", "url": "/juegos/discriminacion/sonidos-objetos"},
+        {"nombre": "Arrastra al sonido", "url": "/juegos/discriminacion/arrastra-sonido"},
     ]},
     {"categoria": "Practica Conmigo", "juegos": [
         {"nombre": "Rompecabezas", "url": "/juegos/practica/rompecabezas"},
@@ -83,59 +52,136 @@ JUEGOS_DISPONIBLES = [
 ]
 
 
+def _doctor_email_desde_request(request: Request) -> str:
+    return request.query_params.get("email") or request.cookies.get("usuario_email", "")
+
+
+def _parse_object_id(value: str) -> ObjectId | None:
+    try:
+        return ObjectId(value)
+    except InvalidId:
+        return None
+
+
+async def _obtener_doctor_actual(request: Request, db: AsyncIOMotorDatabase):
+    email_doctor = _doctor_email_desde_request(request)
+    if not email_doctor:
+        return None
+    return await db["usuarios"].find_one({"email": email_doctor, "rol": "medico"})
+
+
+async def _emails_pacientes_asignados(
+    db: AsyncIOMotorDatabase,
+    doctor_email: str,
+    estados: tuple[str, ...] = ("aceptada",),
+) -> set[str]:
+    query = {"medico_email": doctor_email}
+    if estados:
+        query["estado"] = {"$in": list(estados)}
+    cursor = db["asignaciones"].find(query, {"paciente_email": 1})
+    emails = set()
+    async for doc in cursor:
+        email = doc.get("paciente_email")
+        if email:
+            emails.add(email)
+    return emails
+
+
 @router.get("/home", response_class=HTMLResponse)
 async def home_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    # Verificar que el usuario sea médico
     user = get_current_user(request)
     if not user or user.get("rol") not in ("medico", "doctor"):
         return RedirectResponse(url="/auth/login", status_code=303)
-    
-    # Obtener email del médico: URL param → cookie de sesión → fallback
-    email_doctor = request.query_params.get("email") or request.cookies.get("usuario_email", "doctor@tesis.com")
-    doctor_doc = await db["usuarios"].find_one({"email": email_doctor, "rol": "medico"})
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
     if not doctor_doc:
-        doctor_doc = await db["usuarios"].find_one({"rol": "medico"})
-    estado_actual = doctor_doc.get("estado", "activo") if doctor_doc else "activo"
-    nombre_doctor = doctor_doc.get("nombre", "Doctor") if doctor_doc else "Doctor"
-    email_doctor = doctor_doc.get("email", email_doctor) if doctor_doc else email_doctor
-    pendientes = await db["historial_actividades"].count_documents({"$or": [{"feedback": None}, {"feedback": ""}]})
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_email = doctor_doc.get("email", "")
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_email)
+    pendientes = 0
+    if pacientes_asignados:
+        pendientes = await db["historial_actividades"].count_documents({
+            "paciente_email": {"$in": list(pacientes_asignados)},
+            "$or": [{"feedback": None}, {"feedback": ""}],
+        })
+
     return templates.TemplateResponse("doctor/home.html", {
-        "request": request, "titulo_pagina": "Panel del doctor",
-        "estado_actual": estado_actual, "nombre_doctor": nombre_doctor,
-        "email_doctor": email_doctor, "evaluaciones_pendientes": pendientes,
+        "request": request,
+        "titulo_pagina": "Panel del doctor",
+        "estado_actual": doctor_doc.get("estado", "activo"),
+        "nombre_doctor": doctor_doc.get("nombre", "Doctor"),
+        "email_doctor": doctor_email,
+        "evaluaciones_pendientes": pendientes,
     })
 
 
 @router.get("/pacientes", response_class=HTMLResponse)
 async def vista_pacientes_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    cursor = db["usuarios"].find({"rol": "paciente"})
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     pacientes = []
-    async for doc in cursor:
-        doc["_id"] = str(doc["_id"])
-        total_j = await db["resultados_juegos"].count_documents({"paciente_email": doc["email"]})
-        completados_j = await db["resultados_juegos"].count_documents({"paciente_email": doc["email"], "completado": True})
-        doc["total_juegos"] = total_j
-        doc["juegos_completados"] = completados_j
-        pacientes.append(doc)
+    if pacientes_asignados:
+        cursor = db["usuarios"].find({"rol": "paciente", "email": {"$in": list(pacientes_asignados)}})
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            total_j = await db["resultados_juegos"].count_documents({"paciente_email": doc["email"]})
+            completados_j = await db["resultados_juegos"].count_documents({"paciente_email": doc["email"], "completado": True})
+            doc["total_juegos"] = total_j
+            doc["juegos_completados"] = completados_j
+            pacientes.append(doc)
+
     return templates.TemplateResponse("doctor/pacientes.html", {
-        "request": request, "titulo_pagina": "Pacientes del sistema", "pacientes": pacientes,
+        "request": request,
+        "titulo_pagina": "Mis pacientes",
+        "pacientes": pacientes,
     })
 
 
 @router.get("/pacientes/{paciente_id}", response_class=HTMLResponse)
 async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    paciente = await db["usuarios"].find_one({"_id": ObjectId(paciente_id)})
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    object_id = _parse_object_id(paciente_id)
+    if not object_id:
+        return RedirectResponse(url="/doctor/pacientes", status_code=303)
+
+    paciente = await db["usuarios"].find_one({"_id": object_id, "rol": "paciente"})
     if not paciente:
         return RedirectResponse(url="/doctor/pacientes", status_code=303)
+
+    asignacion = await db["asignaciones"].find_one({
+        "paciente_email": paciente["email"],
+        "medico_email": doctor_doc["email"],
+        "estado": "aceptada",
+    })
+    if not asignacion:
+        return RedirectResponse(url="/doctor/pacientes", status_code=303)
+
     paciente["_id"] = str(paciente["_id"])
     perfil = await db["perfiles_pacientes"].find_one({"paciente_email": paciente["email"]})
     if perfil:
         perfil["_id"] = str(perfil["_id"])
+
     cursor_res = db["resultados_juegos"].find({"paciente_email": paciente["email"]}).sort("fecha", -1)
     resultados_raw = []
     async for doc in cursor_res:
         doc["_id"] = str(doc["_id"])
         resultados_raw.append(doc)
+
     stats_por_categoria = {}
     for r in resultados_raw:
         cat = r.get("categoria", "otro")
@@ -146,26 +192,73 @@ async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIO
             stats_por_categoria[cat]["completados"] += 1
         else:
             stats_por_categoria[cat]["en_progreso"] += 1
+
     cursor_hist = db["historial_actividades"].find({"paciente_email": paciente["email"]}).sort("fecha", -1).limit(10)
     historial = []
     async for doc in cursor_hist:
         doc["_id"] = str(doc["_id"])
         historial.append(doc)
+
     return templates.TemplateResponse("doctor/perfil_paciente.html", {
-        "request": request, "titulo_pagina": f"Perfil de {paciente.get('nombre', paciente['email'])}",
-        "paciente": paciente, "perfil": perfil, "resultados": resultados_raw[:10],
-        "stats_por_categoria": stats_por_categoria, "historial": historial,
+        "request": request,
+        "titulo_pagina": f"Perfil de {paciente.get('nombre', paciente['email'])}",
+        "paciente": paciente,
+        "perfil": perfil,
+        "resultados": resultados_raw[:10],
+        "stats_por_categoria": stats_por_categoria,
+        "historial": historial,
     })
 
 
 @router.post("/pacientes/{paciente_id}/editar")
-async def editar_paciente_doctor(paciente_id: str, nombre: str = Form(...), email: str = Form(...), db: AsyncIOMotorDatabase = Depends(get_db)):
-    await db["usuarios"].update_one({"_id": ObjectId(paciente_id)}, {"$set": {"nombre": nombre, "email": email}})
+async def editar_paciente_doctor(
+    paciente_id: str,
+    request: Request,
+    nombre: str = Form(...),
+    email: str = Form(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    object_id = _parse_object_id(paciente_id)
+    if not object_id:
+        return RedirectResponse(url="/doctor/pacientes", status_code=303)
+
+    paciente_actual = await db["usuarios"].find_one({"_id": object_id, "rol": "paciente"})
+    if not paciente_actual:
+        return RedirectResponse(url="/doctor/pacientes", status_code=303)
+
+    asignacion = await db["asignaciones"].find_one({
+        "paciente_email": paciente_actual["email"],
+        "medico_email": doctor_doc["email"],
+        "estado": "aceptada",
+    })
+    if not asignacion:
+        return RedirectResponse(url="/doctor/pacientes", status_code=303)
+
+    email_anterior = paciente_actual.get("email", "")
+    await db["usuarios"].update_one({"_id": object_id}, {"$set": {"nombre": nombre, "email": email}})
+
+    if email_anterior and email_anterior != email:
+        await db["perfiles_pacientes"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
+        await db["asignaciones"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
+        await db["resultados_juegos"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
+        await db["historial_actividades"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
+        await db["sesiones_app"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
     return RedirectResponse(url=f"/doctor/pacientes/{paciente_id}", status_code=303)
 
 
 @router.get("/actividades", response_class=HTMLResponse)
-async def vista_actividades_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def vista_actividades_doctor(request: Request):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
     return templates.TemplateResponse("doctor/actividades.html", {
         "request": request, "titulo_pagina": "Juegos disponibles", "juegos_disponibles": JUEGOS_DISPONIBLES,
     })
@@ -173,11 +266,21 @@ async def vista_actividades_doctor(request: Request, db: AsyncIOMotorDatabase = 
 
 @router.get("/asignaciones", response_class=HTMLResponse)
 async def vista_asignaciones_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    cursor = db["asignaciones"].find({})
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_email = doctor_doc["email"]
+    cursor = db["asignaciones"].find({"medico_email": doctor_email}).sort("fecha_asignacion", -1)
     asignaciones = []
     async for doc in cursor:
         doc["_id"] = str(doc["_id"])
         asignaciones.append(doc)
+
     emails_asignados = {a["paciente_email"] for a in asignaciones}
     cursor_pac = db["usuarios"].find({"rol": "paciente"})
     sin_asignar = []
@@ -185,6 +288,7 @@ async def vista_asignaciones_doctor(request: Request, db: AsyncIOMotorDatabase =
         doc["_id"] = str(doc["_id"])
         if doc["email"] not in emails_asignados:
             sin_asignar.append(doc)
+
     return templates.TemplateResponse("doctor/asignaciones.html", {
         "request": request, "titulo_pagina": "Asignaciones",
         "asignaciones": asignaciones, "sin_asignar": sin_asignar,
@@ -192,24 +296,61 @@ async def vista_asignaciones_doctor(request: Request, db: AsyncIOMotorDatabase =
 
 
 @router.post("/asignaciones/{asignacion_id}/aceptar", response_class=RedirectResponse)
-async def aceptar_asignacion(asignacion_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-    await db["asignaciones"].update_one({"_id": ObjectId(asignacion_id)}, {"$set": {"estado": "aceptada"}})
+async def aceptar_asignacion(asignacion_id: str, request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    object_id = _parse_object_id(asignacion_id)
+    if object_id:
+        await db["asignaciones"].update_one(
+            {"_id": object_id, "medico_email": doctor_doc["email"]},
+            {"$set": {"estado": "aceptada"}},
+        )
     return RedirectResponse(url="/doctor/asignaciones", status_code=303)
 
 
 @router.post("/asignaciones/{asignacion_id}/cancelar", response_class=RedirectResponse)
-async def cancelar_asignacion(asignacion_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-    await db["asignaciones"].update_one({"_id": ObjectId(asignacion_id)}, {"$set": {"estado": "cancelada"}})
+async def cancelar_asignacion(asignacion_id: str, request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    object_id = _parse_object_id(asignacion_id)
+    if object_id:
+        await db["asignaciones"].update_one(
+            {"_id": object_id, "medico_email": doctor_doc["email"]},
+            {"$set": {"estado": "cancelada"}},
+        )
     return RedirectResponse(url="/doctor/asignaciones", status_code=303)
 
 
 @router.get("/historial", response_class=HTMLResponse)
 async def vista_historial_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    cursor = db["historial_actividades"].find({}).sort("fecha", -1)
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     historial = []
-    async for doc in cursor:
-        doc["_id"] = str(doc["_id"])
-        historial.append(doc)
+    if pacientes_asignados:
+        cursor = db["historial_actividades"].find({"paciente_email": {"$in": list(pacientes_asignados)}}).sort("fecha", -1)
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            historial.append(doc)
+
     return templates.TemplateResponse("doctor/historial.html", {
         "request": request, "titulo_pagina": "Historial de actividades", "historial": historial,
     })
@@ -217,11 +358,22 @@ async def vista_historial_doctor(request: Request, db: AsyncIOMotorDatabase = De
 
 @router.get("/resultados", response_class=HTMLResponse)
 async def vista_resultados_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    cursor = db["resultados_juegos"].find({}).sort("fecha", -1).limit(100)
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     resultados = []
-    async for doc in cursor:
-        doc["_id"] = str(doc["_id"])
-        resultados.append(doc)
+    if pacientes_asignados:
+        cursor = db["resultados_juegos"].find({"paciente_email": {"$in": list(pacientes_asignados)}}).sort("fecha", -1).limit(100)
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            resultados.append(doc)
+
     return templates.TemplateResponse("doctor/resultados.html", {
         "request": request, "titulo_pagina": "Resultados de juegos", "resultados": resultados,
     })
@@ -229,19 +381,58 @@ async def vista_resultados_doctor(request: Request, db: AsyncIOMotorDatabase = D
 
 @router.get("/evaluaciones-pendientes", response_class=HTMLResponse)
 async def vista_evaluaciones_pendientes(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
-    cursor = db["historial_actividades"].find({"$or": [{"feedback": None}, {"feedback": ""}]}).sort("fecha", -1)
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     evaluaciones = []
-    async for doc in cursor:
-        doc["_id"] = str(doc["_id"])
-        evaluaciones.append(doc)
+    if pacientes_asignados:
+        cursor = db["historial_actividades"].find({
+            "paciente_email": {"$in": list(pacientes_asignados)},
+            "$or": [{"feedback": None}, {"feedback": ""}],
+        }).sort("fecha", -1)
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            evaluaciones.append(doc)
+
     return templates.TemplateResponse("doctor/evaluaciones_pendientes.html", {
         "request": request, "titulo_pagina": "Evaluaciones Pendientes", "evaluaciones": evaluaciones,
     })
 
 
 @router.post("/evaluaciones/{historial_id}/feedback")
-async def guardar_feedback(historial_id: str, feedback: str = Form(...), db: AsyncIOMotorDatabase = Depends(get_db)):
-    await db["historial_actividades"].update_one({"_id": ObjectId(historial_id)}, {"$set": {"feedback": feedback}})
+async def guardar_feedback(
+    historial_id: str,
+    request: Request,
+    feedback: str = Form(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    object_id = _parse_object_id(historial_id)
+    if not object_id:
+        return RedirectResponse(url="/doctor/evaluaciones-pendientes", status_code=303)
+
+    historial = await db["historial_actividades"].find_one({"_id": object_id})
+    if not historial:
+        return RedirectResponse(url="/doctor/evaluaciones-pendientes", status_code=303)
+
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
+    if historial.get("paciente_email") not in pacientes_asignados:
+        return RedirectResponse(url="/doctor/evaluaciones-pendientes", status_code=303)
+
+    await db["historial_actividades"].update_one({"_id": object_id}, {"$set": {"feedback": feedback}})
     return RedirectResponse(url="/doctor/evaluaciones-pendientes", status_code=303)
 
 
@@ -252,8 +443,17 @@ async def cambiar_estado_doctor(
     email: str = Form(""),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
-    """Cambia el estado del médico. Lee el email de la cookie si no viene en el form."""
-    if not email:
-        email = request.cookies.get("usuario_email", "doctor@tesis.com")
-    await db["usuarios"].update_one({"email": email, "rol": "medico"}, {"$set": {"estado": estado}})
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    email_objetivo = email or doctor_doc.get("email", "")
+    if email_objetivo != doctor_doc.get("email", ""):
+        email_objetivo = doctor_doc.get("email", "")
+
+    await db["usuarios"].update_one({"email": email_objetivo, "rol": "medico"}, {"$set": {"estado": estado}})
     return RedirectResponse(url="/doctor/home", status_code=303)
