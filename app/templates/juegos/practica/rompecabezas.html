@@ -92,6 +92,8 @@
     padding: 4px;
     border-radius: 6px;
     position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
 }
 .puzzle-preview {
     width: 80px;
@@ -105,13 +107,15 @@
     height: 75px;
     border-radius: 6px;
     border: 2px solid #aaa;
-    background-size: cover;
-    background-position: center;
+    background-size: 100% 100%;
+    background-position: center center;
+    background-repeat: no-repeat;
 }
 
 .pieza {
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
     border-radius: 3px;
     cursor: grab;
     border: 2px solid rgba(255,255,255,0.5);
@@ -162,9 +166,9 @@
 <script>
 // ─── Configuración ────────────────────────────────────────────────────────────
 const IMAGENES_POR_NIVEL = {
-    3: { url: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=600&q=80', nombre: 'Perro' },
-    4: { url: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=80', nombre: 'Gato' },
-    5: { url: 'https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&w=600&q=80', nombre: 'Loro' },
+    3: { url: '/static/img/puzzle_3.svg', nombre: 'Perro' },
+    4: { url: '/static/img/puzzle_4.svg', nombre: 'Gato' },
+    5: { url: '/static/img/puzzle_5.svg', nombre: 'Loro' },
 };
 
 let nivelActual = 3;
@@ -195,6 +199,7 @@ function iniciarJuego() {
 
     const board = document.getElementById('puzzle-board');
     board.style.gridTemplateColumns = `repeat(${nivelActual}, 1fr)`;
+    board.style.gridTemplateRows = `repeat(${nivelActual}, 1fr)`;
     board.innerHTML = '';
 
     const total = nivelActual * nivelActual;
@@ -216,9 +221,10 @@ function iniciarJuego() {
 
         const col = posOriginal % nivelActual;
         const row = Math.floor(posOriginal / nivelActual);
-        const pct = 100 / (nivelActual - 1);
+        const divisor = Math.max(1, nivelActual - 1);
+        const pct = 100 / divisor;
         pieza.style.backgroundImage = `url('${img.url}')`;
-        pieza.style.backgroundSize = `${nivelActual * 100}%`;
+        pieza.style.backgroundSize = `${nivelActual * 100}% ${nivelActual * 100}%`;
         pieza.style.backgroundPosition = `${col * pct}% ${row * pct}%`;
         pieza.style.aspectRatio = '1';
 

@@ -54,6 +54,49 @@
         window.location.href = origen || '/paciente/perfil';
     }
 
+    const ORDEN_JUEGOS = [
+        '/juegos/respiracion/globo',
+        '/juegos/respiracion/molino',
+        '/juegos/fonacion/gol',
+        '/juegos/fonacion/escala',
+        '/juegos/resonancia/escaleras',
+        '/juegos/resonancia/piano',
+        '/juegos/resonancia/veoveo',
+        '/juegos/articulacion/letra-b',
+        '/juegos/articulacion/letra-d',
+        '/juegos/articulacion/letra-f',
+        '/juegos/articulacion/letra-r',
+        '/juegos/articulacion/completa-palabra',
+        '/juegos/articulacion/moto-voz',
+        '/juegos/prosodia/adivina-animal',
+        '/juegos/prosodia/trabalenguas',
+        '/juegos/prosodia/adivinanza-imagen',
+        '/juegos/prosodia/completa-cancion',
+        '/juegos/discriminacion/sonidos-animales',
+        '/juegos/discriminacion/sonidos-objetos',
+        '/juegos/discriminacion/arrastra-sonido',
+        '/juegos/practica/rompecabezas',
+        '/juegos/practica/cara',
+        '/juegos/practica/asociacion',
+    ];
+
+    function obtenerSiguienteJuego(rutaActual) {
+        const limpia = (rutaActual || '').replace(/\/+$/, '') || '/';
+        const idx = ORDEN_JUEGOS.indexOf(limpia);
+        if (idx < 0 || idx >= ORDEN_JUEGOS.length - 1) return null;
+        return ORDEN_JUEGOS[idx + 1];
+    }
+
+    function irSiguienteJuego() {
+        const siguiente = obtenerSiguienteJuego(window.location.pathname);
+        if (siguiente) {
+            window.location.href = siguiente;
+            return;
+        }
+        const origen = sessionStorage.getItem('juegos_origen');
+        window.location.href = origen || '/juegos/';
+    }
+
     // Controlar el splash screen
     var splashTimerSet = false;
     
@@ -78,15 +121,14 @@
             }, 2500);
         }
 
-        // Auto-agregar botón "Continuar" en páginas de juegos
-        const origen = sessionStorage.getItem('juegos_origen');
+        // Auto-agregar botón "Siguiente" en páginas de juegos
         const esPantallaJuego = window.location.pathname.startsWith('/juegos/') && window.location.pathname !== '/juegos/';
-        if (origen && esPantallaJuego && !document.querySelector('.btn-continuar-global')) {
+        if (esPantallaJuego && !document.querySelector('.btn-continuar-global')) {
             const btnContinuar = document.createElement('button');
             btnContinuar.className = 'btn-continuar-global boton-rojo';
             btnContinuar.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:9999;padding:0.65rem 1rem;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);';
-            btnContinuar.textContent = 'Continuar';
-            btnContinuar.onclick = volverInicio;
+            btnContinuar.textContent = obtenerSiguienteJuego(window.location.pathname) ? 'Siguiente' : 'Finalizar';
+            btnContinuar.onclick = irSiguienteJuego;
             document.body.appendChild(btnContinuar);
         }
     });
