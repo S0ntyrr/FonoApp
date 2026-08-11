@@ -79,14 +79,35 @@
 
 <script>
 const RONDAS = [
-    { sonido: "🐕 Guau guau!", descripcion: "Sonido de un animal que ladra", respuesta: "🐶", opciones: ["🐱", "🐶", "🐸", "🐦", "🐮", "🐷"] },
-    { sonido: "🔔 Din don!", descripcion: "Sonido de una campana", respuesta: "🔔", opciones: ["📱", "🔔", "🎸", "🥁", "🎺", "🎹"] },
-    { sonido: "🌧️ Ploc ploc!", descripcion: "Sonido de la lluvia", respuesta: "🌧️", opciones: ["☀️", "❄️", "🌧️", "🌈", "⛅", "🌪️"] },
-    { sonido: "🚗 Brum brum!", descripcion: "Sonido de un vehículo", respuesta: "🚗", opciones: ["✈️", "🚂", "🚗", "🚢", "🚲", "🛵"] },
+    {
+        descripcion: "Sonido de un animal que ladra",
+        respuesta: "🐶",
+        audioUrl: "https://actions.google.com/sounds/v1/animals/dog_barking.ogg",
+        opciones: ["🐱", "🐶", "🐸", "🐦", "🐮", "🐷"]
+    },
+    {
+        descripcion: "Sonido de una campana/alarma",
+        respuesta: "🔔",
+        audioUrl: "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg",
+        opciones: ["📱", "🔔", "🎸", "🥁", "🎺", "🎹"]
+    },
+    {
+        descripcion: "Sonido de la lluvia/tormenta",
+        respuesta: "🌧️",
+        audioUrl: "https://actions.google.com/sounds/v1/weather/thunder_crack.ogg",
+        opciones: ["☀️", "❄️", "🌧️", "🌈", "⛅", "🌪️"]
+    },
+    {
+        descripcion: "Sonido de un vehículo",
+        respuesta: "🚗",
+        audioUrl: "https://actions.google.com/sounds/v1/transportation/car_horn.ogg",
+        opciones: ["✈️", "🚂", "🚗", "🚢", "🚲", "🛵"]
+    },
 ];
 
 let indiceActual = 0;
 let aciertos = 0;
+let audioActual = null;
 
 function mostrarRonda(idx) {
     indiceActual = idx;
@@ -120,8 +141,21 @@ function mostrarRonda(idx) {
 function reproducirSonido() {
     const r = RONDAS[indiceActual];
     const btn = document.getElementById('btn-sonido');
-    document.getElementById('sonido-estado').textContent = `🔊 ${r.sonido}`;
-    setTimeout(() => { document.getElementById('sonido-estado').textContent = r.descripcion; }, 2000);
+    if (audioActual) {
+        audioActual.pause();
+        audioActual.currentTime = 0;
+    }
+    audioActual = new Audio(r.audioUrl);
+    document.getElementById('sonido-estado').textContent = '🔊 Reproduciendo...';
+    btn.classList.add('reproduciendo');
+    audioActual.play().catch(() => {
+        btn.classList.remove('reproduciendo');
+        document.getElementById('sonido-estado').textContent = 'No se pudo reproducir el audio';
+    });
+    audioActual.onended = () => {
+        btn.classList.remove('reproduciendo');
+        document.getElementById('sonido-estado').textContent = r.descripcion;
+    };
 }
 
 function soltar(event, valorTactil) {

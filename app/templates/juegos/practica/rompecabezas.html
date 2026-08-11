@@ -161,14 +161,13 @@
 
 <script>
 // ─── Configuración ────────────────────────────────────────────────────────────
-const IMAGENES = [
-    { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Cute_dog.jpg/320px-Cute_dog.jpg', nombre: 'Perro' },
-    { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Dog_Breeds.jpg/320px-Dog_Breeds.jpg', nombre: 'Animales' },
-    { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/320px-Cat03.jpg', nombre: 'Gato' },
-];
+const IMAGENES_POR_NIVEL = {
+    3: { url: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=600&q=80', nombre: 'Perro' },
+    4: { url: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=80', nombre: 'Gato' },
+    5: { url: 'https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&w=600&q=80', nombre: 'Loro' },
+};
 
 let nivelActual = 3;
-let imagenActual = 0;
 let piezas = [];
 let piezaArrastrada = null;
 let score = 0;
@@ -191,7 +190,7 @@ function iniciarJuego() {
         actualizarTimer();
     }, 1000);
 
-    const img = IMAGENES[imagenActual % IMAGENES.length];
+    const img = IMAGENES_POR_NIVEL[nivelActual] || IMAGENES_POR_NIVEL[3];
     document.getElementById('preview-img').style.backgroundImage = `url('${img.url}')`;
 
     const board = document.getElementById('puzzle-board');
@@ -200,10 +199,13 @@ function iniciarJuego() {
 
     const total = nivelActual * nivelActual;
     piezas = Array.from({length: total}, (_, i) => i);
-    // Mezclar
+    // Mezclar (evitar iniciar ya resuelto)
     for (let i = piezas.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [piezas[i], piezas[j]] = [piezas[j], piezas[i]];
+    }
+    if (piezas.every((valor, idx) => valor === idx) && piezas.length > 1) {
+        [piezas[0], piezas[1]] = [piezas[1], piezas[0]];
     }
 
     piezas.forEach((posOriginal, posActual) => {
@@ -301,20 +303,16 @@ function onTouchEnd(e) {
 
 // ─── Lógica de intercambio ────────────────────────────────────────────────────
 function intercambiarPiezas(a, b) {
-    const board = document.getElementById('puzzle-board');
-    const piezasDOM = [...board.children];
-    const idxA = piezasDOM.indexOf(a);
-    const idxB = piezasDOM.indexOf(b);
+    // Intercambiar contenido de dos celdas para mantener posiciones de grilla estables
+    const originalA = a.dataset.original;
+    const originalB = b.dataset.original;
+    const bgPosA = a.style.backgroundPosition;
+    const bgPosB = b.style.backgroundPosition;
 
-    // Intercambiar en DOM
-    const refA = a.nextSibling;
-    const refB = b.nextSibling;
-    board.insertBefore(b, refA);
-    board.insertBefore(a, refB);
-
-    // Actualizar dataset.actual
-    a.dataset.actual = idxB;
-    b.dataset.actual = idxA;
+    a.dataset.original = originalB;
+    b.dataset.original = originalA;
+    a.style.backgroundPosition = bgPosB;
+    b.style.backgroundPosition = bgPosA;
 
     // Verificar correctas
     verificarPiezas();
@@ -349,7 +347,6 @@ function verificarPiezas() {
 }
 
 function siguienteNivel() {
-    imagenActual = (imagenActual + 1) % IMAGENES.length;
     if (nivelActual < 5) nivelActual++;
     document.querySelectorAll('.nivel-btn').forEach((b,i) => {
         b.classList.toggle('activo', [3,4,5][i] === nivelActual);

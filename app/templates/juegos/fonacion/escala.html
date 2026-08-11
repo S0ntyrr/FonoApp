@@ -114,6 +114,27 @@
     margin-bottom: 0.5rem;
     min-height: 1.5rem;
 }
+.fase-inhala {
+    display: block;
+    font-size: 2rem;
+    font-weight: 900;
+    color: #d32f2f;
+    letter-spacing: 0.8px;
+    line-height: 1.1;
+}
+.fase-espera {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #5d4037;
+}
+.fase-canta {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1565c0;
+}
 .escala-progreso {
     margin: 0.5rem 0;
 }
@@ -378,11 +399,11 @@ function mostrarFaseInhala() {
         timerAvance = null;
     }
     faseEscala = 'inhala';
-    document.getElementById('fase-texto-escala').textContent = '😮 INHALA... (prepárate)';
+    document.getElementById('fase-texto-escala').innerHTML = '<span class="fase-inhala">INHALA</span><span class="fase-espera">(prepárate y espera)</span>';
     timerInhala = setTimeout(() => {
         timerInhala = null;
         faseEscala = 'canta';
-        document.getElementById('fase-texto-escala').textContent = `🎵 Canta ${NIVELES[nivelActual].vocal} prolongada...`;
+        document.getElementById('fase-texto-escala').innerHTML = `<span class="fase-canta">🎵 CANTA ${NIVELES[nivelActual].vocal} LARGO (solo cuando aparezca este mensaje)</span>`;
     }, 2000);
 }
 
