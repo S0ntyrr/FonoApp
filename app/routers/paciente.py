@@ -44,7 +44,7 @@ from ..security import require_role
 router = APIRouter(
     prefix="/paciente",
     tags=["paciente-app"],
-    dependencies=[Depends(require_role(["paciente", "admin", "medico", "doctor"]))],
+    dependencies=[Depends(require_role(["paciente"]))],
 )
 templates = Jinja2Templates(directory="app/templates")
 
@@ -94,7 +94,7 @@ def _normalizar(valor: str) -> str:
 async def vista_perfil_paciente(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    email: str = "",  # Se obtiene del URL param o de la cookie de sesión
+    user: dict = Depends(require_role(["paciente"])),
 ):
     """
     Dashboard principal del paciente.
@@ -115,10 +115,8 @@ async def vista_perfil_paciente(
     El progreso de actividades se guarda en localStorage del navegador
     usando la URL de cada actividad como clave (no el índice).
     """
-    # ── Obtener email del paciente ─────────────────────────────────────────────
-    # Prioridad: URL param → cookie de sesión → fallback
-    if not email:
-        email = request.cookies.get("usuario_email", "paciente@tesis.com")
+    # ── Obtener email del paciente desde sesión ───────────────────────────────
+    email = user["email"]
     
     # ── Cargar usuario/perfil del paciente ─────────────────────────────────────
     usuario_doc = await db["usuarios"].find_one({"email": email, "rol": "paciente"})
@@ -256,6 +254,7 @@ async def vista_perfil_paciente(
 
 @router.post("/perfil")
 async def guardar_perfil_paciente(
+    request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
     paciente_email: str = Form(...),
     nombre: str = Form(...),
@@ -264,6 +263,7 @@ async def guardar_perfil_paciente(
     genero: str = Form(...),        # Masculino, Femenino, Otro
     tutor: str = Form(...),
     parentesco: str = Form(...),    # Madre, Padre, Abuelo, etc.
+    user: dict = Depends(require_role(["paciente"])),
 ):
     """
     Crea o actualiza el perfil extendido del paciente.
@@ -302,3 +302,4 @@ async def guardar_perfil_paciente(
 
     # Redirigir de vuelta al dashboard del paciente
     return RedirectResponse(url=f"/paciente/perfil?email={paciente_email}", status_code=303)
+    paciente_email = user["email"]

@@ -4,8 +4,15 @@ FonoApp - Router de Autenticación
 Maneja el login y registro de usuarios con seguridad mejorada.
 
 ARQUITECTURA DE SEGURIDAD:
-  - Sesiones firmadas con SessionMiddleware
-  - Contraseñas con bcrypt
+  
+  REGISTRO (nuevos usuarios):
+    - Las contraseñas se HASHEAN INMEDIATAMENTE con bcrypt
+    - No se almacenan nunca en texto plano
+    - Hash con 12 rounds de complejidad
+  
+  LOGIN:
+    - Verifica únicamente hashes bcrypt válidos
+    - Usa sesión firmada del servidor (SessionMiddleware)
   
   ÍNDICES:
     - Email indexado (UNIQUE) para búsquedas rápidas (~50ms)
@@ -13,17 +20,18 @@ ARQUITECTURA DE SEGURIDAD:
 
 RUTAS:
   GET  /auth/login              → Muestra el formulario de login
-  POST /auth/login              → Procesa el login (autoconvierte text plano → bcrypt)
+  POST /auth/login              → Procesa el login
   GET  /auth/registro           → Muestra el formulario de registro
   POST /auth/registro           → Crea nuevo paciente (contraseña ya hasheada)
-  GET  /auth/logout             → Cierra sesión real (borra sesión/cookies)
+  GET  /auth/logout             → Cierra sesión
+  POST /auth/logout             → Cierra sesión
   GET  /auth/terminos-condiciones → Muestra la página de términos y condiciones
 
 FLUJO DE LOGIN:
   1. Usuario ingresa email y contraseña
   2. Se busca usuario en MongoDB (con índice rápido)
-  3. Se verifica contraseña (bcrypt o texto plano)
-  4. Si está en texto plano → se hashea en background (async)
+  3. Se verifica contraseña bcrypt
+  4. Se guarda sesión firmada
   5. Se redirige según el rol
 
 FLUJO DE REGISTRO:
@@ -34,8 +42,7 @@ FLUJO DE REGISTRO:
   5. Se redirige a login
 
 NOTES:
-  - No hay sesiones JWT (usar cookies por ahora)
-  - Email se pasa por SQL en desarrollo (mejorar a JWT en prod)
+  - La cookie de sesión es HttpOnly y firmada.
 """
 
 from fastapi import APIRouter, Depends, Request, Form, status
@@ -43,6 +50,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from ..config import settings
 from ..database import get_db
 from ..security import hash_password, verify_password
 
@@ -125,7 +133,7 @@ async def procesar_registro(
     
     Campos del documento creado:
     {
-        nombre, email, password (texto plano),
+        nombre, email, password (bcrypt),
         rol: "paciente", nivel: 1, puntos: 0, estado: "activo"
     }
     """
@@ -236,17 +244,24 @@ async def procesar_login(
     else:
         destino = "/emisor/home"
 
-    # Crear sesión firmada y redirección
+    request.session.clear()
+    request.session["user"] = {"email": email_usuario, "rol": rol}
+
     response = RedirectResponse(url=destino, status_code=status.HTTP_303_SEE_OTHER)
-    request.session["usuario_email"] = email_usuario
-    request.session["usuario_rol"] = rol
     return response
 
 
 @router.get("/logout")
-async def logout(request: Request):
-    response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
+async def cerrar_sesion_get(request: Request):
     request.session.clear()
-    response.delete_cookie("usuario_email")
-    response.delete_cookie("usuario_rol")
+    response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(settings.SESSION_COOKIE_NAME)
+    return response
+
+
+@router.post("/logout")
+async def cerrar_sesion_post(request: Request):
+    request.session.clear()
+    response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(settings.SESSION_COOKIE_NAME)
     return response

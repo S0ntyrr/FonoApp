@@ -31,8 +31,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from .config import settings
 from .database import connect_to_mongo, close_mongo_connection
+from .config import settings
 from .routers import auth, emisor, paciente
 from .routers import routes_admin, routes_doctor, routes_juegos
 
@@ -55,11 +55,10 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
-
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SESSION_SECRET_KEY,
-    session_cookie="fonoapp_session",
+    session_cookie=settings.SESSION_COOKIE_NAME,
     max_age=settings.SESSION_MAX_AGE,
     same_site="lax",
     https_only=settings.SESSION_HTTPS_ONLY,

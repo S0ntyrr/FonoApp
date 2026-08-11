@@ -1,8 +1,13 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from ..security import require_role
 
-router = APIRouter(prefix="/emisor", tags=["emisor"])
+router = APIRouter(
+    prefix="/emisor",
+    tags=["emisor"],
+    dependencies=[Depends(require_role(["emisor"]))],
+)
 
 templates = Jinja2Templates(directory="app/templates")
 

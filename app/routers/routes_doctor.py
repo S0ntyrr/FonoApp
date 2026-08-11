@@ -57,7 +57,10 @@ JUEGOS_DISPONIBLES = [
 
 
 def _doctor_email_desde_request(request: Request) -> str:
-    return request.query_params.get("email") or request.cookies.get("usuario_email", "")
+    user = get_current_user(request)
+    if user:
+        return user.get("email", "")
+    return request.query_params.get("email", "")
 
 
 def _parse_object_id(value: str) -> ObjectId | None:

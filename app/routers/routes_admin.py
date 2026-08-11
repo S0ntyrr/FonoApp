@@ -45,19 +45,20 @@ Colecciones MongoDB usadas:
   - contenido_admin: textos, imágenes y videos
 """
 
+from uuid import uuid4
+
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime, timezone
-import os
 from pathlib import Path
 from random import choice
-from uuid import uuid4
 from bson import ObjectId
 from bson.errors import InvalidId
 from collections import defaultdict
 
+from ..config import settings
 from ..database import get_db
 from ..models import ContenidoAdmin, HistorialActividad
 from ..security import hash_password, require_role
@@ -69,6 +70,9 @@ router = APIRouter(
 )
 
 templates = Jinja2Templates(directory="app/templates")
+UPLOAD_DIR = Path("app/static/uploads")
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov", ".ogg"}
 
 # Juegos disponibles en el sistema
 JUEGOS_DISPONIBLES = [
@@ -131,26 +135,37 @@ def _actividades_por_dificultad(dificultad: str) -> list[dict]:
     return catalogo[:cantidad]
 
 
-def _guardar_upload_seguro(
-    archivo: UploadFile,
-    upload_dir: Path,
-    prefijo: str,
-    extensiones_permitidas: set[str],
-    max_bytes: int,
-) -> str:
-    extension = Path(archivo.filename or "").suffix.lower()
-    if extension not in extensiones_permitidas:
-        raise HTTPException(status_code=400, detail="Tipo de archivo no permitido")
+async def _guardar_upload_seguro(
+    upload: UploadFile,
+    allowed_extensions: set[str],
+    max_size_bytes: int,
+) -> str | None:
+    if not upload or not upload.filename:
+        return None
 
-    contenido = archivo.file.read(max_bytes + 1)
-    if len(contenido) > max_bytes:
-        raise HTTPException(status_code=413, detail="Archivo demasiado grande")
+    extension = Path(upload.filename).suffix.lower()
+    if extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Extensión no permitida: {extension}",
+        )
 
-    nombre_archivo = f"{prefijo}_{uuid4().hex}{extension}"
-    ruta_archivo = upload_dir / nombre_archivo
-    with ruta_archivo.open("wb") as destino:
-        destino.write(contenido)
+    contenido = await upload.read()
+    if not contenido:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo subido está vacío.",
+        )
+    if len(contenido) > max_size_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"El archivo excede el límite de {max_size_bytes} bytes.",
+        )
 
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    nombre_archivo = f"{uuid4().hex}{extension}"
+    ruta_fs = UPLOAD_DIR / nombre_archivo
+    ruta_fs.write_bytes(contenido)
     return f"/static/uploads/{nombre_archivo}"
 
 
@@ -528,21 +543,21 @@ async def subir_media_admin(
     imagenes = doc.get("imagenes", [])
     videos = doc.get("videos", [])
 
-    upload_dir = Path("app/static/uploads")
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    ruta_imagen = await _guardar_upload_seguro(
+        upload=imagen,
+        allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
+        max_size_bytes=settings.MAX_IMAGE_UPLOAD_BYTES,
+    )
+    if ruta_imagen:
+        imagenes.append(ruta_imagen)
 
-    max_imagen_bytes = 5 * 1024 * 1024
-    max_video_bytes = 30 * 1024 * 1024
-    allowed_images = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-    allowed_videos = {".mp4", ".webm", ".mov"}
-
-    if imagen and imagen.filename:
-        url_imagen = _guardar_upload_seguro(imagen, upload_dir, "img", allowed_images, max_imagen_bytes)
-        imagenes.append(url_imagen)
-
-    if video and video.filename:
-        url_video = _guardar_upload_seguro(video, upload_dir, "vid", allowed_videos, max_video_bytes)
-        videos.append(url_video)
+    ruta_video = await _guardar_upload_seguro(
+        upload=video,
+        allowed_extensions=ALLOWED_VIDEO_EXTENSIONS,
+        max_size_bytes=settings.MAX_VIDEO_UPLOAD_BYTES,
+    )
+    if ruta_video:
+        videos.append(ruta_video)
 
     await db["contenido_admin"].update_one(
         {"_id": doc["_id"]},
@@ -563,17 +578,9 @@ async def eliminar_media_admin(
         if tipo == "imagen":
             imagenes = [i for i in doc.get("imagenes", []) if i != url]
             await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"imagenes": imagenes}})
-            if url.startswith("/static/uploads/"):
-                ruta = Path("app") / url.lstrip("/")
-                if ruta.exists():
-                    os.remove(ruta)
         elif tipo == "video":
             videos = [v for v in doc.get("videos", []) if v != url]
             await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"videos": videos}})
-            if url.startswith("/static/uploads/"):
-                ruta = Path("app") / url.lstrip("/")
-                if ruta.exists():
-                    os.remove(ruta)
     return RedirectResponse(url="/admin/contenido", status_code=status.HTTP_303_SEE_OTHER)
 
 

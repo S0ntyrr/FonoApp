@@ -84,7 +84,7 @@
         {% endif %}
 
         <button type="submit" class="boton-rojo ancho-completo" style="margin-top:1rem;">💾 Guardar perfil</button>
-        <a href="/auth/login" class="boton-rojo-borde ancho-completo" style="display:block;text-align:center;margin-top:0.5rem;text-decoration:none;">🚪 Cerrar sesión</a>
+        <a href="/auth/logout" class="boton-rojo-borde ancho-completo" style="display:block;text-align:center;margin-top:0.5rem;text-decoration:none;">🚪 Cerrar sesión</a>
     </form>
 </aside>
 
@@ -113,11 +113,12 @@
             <div id="listaActividades" class="lista-actividades">
                 {% if actividades_disponibles %}
                     {% for cat in actividades_disponibles %}
+                        {% set cat_idx = loop.index0 %}
                         <div class="categoria-titulo">{{ cat.categoria }}</div>
                         {% for act in cat.actividades %}
                             {% if act is mapping %}
                                 <a href="{{ act.url }}" class="actividad-item actividad-link" style="text-decoration:none;" data-url="{{ act.url }}">
-                                    <span class="actividad-check" id="check-{{ loop.parent.index0 }}-{{ loop.index0 }}">○</span>
+                                    <span class="actividad-check" id="check-{{ cat_idx }}-{{ loop.index0 }}">○</span>
                                     <div class="actividad-detalle">{{ act.actividad }}</div>
                                     <div class="marcador">›</div>
                                 </a>

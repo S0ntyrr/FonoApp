@@ -3,16 +3,9 @@ FonoApp - Utilidades de Seguridad
 ===================================
 Módulo centralizado para manejo de seguridad:
 - Hash de contraseñas con bcrypt
-- Verificación de contraseñas
-- Verificación de roles de usuario
+- Verificación de contraseñas hasheadas
+- Lectura de sesión firmada
 - Protección de rutas por rol
-
-Uso en routers:
-    from .security import hash_password, verify_password, get_current_user_role
-
-IMPORTANTE: Las contraseñas existentes en la BD están en texto plano.
-Al hacer login, si la contraseña no está hasheada, se hashea automáticamente.
-Esto permite migración gradual sin romper cuentas existentes.
 """
 
 import bcrypt
@@ -42,40 +35,39 @@ def verify_password(password: str, hashed: str) -> bool:
     """
     Verifica si una contraseña coincide con su hash.
     
-    También acepta contraseñas en texto plano (para compatibilidad
-    con cuentas creadas antes de implementar bcrypt).
-    
     Args:
         password: Contraseña en texto plano a verificar
-        hashed: Hash almacenado en la BD (o contraseña en texto plano)
+        hashed: Hash almacenado en la BD
     
     Returns:
         True si la contraseña es correcta, False si no
     """
-    if not hashed or not (hashed.startswith("$2b$") or hashed.startswith("$2a$") or hashed.startswith("$2y$")):
+    if not hashed:
         return False
-    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+    if not (hashed.startswith("$2a$") or hashed.startswith("$2b$") or hashed.startswith("$2y$")):
+        return False
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+    except ValueError:
+        return False
 
 
 def get_current_user(request: Request) -> dict:
     """
-    Obtiene los datos del usuario actual desde las cookies de sesión.
+    Obtiene los datos del usuario actual desde la sesión firmada.
     
     Returns:
         dict con 'email' y 'rol' del usuario, o None si no hay sesión
     """
-    sesion = getattr(request, "session", {})
-    email = sesion.get("usuario_email")
-    rol = sesion.get("usuario_rol")
+    user_data = request.session.get("user")
+    if not isinstance(user_data, dict):
+        return None
 
-    if not email or not rol:
-        # Compatibilidad temporal para cookies antiguas
-        email = request.cookies.get("usuario_email")
-        rol = request.cookies.get("usuario_rol")
-
+    email = user_data.get("email")
+    rol = user_data.get("rol")
     if not email or not rol:
         return None
-    
+
     return {"email": email, "rol": rol}
 
 

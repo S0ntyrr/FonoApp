@@ -63,8 +63,13 @@ from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
+from ..security import require_role
 
-router = APIRouter(prefix="/juegos", tags=["juegos"])
+router = APIRouter(
+    prefix="/juegos",
+    tags=["juegos"],
+    dependencies=[Depends(require_role(["admin", "medico", "doctor", "paciente", "emisor"]))],
+)
 templates = Jinja2Templates(directory="app/templates")
 
 
@@ -416,7 +421,7 @@ async def discriminacion_arrastra_sonido(request: Request):
 @router.post("/resultado", response_class=JSONResponse)
 async def guardar_resultado_juego(
     db: AsyncIOMotorDatabase = Depends(get_db),
-    paciente_email: str = Form(...),
+    paciente_email: str = Form(""),
     categoria: str = Form(...),
     juego: str = Form(...),
     paso_completado: int = Form(...),
@@ -426,12 +431,15 @@ async def guardar_resultado_juego(
     puntos: int = Form(0),
     nivel: int = Form(1),
     ruta: str = Form(""),
+    user: dict = Depends(require_role(["paciente"])),
 ):
     """
     Guarda el resultado de un juego completado por un paciente.
     También registra en historial_actividades para que el doctor pueda ver el progreso.
     Llamado desde el frontend JS al finalizar cada juego.
     """
+    paciente_email = user["email"]
+
     ahora = datetime.now()
     inicio_dia = datetime(ahora.year, ahora.month, ahora.day)
     fin_dia = inicio_dia + timedelta(days=1)
@@ -497,7 +505,10 @@ async def guardar_resultado_juego(
 
 
 @router.get("/seed-actividades", response_class=JSONResponse)
-async def seed_actividades(db: AsyncIOMotorDatabase = Depends(get_db)):
+async def seed_actividades(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(require_role(["admin"])),
+):
     """
     Actualiza la colección 'actividades' con los juegos reales implementados.
     Llamar una vez para sincronizar la BD con el estado actual del sistema.
