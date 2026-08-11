@@ -46,7 +46,7 @@
     <p style="text-align:center;">¿Sabes qué letra están pronunciando?</p>
     <button class="mic-btn" id="mic-s1">🎤</button>
     <div class="feedback" id="fb-s1">¡Bravo! Es la letra D 🎉</div>
-    <div class="big-letter">🐉 D d</div>
+    <div class="big-letter" id="letra-d-display">🐉 ? ?</div>
     <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
   </div>
 
@@ -83,7 +83,8 @@
       <div style="font-size:4rem;">🏆</div>
       <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
       <p>Has completado los ejercicios de la letra <strong>D</strong></p>
-      <a href="/juegos/articulacion" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:20px;">Volver a Articulación</a>
+      <a href="/paciente/perfil" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:12px;">Continuar</a>
+      <a href="/juegos/articulacion" style="display:block;background:#fff;color:#e63946;border:1px solid #e63946;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:8px;">Volver a Articulación</a>
     </div>
   </div>
 </div>
@@ -100,6 +101,7 @@ document.getElementById('mic-s1').addEventListener('click', function(){
   setTimeout(()=>{
     this.textContent='🎤'; this.style.background='#e63946';
     document.getElementById('fb-s1').style.display='block';
+    document.getElementById('letra-d-display').textContent='🐉 D d';
   },1800);
 });
 

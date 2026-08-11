@@ -112,6 +112,15 @@ let audioCtx = null;
 let micStream = null;
 let recognition = null;
 
+function normalizarTexto(valor) {
+    return (valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zñ0-9\s]/g, '')
+        .trim();
+}
+
 function comenzarJuego() {
     document.getElementById('btn-comenzar').style.display = 'none';
     siguienteAnimal();
@@ -140,10 +149,12 @@ function actualizarPuntos() {
 }
 
 function verificarRespuesta() {
-    const respuesta = document.getElementById('respuesta-input').value.toLowerCase().trim();
+    const respuestaOriginal = document.getElementById('respuesta-input').value;
+    const respuesta = normalizarTexto(respuestaOriginal);
+    const animalEsperado = normalizarTexto(animalActual.nombre);
     if (!respuesta) return;
 
-    if (respuesta.includes(animalActual.nombre) || animalActual.nombre.includes(respuesta)) {
+    if (respuesta.includes(animalEsperado) || animalEsperado.includes(respuesta)) {
         document.getElementById('resultado-correcto').style.display = 'block';
         document.getElementById('resultado-incorrecto').style.display = 'none';
         document.getElementById('respuesta-area').style.display = 'none';

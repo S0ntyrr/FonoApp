@@ -30,6 +30,7 @@ Colecciones MongoDB usadas:
 
 from datetime import datetime, timedelta
 from collections import defaultdict
+import unicodedata
 from random import sample, seed as random_seed
 
 from fastapi import APIRouter, Request, Depends, Form
@@ -87,7 +88,9 @@ ACTIVIDADES_REALES = [
 
 
 def _normalizar(valor: str) -> str:
-    return (valor or "").strip().lower()
+    texto = unicodedata.normalize("NFD", (valor or "").strip().lower())
+    texto = "".join(ch for ch in texto if unicodedata.category(ch) != "Mn")
+    return texto.replace("-", "_").replace(" ", "_")
 
 
 @router.get("/perfil", response_class=HTMLResponse)

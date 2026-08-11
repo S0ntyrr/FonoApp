@@ -41,7 +41,7 @@
 
   <!-- STEP 1 -->
   <div class="step active" id="s1">
-    <div class="big-letter">🧒 F</div>
+    <div class="big-letter" id="letra-f-display">🧒 ?</div>
     <div style="text-align:center;font-size:3rem;margin:12px 0;">😁</div>
     <p style="text-align:center;">¿Qué letra estás viendo?</p>
     <button class="mic-btn" id="mic-s1">🎤</button>
@@ -73,7 +73,7 @@
     <p>Para evitar que a la foca se le rompa el hielo y caiga al agua. Resuelve la sopa de letras 🦭🧊</p>
     <div class="wordsearch" id="ws"></div>
     <div class="words-to-find" id="wtf"></div>
-    <button class="btn-next" onclick="goStep(5); guardarResultadoJuego('articulacion','letra_f',5,5,true,60,1);">Finalizar ✓</button>
+    <button class="btn-next" id="btn-finalizar-f" onclick="goStep(5); guardarResultadoJuego('articulacion','letra_f',5,5,true,60,1);" disabled style="opacity:0.6;cursor:not-allowed;">Finalizar ✓</button>
   </div>
 
   <!-- STEP 5 -->
@@ -82,7 +82,8 @@
       <div style="font-size:4rem;">🏆</div>
       <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
       <p>Has completado los ejercicios de la letra <strong>F</strong></p>
-      <a href="/juegos/articulacion" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:20px;">Volver a Articulación</a>
+      <a href="/paciente/perfil" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:12px;">Continuar</a>
+      <a href="/juegos/articulacion" style="display:block;background:#fff;color:#e63946;border:1px solid #e63946;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:8px;">Volver a Articulación</a>
     </div>
   </div>
 </div>
@@ -96,7 +97,12 @@ function goStep(n){
 
 document.getElementById('mic-s1').addEventListener('click',function(){
   this.textContent='⏹️';this.style.background='#27ae60';
-  setTimeout(()=>{this.textContent='🎤';this.style.background='#e63946';document.getElementById('fb-s1').style.display='block';},1800);
+  setTimeout(()=>{
+    this.textContent='🎤';
+    this.style.background='#e63946';
+    document.getElementById('fb-s1').style.display='block';
+    document.getElementById('letra-f-display').textContent='🧒 F';
+  },1800);
 });
 document.getElementById('mic-s2').addEventListener('click',function(){
   this.textContent='⏹️';this.style.background='#27ae60';
@@ -128,7 +134,7 @@ const wsLetters=[
   ['Y','Z','F','O','C','A','A','B'],
   ['F','A','L','D','A','C','D','E'],
 ];
-const wsWords=['FRESA','FUEGO','FUENTE','FLAUTA','FOCA','FALDA'];
+const wsWords=['FRESA','FUEGO','FLAUTA','FOCA','FALDA'];
 const wsEl=document.getElementById('ws');
 wsLetters.forEach((row,ri)=>{
   row.forEach((letter,ci)=>{
@@ -149,12 +155,65 @@ wsWords.forEach(w=>{
   wtfEl.appendChild(chip);
 });
 
-// Simple tap-to-find (tap any cell with F to mark found)
+const foundWords = new Set();
+const selectedCells = [];
+const maxWordLen = wsWords.reduce((m, w) => Math.max(m, w.length), 0);
+
+function actualizarEstadoFinalizar() {
+  const btn = document.getElementById('btn-finalizar-f');
+  const listo = foundWords.size === wsWords.length;
+  btn.disabled = !listo;
+  btn.style.opacity = listo ? '1' : '0.6';
+  btn.style.cursor = listo ? 'pointer' : 'not-allowed';
+}
+
+function limpiarSeleccionActual() {
+  selectedCells.forEach(cell => cell.classList.remove('selected'));
+  selectedCells.length = 0;
+}
+
+function marcarPalabraEncontrada(word) {
+  if (foundWords.has(word)) return;
+  foundWords.add(word);
+  const chip = document.getElementById('wtf-' + word);
+  if (chip) chip.classList.add('found');
+  selectedCells.forEach(cell => {
+    cell.classList.remove('selected');
+    cell.classList.add('found');
+  });
+  selectedCells.length = 0;
+  actualizarEstadoFinalizar();
+}
+
+function evaluarSeleccion() {
+  if (selectedCells.length < 3) return;
+  const texto = selectedCells.map(cell => cell.textContent).join('');
+  const textoInvertido = texto.split('').reverse().join('');
+  const match = wsWords.find(w => !foundWords.has(w) && (w === texto || w === textoInvertido));
+  if (match) {
+    marcarPalabraEncontrada(match);
+    return;
+  }
+  if (selectedCells.length >= maxWordLen) {
+    limpiarSeleccionActual();
+  }
+}
+
 wsEl.addEventListener('click',e=>{
   const cell=e.target;
-  if(!cell.classList.contains('ws-cell'))return;
-  cell.classList.toggle('selected');
+  if(!cell.classList.contains('ws-cell') || cell.classList.contains('found'))return;
+  if (cell.classList.contains('selected')) {
+    cell.classList.remove('selected');
+    const idx = selectedCells.indexOf(cell);
+    if (idx >= 0) selectedCells.splice(idx, 1);
+    return;
+  }
+  cell.classList.add('selected');
+  selectedCells.push(cell);
+  evaluarSeleccion();
 });
+
+actualizarEstadoFinalizar();
 </script>
 </body>
 </html>

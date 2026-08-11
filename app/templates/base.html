@@ -78,24 +78,16 @@
             }, 2500);
         }
 
-        // Auto-agregar botón 🏠 Inicio en páginas de juegos
+        // Auto-agregar botón "Continuar" en páginas de juegos
         const origen = sessionStorage.getItem('juegos_origen');
-        if (origen) {
-            const volverLinks = document.querySelectorAll('a.boton-rojo-borde, a.btn-volver-cat');
-            volverLinks.forEach(link => {
-                const href = link.getAttribute('href') || '';
-                if (href.includes('/juegos/') || href === '/juegos/') {
-                    const parent = link.parentElement;
-                    if (parent && !parent.querySelector('.btn-inicio-global')) {
-                        const btnInicio = document.createElement('button');
-                        btnInicio.className = 'btn-inicio-global boton-rojo-borde';
-                        btnInicio.style.cssText = 'padding:0.5rem 1rem;border-radius:4px;cursor:pointer;margin-left:0.5rem;';
-                        btnInicio.textContent = '🏠 Inicio';
-                        btnInicio.onclick = volverInicio;
-                        parent.appendChild(btnInicio);
-                    }
-                }
-            });
+        const esPantallaJuego = window.location.pathname.startsWith('/juegos/') && window.location.pathname !== '/juegos/';
+        if (origen && esPantallaJuego && !document.querySelector('.btn-continuar-global')) {
+            const btnContinuar = document.createElement('button');
+            btnContinuar.className = 'btn-continuar-global boton-rojo';
+            btnContinuar.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:9999;padding:0.65rem 1rem;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);';
+            btnContinuar.textContent = 'Continuar';
+            btnContinuar.onclick = volverInicio;
+            document.body.appendChild(btnContinuar);
         }
     });
     </script>

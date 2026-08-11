@@ -217,7 +217,8 @@ let notaActual = 0;
 let faseEscala = 'inhala'; // inhala, canta
 let audioCtxE = null, analyserE = null, micStreamE = null, micActivoE = false, animFrameE = null;
 let notasCompletadas = 0;
-let timerNota = null;
+let timerInhala = null;
+let timerAvance = null;
 let audioCtxSonido = null;
 
 const canvas = document.getElementById('partitura-canvas');
@@ -360,16 +361,26 @@ function detenerMicEscala() {
     if (micStreamE) { micStreamE.getTracks().forEach(t => t.stop()); micStreamE = null; }
     if (audioCtxE) { audioCtxE.close(); audioCtxE = null; }
     if (animFrameE) { cancelAnimationFrame(animFrameE); animFrameE = null; }
-    if (timerNota) { clearTimeout(timerNota); timerNota = null; }
+    if (timerInhala) { clearTimeout(timerInhala); timerInhala = null; }
+    if (timerAvance) { clearTimeout(timerAvance); timerAvance = null; }
     document.getElementById('btn-mic-escala').classList.remove('activo');
     document.getElementById('mic-estado-escala').textContent = 'Toca para activar el micrófono';
     document.getElementById('fase-texto-escala').textContent = 'Toca el micrófono para comenzar';
 }
 
 function mostrarFaseInhala() {
+    if (timerInhala) {
+        clearTimeout(timerInhala);
+        timerInhala = null;
+    }
+    if (timerAvance) {
+        clearTimeout(timerAvance);
+        timerAvance = null;
+    }
     faseEscala = 'inhala';
     document.getElementById('fase-texto-escala').textContent = '😮 INHALA... (prepárate)';
-    timerNota = setTimeout(() => {
+    timerInhala = setTimeout(() => {
+        timerInhala = null;
         faseEscala = 'canta';
         document.getElementById('fase-texto-escala').textContent = `🎵 Canta ${NIVELES[nivelActual].vocal} prolongada...`;
     }, 2000);
@@ -384,9 +395,9 @@ function medirVozEscala() {
 
     if (faseEscala === 'canta' && volPct > 20) {
         // Avanzar nota
-        if (!timerNota) {
-            timerNota = setTimeout(() => {
-                timerNota = null;
+        if (!timerAvance) {
+            timerAvance = setTimeout(() => {
+                timerAvance = null;
                 notaActual++;
                 if (notaActual >= NOTAS.length) {
                     completarEscala();

@@ -260,9 +260,19 @@ function activarFaseCantar() {
     document.getElementById('instruccion-piano-texto').textContent = '¡Muy bien! Ahora vamos a cantarla.';
 }
 
-function reproducirFrecuencia(freq, duracion) {
+async function asegurarAudioPiano() {
+    if (!audioCtxP) {
+        audioCtxP = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtxP.state === 'suspended') {
+        await audioCtxP.resume();
+    }
+    return audioCtxP;
+}
+
+async function reproducirFrecuencia(freq, duracion) {
     try {
-        if (!audioCtxP) audioCtxP = new (window.AudioContext || window.webkitAudioContext)();
+        await asegurarAudioPiano();
         const osc = audioCtxP.createOscillator();
         const gain = audioCtxP.createGain();
         osc.connect(gain); gain.connect(audioCtxP.destination);
@@ -272,11 +282,13 @@ function reproducirFrecuencia(freq, duracion) {
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtxP.currentTime + duracion);
         osc.start(audioCtxP.currentTime);
         osc.stop(audioCtxP.currentTime + duracion);
-    } catch(e) {}
+    } catch(e) {
+        console.warn('No se pudo reproducir la nota del piano', e);
+    }
 }
 
-function reproducirMelodia() {
-    if (!audioCtxP) audioCtxP = new (window.AudioContext || window.webkitAudioContext)();
+async function reproducirMelodia() {
+    await asegurarAudioPiano();
     MELODIA_ESTRELLITA.forEach((idx, i) => {
         const freq = NOTAS_PIANO[idx].freq;
         const t = audioCtxP.currentTime + i * 0.5;

@@ -71,18 +71,18 @@
 </style>
 
 <script>
-// Simulamos sonidos con texto descriptivo (en producción se usarían archivos de audio reales)
 const PREGUNTAS = [
-    { sonido: "🐕 Guau guau guau!", descripcion: "Escucha: un animal que ladra", respuesta: "perro", opciones: ["🐱", "🐶", "🐸", "🐦"], correcta: 1 },
-    { sonido: "🐱 Miau miau miau!", descripcion: "Escucha: un animal que maúlla", respuesta: "gato", opciones: ["🐶", "🐱", "🐮", "🐷"], correcta: 1 },
-    { sonido: "🐸 Croac croac croac!", descripcion: "Escucha: un animal que croac", respuesta: "rana", opciones: ["🐸", "🦆", "🐢", "🐟"], correcta: 0 },
-    { sonido: "🐮 Muuu muuu muuu!", descripcion: "Escucha: un animal que muge", respuesta: "vaca", opciones: ["🐷", "🐑", "🐮", "🐴"], correcta: 2 },
-    { sonido: "🐦 Pío pío pío!", descripcion: "Escucha: un animal que pía", respuesta: "pájaro", opciones: ["🦋", "🐦", "🐝", "🦗"], correcta: 1 },
+    { descripcion: "Escucha: un animal que ladra", respuesta: "perro", audioUrl: "https://actions.google.com/sounds/v1/animals/dog_barking.ogg", opciones: ["🐱", "🐶", "🐸", "🐦"], correcta: 1 },
+    { descripcion: "Escucha: un animal que ronronea", respuesta: "gato", audioUrl: "https://actions.google.com/sounds/v1/animals/cat_purr.ogg", opciones: ["🐶", "🐱", "🐮", "🐷"], correcta: 1 },
+    { descripcion: "Escucha: otro tipo de ronroneo", respuesta: "gato", audioUrl: "https://actions.google.com/sounds/v1/animals/cat_purr_close.ogg", opciones: ["🐸", "🐱", "🦆", "🐟"], correcta: 1 },
+    { descripcion: "Escucha: un insecto zumbando", respuesta: "abeja", audioUrl: "https://actions.google.com/sounds/v1/animals/bee_buzz.ogg", opciones: ["🦋", "🐦", "🐝", "🦗"], correcta: 2 },
+    { descripcion: "Escucha: sonido de insectos de campo", respuesta: "cigarra", audioUrl: "https://actions.google.com/sounds/v1/animals/cicadas.ogg", opciones: ["🦗", "🐢", "🐞", "🐛"], correcta: 0 },
 ];
 
 let indiceActual = 0;
 let aciertos = 0;
 let reproduciendo = false;
+let audioActual = null;
 
 function mostrarPregunta(idx) {
     indiceActual = idx;
@@ -111,12 +111,21 @@ function mostrarPregunta(idx) {
 function reproducirSonido() {
     const p = PREGUNTAS[indiceActual];
     const btn = document.getElementById('btn-sonido');
+    if (audioActual) {
+        audioActual.pause();
+        audioActual.currentTime = 0;
+    }
+    audioActual = new Audio(p.audioUrl);
     btn.classList.add('reproduciendo');
-    document.getElementById('sonido-estado').textContent = `🔊 ${p.sonido}`;
-    setTimeout(() => {
+    document.getElementById('sonido-estado').textContent = '🔊 Reproduciendo...';
+    audioActual.play().catch(() => {
+        document.getElementById('sonido-estado').textContent = 'No se pudo reproducir el audio';
+        btn.classList.remove('reproduciendo');
+    });
+    audioActual.onended = () => {
         btn.classList.remove('reproduciendo');
         document.getElementById('sonido-estado').textContent = p.descripcion;
-    }, 2000);
+    };
 }
 
 function verificar(idx, btn) {
