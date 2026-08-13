@@ -213,7 +213,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     sessionStorage.setItem('actividades_hoy_urls', JSON.stringify(actividadesHoy));
+    localStorage.setItem('actividades_hoy_urls', JSON.stringify(actividadesHoy));
     sessionStorage.setItem(
+        'actividades_hoy_completadas',
+        JSON.stringify(Array.from(ACTIVIDADES_COMPLETADAS).map(u => (u || '').replace(/\/+$/, '')))
+    );
+    localStorage.setItem(
         'actividades_hoy_completadas',
         JSON.stringify(Array.from(ACTIVIDADES_COMPLETADAS).map(u => (u || '').replace(/\/+$/, '')))
     );

@@ -51,6 +51,7 @@
                     if (!completadas.includes(ruta)) {
                         completadas.push(ruta);
                         sessionStorage.setItem('actividades_hoy_completadas', JSON.stringify(completadas));
+                        localStorage.setItem('actividades_hoy_completadas', JSON.stringify(completadas));
                     }
                 }
                 console.log('Resultado guardado:', data);
@@ -91,12 +92,22 @@
     ];
 
     function _normalizarRuta(path) {
-        return (path || '').replace(/\/+$/, '') || '/';
+        if (!path) return '/';
+        let normalizada = path;
+        try {
+            if (typeof path === 'string' && /^https?:\/\//i.test(path)) {
+                normalizada = new URL(path).pathname || '/';
+            }
+        } catch (e) {}
+        normalizada = (normalizada || '').split('?')[0].split('#')[0];
+        return normalizada.replace(/\/+$/, '') || '/';
     }
 
     function _leerListaActividadesHoy() {
         try {
-            const lista = JSON.parse(sessionStorage.getItem('actividades_hoy_urls') || '[]');
+            const rawSession = sessionStorage.getItem('actividades_hoy_urls');
+            const rawLocal = localStorage.getItem('actividades_hoy_urls');
+            const lista = JSON.parse(rawSession || rawLocal || '[]');
             return Array.isArray(lista) ? lista.map(_normalizarRuta) : [];
         } catch (e) {
             return [];
@@ -105,7 +116,9 @@
 
     function _leerCompletadasHoy() {
         try {
-            const lista = JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]');
+            const rawSession = sessionStorage.getItem('actividades_hoy_completadas');
+            const rawLocal = localStorage.getItem('actividades_hoy_completadas');
+            const lista = JSON.parse(rawSession || rawLocal || '[]');
             return Array.isArray(lista) ? lista.map(_normalizarRuta) : [];
         } catch (e) {
             return [];
@@ -127,19 +140,41 @@
             const completadasHoy = new Set(_leerCompletadasHoy());
             if (listaHoy.length) {
                 const pendientes = listaHoy.filter(url => !completadasHoy.has(url));
+                const idxActual = listaHoy.indexOf(rutaActual);
+                if (idxActual >= 0) {
+                    const siguienteDelDia = listaHoy[idxActual + 1];
+                    if (siguienteDelDia) {
+                        window.location.href = siguienteDelDia;
+                        return;
+                    }
+                    if (!pendientes.length) {
+                        sessionStorage.setItem('flujo_juegos_modo', 'hub');
+                    } else {
+                        const siguientePendiente = pendientes.find(url => url !== rutaActual) || pendientes[0];
+                        if (siguientePendiente && siguientePendiente !== rutaActual) {
+                            window.location.href = siguientePendiente;
+                            return;
+                        }
+                    }
+                } else {
+                    // Si no reconocemos la ruta actual, mantenemos el flujo diario
+                    // y llevamos al siguiente pendiente en vez de saltar a flujo libre.
+                    if (pendientes.length) {
+                        window.location.href = pendientes[0];
+                        return;
+                    }
+                    sessionStorage.setItem('flujo_juegos_modo', 'hub');
+                }
+                if (modoFlujo === 'actividades_hoy' && listaHoy.length) {
+                    const pendientesPost = listaHoy.filter(url => !completadasHoy.has(url));
+                    if (pendientesPost.length) {
+                        window.location.href = pendientesPost[0];
+                        return;
+                    }
+                }
                 if (!pendientes.length) {
                     sessionStorage.setItem('flujo_juegos_modo', 'hub');
                 } else {
-                    const idxActual = listaHoy.indexOf(rutaActual);
-                    if (idxActual >= 0) {
-                        for (let i = idxActual + 1; i < listaHoy.length; i++) {
-                            if (!completadasHoy.has(listaHoy[i])) {
-                                window.location.href = listaHoy[i];
-                                return;
-                            }
-                        }
-                    }
-                    window.location.href = pendientes[0];
                     return;
                 }
             }
@@ -211,11 +246,16 @@
         if (esPantallaJuego && !document.querySelector('.btn-continuar-global')) {
             const btnContinuar = document.createElement('button');
             btnContinuar.className = 'btn-continuar-global boton-rojo';
-            btnContinuar.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:9999;padding:0.65rem 1rem;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);';
+            const esMovil = window.matchMedia('(max-width: 768px)').matches;
+            btnContinuar.style.cssText = esMovil
+                ? 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:0.78rem 1rem;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);font-size:0.95rem;font-weight:700;'
+                : 'position:fixed;right:14px;bottom:14px;z-index:9999;padding:0.65rem 1rem;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);';
             const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
             if (modoFlujo === 'actividades_hoy') {
-                const pendientes = _leerListaActividadesHoy().filter(url => !_leerCompletadasHoy().includes(url));
-                btnContinuar.textContent = pendientes.length ? 'Siguiente actividad' : 'Siguiente libre';
+                const listaHoy = _leerListaActividadesHoy();
+                const pendientes = listaHoy.filter(url => !_leerCompletadasHoy().includes(url));
+                const idxActual = listaHoy.indexOf(rutaActual);
+                btnContinuar.textContent = (!pendientes.length || idxActual >= listaHoy.length - 1) ? 'Siguiente libre' : 'Siguiente actividad';
             } else {
                 btnContinuar.textContent = obtenerSiguienteJuego(window.location.pathname) ? 'Siguiente' : 'Finalizar';
             }

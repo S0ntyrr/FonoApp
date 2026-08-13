@@ -135,6 +135,13 @@
     font-weight: 800;
     color: #1565c0;
 }
+.fase-guia {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1b5e20;
+}
 .escala-progreso {
     margin: 0.5rem 0;
 }
@@ -184,50 +191,52 @@
 </style>
 
 <script>
-const NOTAS = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI', 'DO²'];
+const NOTAS = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI', 'DO'];
 const FRECUENCIAS = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
 const AGUJEROS_Y = [160, 140, 120, 100, 80, 60, 40, 20];
+const ESCALA_ASC = 'DO RE MI FA SOL LA SI DO';
+const ESCALA_DESC = 'DO SI LA SOL FA MI RE DO';
 
 const NIVELES = [
     {
-        titulo: 'Imita el sonido produciendo una /a/ prolongada.',
-        subtitulo: 'Toma aire y emite la secuencia con tu voz.',
-        vocal: '/a/',
+        titulo: 'Imita la escala diciendo las notas en voz alta.',
+        subtitulo: 'Secuencia: DO RE MI FA SOL LA SI DO.',
+        secuencia: ESCALA_ASC,
         velocidad: 'normal',
         tag: ''
     },
     {
-        titulo: 'Lo haces estupendo, continuemos del tono más alto al más bajo emitiendo la letra a de manera prolongada.',
-        subtitulo: '',
-        vocal: '/a/',
+        titulo: 'Lo haces estupendo, ahora vamos en sentido contrario.',
+        subtitulo: 'Secuencia: DO SI LA SOL FA MI RE DO.',
+        secuencia: ESCALA_DESC,
         velocidad: 'normal',
         tag: ''
     },
     {
-        titulo: 'Ahora imita el sonido pronunciando una /e/ prolongada.',
-        subtitulo: '¡Un poco más rápido!',
-        vocal: '/e/',
+        titulo: 'Ahora repite la escala con más ritmo.',
+        subtitulo: 'Secuencia: DO RE MI FA SOL LA SI DO.',
+        secuencia: ESCALA_ASC,
         velocidad: 'rapido',
         tag: 'Subiste de nivel.'
     },
     {
         titulo: 'Intentémoslo ahora desde el tono más bajo hasta el más alto.',
-        subtitulo: 'Recuerda tomar aire y producir la escala con una sola respiración.',
-        vocal: '/e/',
+        subtitulo: 'Secuencia: DO SI LA SOL FA MI RE DO.',
+        secuencia: ESCALA_DESC,
         velocidad: 'rapido',
         tag: ''
     },
     {
-        titulo: 'En la recta final. Imita la escala musical pronunciando una /i/ prolongada.',
-        subtitulo: '¡A toda velocidad!',
-        vocal: '/i/',
+        titulo: 'En la recta final, mantén claridad al decir cada nota.',
+        subtitulo: 'Secuencia: DO RE MI FA SOL LA SI DO.',
+        secuencia: ESCALA_ASC,
         velocidad: 'muy_rapido',
         tag: 'En la recta final.'
     },
     {
         titulo: 'Llegaste a la meta, finalmente repite el sonido de la flauta, desde el más alto hasta el más bajo.',
-        subtitulo: '',
-        vocal: '/i/',
+        subtitulo: 'Secuencia: DO SI LA SOL FA MI RE DO.',
+        secuencia: ESCALA_DESC,
         velocidad: 'muy_rapido',
         tag: ''
     },
@@ -403,7 +412,9 @@ function mostrarFaseInhala() {
     timerInhala = setTimeout(() => {
         timerInhala = null;
         faseEscala = 'canta';
-        document.getElementById('fase-texto-escala').innerHTML = `<span class="fase-canta">🎵 CANTA ${NIVELES[nivelActual].vocal} LARGO (solo cuando aparezca este mensaje)</span>`;
+        const notaObjetivo = NOTAS[notaActual] || 'DO';
+        const secuencia = NIVELES[nivelActual].secuencia || ESCALA_ASC;
+        document.getElementById('fase-texto-escala').innerHTML = `<span class="fase-canta">🎵 DI LA NOTA: ${notaObjetivo}</span><span class="fase-guia">Secuencia: ${secuencia}</span>`;
     }, 2000);
 }
 
