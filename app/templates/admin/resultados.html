@@ -3,10 +3,27 @@
 <section class="pantalla-movil" style="padding-top:1rem;">
 
     <div class="panel-header">
-        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <a href="/admin/dashboard" class="btn-volver-cat">← Dashboard</a>
         <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">📊 Resultados de juegos</h1>
         <div style="width:70px;"></div>
     </div>
+
+    <form method="get" action="/admin/resultados" class="filtros-card">
+        <select name="paciente_email" class="campo-texto">
+            <option value="">Todos los pacientes</option>
+            {% for email in pacientes_lista %}
+                <option value="{{ email }}" {% if email == paciente_email_sel %}selected{% endif %}>{{ email }}</option>
+            {% endfor %}
+        </select>
+        <select name="categoria" class="campo-texto">
+            <option value="">Todas las categorías</option>
+            {% for cat in categorias %}
+                <option value="{{ cat }}" {% if cat == categoria_sel %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="buscar" class="campo-texto" placeholder="Buscar juego..." value="{{ buscar_sel or '' }}">
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:0;">Filtrar</button>
+    </form>
 
     <!-- Estadísticas por juego -->
     {% if stats_juego %}
@@ -14,7 +31,7 @@
         <h3 style="font-size:0.82rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.6rem;">Aciertos por juego</h3>
         <div class="stats-juego-grid">
             {% for juego, s in stats_juego.items() %}
-                {% set pct = ((s.completados / s.total) * 100) | int if s.total > 0 else 0 %}
+                {% set pct = s.avance_promedio if s.avance_promedio is defined else (((s.completados / s.total) * 100) | int if s.total > 0 else 0) %}
                 <div class="stat-juego-fila">
                     <span class="stat-juego-nombre">{{ juego | replace('_', ' ') | title }}</span>
                     <div class="stat-juego-barra-wrap">
@@ -22,7 +39,7 @@
                              style="width:{{ pct }}%;"></div>
                     </div>
                     <span class="stat-juego-pct">{{ pct }}%</span>
-                    <span class="stat-juego-nums">{{ s.completados }}/{{ s.total }}</span>
+                    <span class="stat-juego-nums">{{ s.puntaje_promedio if s.puntaje_promedio is defined else 0 }} pts</span>
                 </div>
             {% endfor %}
         </div>
@@ -62,7 +79,7 @@
                     <div class="res-info">
                         <p class="res-paciente">{{ r.paciente_email }}</p>
                         <p class="res-juego">{{ r.juego | replace('_', ' ') | title }} · {{ r.categoria }}</p>
-                        <p class="res-meta">{{ r.paso_completado }}/{{ r.total_pasos }} pasos · 📅 {{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '-' }}</p>
+                        <p class="res-meta">{{ r.paso_completado }}/{{ r.total_pasos }} pasos ({{ r.avance_pct }}%) · 🏆 {{ r.puntaje_sistema }} pts · 📅 {{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '-' }}</p>
                     </div>
                     {% if r.completado %}
                         <span class="badge-ok">✓</span>
@@ -83,8 +100,9 @@
 
 <style>
 .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
-.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
-.btn-volver-panel:hover { background:#fff5f5; }
+.btn-volver-cat { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#fff5f5; }
+.filtros-card { display:grid; gap:0.45rem; background:#fff; border-radius:10px; padding:0.7rem; margin-bottom:0.9rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
 
 .stats-juego-grid { background:#fff; border-radius:12px; padding:0.8rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:0.5rem; }
 .stat-juego-fila { display:flex; align-items:center; gap:0.5rem; }

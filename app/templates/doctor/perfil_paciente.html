@@ -39,7 +39,7 @@
         {% if stats_por_categoria %}
             <div class="grafica-container">
                 {% for cat, stats in stats_por_categoria.items() %}
-                    {% set pct = ((stats.completados / stats.total) * 100) | int if stats.total > 0 else 0 %}
+                    {% set pct = stats.avance_promedio if stats.avance_promedio is defined else (((stats.completados / stats.total) * 100) | int if stats.total > 0 else 0) %}
                     <div class="grafica-fila">
                         <div class="grafica-label">{{ cat | title }}</div>
                         <div class="grafica-barra-wrap">
@@ -52,6 +52,7 @@
                             <span class="num-fail">✗ {{ stats.en_progreso }}</span>
                         </div>
                     </div>
+                    <p class="grafica-submeta">Promedio puntaje: {{ stats.puntaje_promedio if stats.puntaje_promedio is defined else 0 }}</p>
                 {% endfor %}
             </div>
         {% else %}
@@ -113,6 +114,7 @@
 .btn-crud.editar { background:#fff3e0; color:#e65100; }
 .grafica-container { display:flex; flex-direction:column; gap:0.7rem; background:#fff; border-radius:12px; padding:1rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
 .grafica-fila { display:flex; align-items:center; gap:0.6rem; }
+.grafica-submeta { margin:0.2rem 0 0.55rem 90px; font-size:0.7rem; color:#888; }
 .grafica-label { font-size:0.78rem; font-weight:600; color:#555; min-width:90px; text-transform:capitalize; }
 .grafica-barra-wrap { flex:1; background:#f0f0f0; border-radius:6px; height:18px; overflow:hidden; }
 .grafica-barra { height:100%; background:linear-gradient(90deg,#d32f2f,#e57373); border-radius:6px; min-width:4px; display:flex; align-items:center; justify-content:flex-end; padding-right:4px; }

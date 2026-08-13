@@ -97,7 +97,7 @@
       <div style="font-size:4rem;">🏆</div>
       <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
       <p>Has completado los ejercicios de la letra <strong>R</strong></p>
-      <a href="/juegos/articulacion/completa-palabra" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:12px;">Siguiente</a>
+      <a id="btn-flujo-letra-r" href="/juegos/articulacion/completa-palabra" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:12px;">Siguiente</a>
       <a href="/juegos/articulacion" style="display:block;background:#fff;color:#e63946;border:1px solid #e63946;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:8px;">Volver a Articulación</a>
     </div>
   </div>
@@ -148,6 +148,24 @@ words.forEach(item=>{
   });
   cgrid.appendChild(div);
 });
+
+const btnFlujo = document.getElementById('btn-flujo-letra-r');
+const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
+if (btnFlujo && modoFlujo === 'actividades_hoy') {
+  const normalizar = (u) => (u || '').replace(/\/+$/, '');
+  const actual = normalizar(window.location.pathname);
+  const lista = (JSON.parse(sessionStorage.getItem('actividades_hoy_urls') || '[]') || []).map(normalizar);
+  const completadas = new Set((JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]') || []).map(normalizar));
+  const pendientes = lista.filter((u) => !completadas.has(u) && u !== actual);
+  if (pendientes.length) {
+    btnFlujo.href = pendientes[0];
+    btnFlujo.textContent = 'Siguiente actividad';
+  } else {
+    sessionStorage.setItem('flujo_juegos_modo', 'hub');
+    btnFlujo.href = '/juegos/articulacion/completa-palabra';
+    btnFlujo.textContent = 'Seguir en juegos';
+  }
+}
 </script>
 </body>
 </html>

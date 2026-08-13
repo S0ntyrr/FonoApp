@@ -4,6 +4,9 @@ from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from bson.errors import InvalidId
+from datetime import datetime, timedelta
+from collections import defaultdict
+import re
 
 from ..database import get_db
 from ..security import get_current_user, require_role
@@ -92,6 +95,58 @@ async def _emails_pacientes_asignados(
         if email:
             emails.add(email)
     return emails
+
+
+def _filtro_feedback(estado: str):
+    if estado == "pendientes":
+        return {"$or": [{"feedback": None}, {"feedback": ""}]}
+    if estado == "evaluadas":
+        return {"feedback": {"$nin": [None, ""]}}
+    return {}
+
+
+async def _adjuntar_evidencia_historial(
+    db: AsyncIOMotorDatabase,
+    historial_docs: list[dict],
+) -> list[dict]:
+    for doc in historial_docs:
+        fecha = doc.get("fecha")
+        juego = doc.get("juego", "")
+        paciente_email = doc.get("paciente_email", "")
+        evidencia = ""
+        pasos_label = "-"
+        ruta_juego = ""
+        puntaje_sistema = doc.get("puntaje_sistema", doc.get("puntos_obtenidos", 0))
+
+        query = {
+            "paciente_email": paciente_email,
+            "juego": juego,
+        }
+        if fecha:
+            inicio = datetime(fecha.year, fecha.month, fecha.day)
+            fin = inicio + timedelta(days=1)
+            query["fecha"] = {"$gte": inicio, "$lt": fin}
+
+        resultado = await db["resultados_juegos"].find_one(query, sort=[("fecha", -1)])
+        if resultado:
+            nota = (resultado.get("notas") or "").strip()
+            ruta_juego = resultado.get("ruta", "")
+            paso = resultado.get("paso_completado", 0)
+            total = resultado.get("total_pasos", 0)
+            pasos_label = f"{paso}/{total}" if total else "-"
+            puntaje_sistema = resultado.get("puntaje_actividad", resultado.get("puntos", puntaje_sistema))
+            if nota:
+                evidencia = nota
+            elif ruta_juego:
+                evidencia = f"Recorrido en {ruta_juego} con progreso {pasos_label}"
+        if not evidencia:
+            evidencia = f"Completó {doc.get('actividad', 'actividad')} ({doc.get('categoria', 'categoría')})"
+
+        doc["detalle_actividad"] = evidencia
+        doc["pasos_label"] = pasos_label
+        doc["ruta_juego"] = ruta_juego
+        doc["puntaje_sistema"] = puntaje_sistema
+    return historial_docs
 
 
 @router.get("/home", response_class=HTMLResponse)
@@ -193,12 +248,27 @@ async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIO
     for r in resultados_raw:
         cat = r.get("categoria", "otro")
         if cat not in stats_por_categoria:
-            stats_por_categoria[cat] = {"completados": 0, "en_progreso": 0, "total": 0}
+            stats_por_categoria[cat] = {
+                "completados": 0,
+                "en_progreso": 0,
+                "total": 0,
+                "avance_acumulado": 0,
+                "puntaje_acumulado": 0,
+            }
         stats_por_categoria[cat]["total"] += 1
+        total_pasos = max(1, int(r.get("total_pasos", 1)))
+        paso = max(0, int(r.get("paso_completado", 0)))
+        avance = int((paso / total_pasos) * 100)
+        stats_por_categoria[cat]["avance_acumulado"] += avance
+        stats_por_categoria[cat]["puntaje_acumulado"] += int(r.get("puntaje_actividad", r.get("puntos", 0)))
         if r.get("completado"):
             stats_por_categoria[cat]["completados"] += 1
         else:
             stats_por_categoria[cat]["en_progreso"] += 1
+    for cat, stats in stats_por_categoria.items():
+        total = max(1, stats["total"])
+        stats["avance_promedio"] = int(stats["avance_acumulado"] / total)
+        stats["puntaje_promedio"] = int(stats["puntaje_acumulado"] / total)
 
     cursor_hist = db["historial_actividades"].find({"paciente_email": paciente["email"]}).sort("fecha", -1).limit(10)
     historial = []
@@ -341,7 +411,13 @@ async def cancelar_asignacion(asignacion_id: str, request: Request, db: AsyncIOM
 
 
 @router.get("/historial", response_class=HTMLResponse)
-async def vista_historial_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def vista_historial_doctor(
+    request: Request,
+    paciente_email: str = "",
+    categoria: str = "",
+    estado: str = "todos",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
     user = get_current_user(request)
     if not user or user.get("rol") not in ("medico", "doctor"):
         return RedirectResponse(url="/auth/login", status_code=303)
@@ -352,19 +428,43 @@ async def vista_historial_doctor(request: Request, db: AsyncIOMotorDatabase = De
 
     pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     historial = []
+    pacientes_lista = sorted(list(pacientes_asignados))
+    query = {"paciente_email": {"$in": pacientes_lista}}
+    if paciente_email and paciente_email in pacientes_asignados:
+        query["paciente_email"] = paciente_email
+    if categoria:
+        query["categoria"] = categoria
+    query.update(_filtro_feedback(estado))
+
     if pacientes_asignados:
-        cursor = db["historial_actividades"].find({"paciente_email": {"$in": list(pacientes_asignados)}}).sort("fecha", -1)
+        cursor = db["historial_actividades"].find(query).sort("fecha", -1).limit(250)
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
             historial.append(doc)
+        historial = await _adjuntar_evidencia_historial(db, historial)
+
+    categorias = sorted({h.get("categoria", "") for h in historial if h.get("categoria")})
 
     return templates.TemplateResponse("doctor/historial.html", {
-        "request": request, "titulo_pagina": "Historial de actividades", "historial": historial,
+        "request": request,
+        "titulo_pagina": "Historial de actividades",
+        "historial": historial,
+        "pacientes_lista": pacientes_lista,
+        "categorias": categorias,
+        "paciente_email_sel": paciente_email,
+        "categoria_sel": categoria,
+        "estado_sel": estado,
     })
 
 
 @router.get("/resultados", response_class=HTMLResponse)
-async def vista_resultados_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def vista_resultados_doctor(
+    request: Request,
+    paciente_email: str = "",
+    categoria: str = "",
+    buscar: str = "",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
     user = get_current_user(request)
     if not user or user.get("rol") not in ("medico", "doctor"):
         return RedirectResponse(url="/auth/login", status_code=303)
@@ -375,19 +475,45 @@ async def vista_resultados_doctor(request: Request, db: AsyncIOMotorDatabase = D
 
     pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     resultados = []
+    pacientes_lista = sorted(list(pacientes_asignados))
+    query = {"paciente_email": {"$in": pacientes_lista}}
+    if paciente_email and paciente_email in pacientes_asignados:
+        query["paciente_email"] = paciente_email
+    if categoria:
+        query["categoria"] = categoria
+    if buscar:
+        query["juego"] = {"$regex": re.escape(buscar.strip()), "$options": "i"}
+
     if pacientes_asignados:
-        cursor = db["resultados_juegos"].find({"paciente_email": {"$in": list(pacientes_asignados)}}).sort("fecha", -1).limit(100)
+        cursor = db["resultados_juegos"].find(query).sort("fecha", -1).limit(250)
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
+            total_pasos = max(1, int(doc.get("total_pasos", 1)))
+            paso = max(0, int(doc.get("paso_completado", 0)))
+            doc["avance_pct"] = int((paso / total_pasos) * 100)
             resultados.append(doc)
 
+    categorias = sorted({r.get("categoria", "") for r in resultados if r.get("categoria")})
+
     return templates.TemplateResponse("doctor/resultados.html", {
-        "request": request, "titulo_pagina": "Resultados de juegos", "resultados": resultados,
+        "request": request,
+        "titulo_pagina": "Resultados de juegos",
+        "resultados": resultados,
+        "pacientes_lista": pacientes_lista,
+        "categorias": categorias,
+        "paciente_email_sel": paciente_email,
+        "categoria_sel": categoria,
+        "buscar_sel": buscar,
     })
 
 
 @router.get("/evaluaciones-pendientes", response_class=HTMLResponse)
-async def vista_evaluaciones_pendientes(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def vista_evaluaciones_pendientes(
+    request: Request,
+    paciente_email: str = "",
+    categoria: str = "",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
     user = get_current_user(request)
     if not user or user.get("rol") not in ("medico", "doctor"):
         return RedirectResponse(url="/auth/login", status_code=303)
@@ -398,17 +524,33 @@ async def vista_evaluaciones_pendientes(request: Request, db: AsyncIOMotorDataba
 
     pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     evaluaciones = []
+    pacientes_lista = sorted(list(pacientes_asignados))
+    query = {
+        "paciente_email": {"$in": pacientes_lista},
+        "$or": [{"feedback": None}, {"feedback": ""}],
+    }
+    if paciente_email and paciente_email in pacientes_asignados:
+        query["paciente_email"] = paciente_email
+    if categoria:
+        query["categoria"] = categoria
+
     if pacientes_asignados:
-        cursor = db["historial_actividades"].find({
-            "paciente_email": {"$in": list(pacientes_asignados)},
-            "$or": [{"feedback": None}, {"feedback": ""}],
-        }).sort("fecha", -1)
+        cursor = db["historial_actividades"].find(query).sort("fecha", -1).limit(250)
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
             evaluaciones.append(doc)
+        evaluaciones = await _adjuntar_evidencia_historial(db, evaluaciones)
+
+    categorias = sorted({e.get("categoria", "") for e in evaluaciones if e.get("categoria")})
 
     return templates.TemplateResponse("doctor/evaluaciones_pendientes.html", {
-        "request": request, "titulo_pagina": "Evaluaciones Pendientes", "evaluaciones": evaluaciones,
+        "request": request,
+        "titulo_pagina": "Evaluaciones Pendientes",
+        "evaluaciones": evaluaciones,
+        "pacientes_lista": pacientes_lista,
+        "categorias": categorias,
+        "paciente_email_sel": paciente_email,
+        "categoria_sel": categoria,
     })
 
 
@@ -417,6 +559,7 @@ async def guardar_feedback(
     historial_id: str,
     request: Request,
     feedback: str = Form(...),
+    calificacion: int = Form(3),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     user = get_current_user(request)
@@ -439,7 +582,21 @@ async def guardar_feedback(
     if historial.get("paciente_email") not in pacientes_asignados:
         return RedirectResponse(url="/doctor/evaluaciones-pendientes", status_code=303)
 
-    await db["historial_actividades"].update_one({"_id": object_id}, {"$set": {"feedback": feedback}})
+    calificacion = max(1, min(5, int(calificacion)))
+    puntaje_base = int(historial.get("puntaje_sistema", historial.get("puntos_obtenidos", 0)))
+    puntaje_base = max(0, min(100, puntaje_base))
+    puntaje_clinico = int(round((puntaje_base * 0.7) + ((calificacion * 20) * 0.3)))
+    await db["historial_actividades"].update_one(
+        {"_id": object_id},
+        {
+            "$set": {
+                "feedback": feedback,
+                "calificacion_doctor": calificacion,
+                "puntaje_clinico": puntaje_clinico,
+                "fecha_feedback": datetime.utcnow(),
+            }
+        },
+    )
     return RedirectResponse(url="/doctor/evaluaciones-pendientes", status_code=303)
 
 

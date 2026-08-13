@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil" style="padding-top:1rem;">
+    <div class="panel-header">
+        <a href="/admin/pacientes" class="btn-volver-cat">← Pacientes</a>
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.05rem;">Perfil paciente</h1>
+        <div style="width:72px;"></div>
+    </div>
+
+    <div class="card-perfil">
+        <div class="avatar">{{ (paciente.nombre or paciente.email)[0] | upper }}</div>
+        <div>
+            <p class="nombre">{{ paciente.nombre or 'Sin nombre' }}</p>
+            <p class="email">{{ paciente.email }}</p>
+            {% if perfil %}
+                <p class="dato">{{ perfil.edad }} años · {{ perfil.escolaridad }} · {{ perfil.genero }}</p>
+                <p class="dato">Tutor: {{ perfil.tutor }} ({{ perfil.parentesco }})</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if stats_por_categoria %}
+        <h3 class="titulo-rojo" style="font-size:0.95rem;margin:0.9rem 0 0.5rem;">📈 Avance por categoría</h3>
+        <div class="bloque">
+            {% for cat, st in stats_por_categoria.items() %}
+                <div class="fila">
+                    <span class="label">{{ cat }}</span>
+                    <div class="barra-bg"><div class="barra" style="width:{{ st.avance_promedio }}%"></div></div>
+                    <span class="pct">{{ st.avance_promedio }}%</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if resultados %}
+        <h3 class="titulo-rojo" style="font-size:0.95rem;margin:1rem 0 0.5rem;">🎮 Últimos resultados</h3>
+        <div class="bloque">
+            {% for r in resultados %}
+                <div class="item">
+                    <p class="item-title">{{ r.juego | replace('_', ' ') | title }}</p>
+                    <p class="item-meta">{{ r.categoria }} · {{ r.paso_completado }}/{{ r.total_pasos }} · {{ r.fecha.strftime('%d/%m/%Y') if r.fecha else '-' }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if historial %}
+        <h3 class="titulo-rojo" style="font-size:0.95rem;margin:1rem 0 0.5rem;">📋 Historial evaluable</h3>
+        <div class="bloque">
+            {% for h in historial %}
+                <div class="item">
+                    <p class="item-title">{{ h.actividad }}</p>
+                    <p class="item-meta">{{ h.categoria }} · 🧭 {{ h.pasos_label }} · 🏆 {{ h.puntaje_sistema or h.puntos_obtenidos }}</p>
+                    <p class="item-detalle">{{ h.detalle_actividad }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+<style>
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem}
+.btn-volver-cat{background:none;border:1px solid #d32f2f;color:#d32f2f;border-radius:20px;padding:0.3rem 0.8rem;text-decoration:none;font-size:0.82rem;font-weight:600}
+.card-perfil{display:flex;gap:0.8rem;background:#fff;padding:0.85rem;border-radius:12px;box-shadow:0 1px 5px rgba(0,0,0,0.06)}
+.avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#d32f2f,#b71c1c);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.nombre{margin:0;font-size:0.95rem;font-weight:700}
+.email{margin:0.1rem 0;font-size:0.75rem;color:#777}
+.dato{margin:0.1rem 0;font-size:0.76rem;color:#555}
+.bloque{background:#fff;border-radius:10px;padding:0.7rem;display:flex;flex-direction:column;gap:0.5rem;box-shadow:0 1px 5px rgba(0,0,0,0.05)}
+.fila{display:flex;align-items:center;gap:0.5rem}
+.label{min-width:98px;font-size:0.74rem;color:#555}
+.barra-bg{flex:1;background:#eee;border-radius:6px;height:10px;overflow:hidden}
+.barra{height:100%;background:linear-gradient(90deg,#d32f2f,#e57373)}
+.pct{font-size:0.72rem;font-weight:700;color:#444;min-width:32px;text-align:right}
+.item{border:1px solid #f1f1f1;border-radius:8px;padding:0.5rem}
+.item-title{margin:0;font-size:0.84rem;font-weight:700}
+.item-meta{margin:0.15rem 0 0;font-size:0.72rem;color:#777}
+.item-detalle{margin:0.2rem 0 0;font-size:0.74rem;color:#444;background:#f8f8f8;padding:0.3rem 0.45rem;border-radius:6px}
+</style>
+{% endblock %}

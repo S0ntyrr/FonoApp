@@ -2,11 +2,26 @@
 {% block contenido %}
 <section class="pantalla-movil" style="padding-top:1rem;">
     <div class="panel-header">
-        <a href="/doctor/home" class="btn-volver-panel">← Volver</a>
+        <a href="/doctor/home" class="btn-volver-cat">← Volver</a>
         <h1 class="titulo-rojo" style="margin:0;font-size:1.1rem;">📋 Evaluaciones pendientes</h1>
         <div style="width:70px;"></div>
     </div>
     <p class="texto-pequeño" style="margin-bottom:1rem;color:#888;">Actividades sin evaluar. Agrega un comentario para marcarlas como evaluadas.</p>
+    <form method="get" action="/doctor/evaluaciones-pendientes" class="filtros-card">
+        <select name="paciente_email" class="campo-texto">
+            <option value="">Todos los pacientes</option>
+            {% for email in pacientes_lista %}
+                <option value="{{ email }}" {% if email == paciente_email_sel %}selected{% endif %}>{{ email }}</option>
+            {% endfor %}
+        </select>
+        <select name="categoria" class="campo-texto">
+            <option value="">Todas las categorías</option>
+            {% for cat in categorias %}
+                <option value="{{ cat }}" {% if cat == categoria_sel %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:0;">Filtrar</button>
+    </form>
 
     {% if evaluaciones %}
         <div class="evaluaciones-lista">
@@ -17,11 +32,19 @@
                         <div class="evaluacion-info">
                             <p class="evaluacion-paciente">{{ ev.paciente_email }}</p>
                             <p class="evaluacion-meta">{{ ev.categoria | title }} · {{ ev.actividad }}</p>
-                            <p class="evaluacion-meta">📅 {{ ev.fecha.strftime('%d/%m/%Y %H:%M') if ev.fecha else '-' }} · 🏆 {{ ev.puntos_obtenidos }} pts · Nivel {{ ev.nivel }}</p>
+                            <p class="evaluacion-meta">📅 {{ ev.fecha.strftime('%d/%m/%Y %H:%M') if ev.fecha else '-' }} · 🧭 {{ ev.pasos_label }} · 🏆 {{ ev.puntaje_sistema or ev.puntos_obtenidos }} pts · Nivel {{ ev.nivel }}</p>
+                            <p class="evaluacion-evidencia">{{ ev.detalle_actividad }}</p>
                         </div>
                     </div>
                     <form method="post" action="/doctor/evaluaciones/{{ ev._id }}/feedback" class="feedback-form">
                         <textarea name="feedback" class="campo-texto feedback-textarea" placeholder="Escribe tu evaluación aquí..." rows="2" required></textarea>
+                        <select name="calificacion" class="campo-texto" required>
+                            <option value="5">5 - Excelente</option>
+                            <option value="4">4 - Muy bien</option>
+                            <option value="3" selected>3 - Aceptable</option>
+                            <option value="2">2 - Requiere apoyo</option>
+                            <option value="1">1 - Bajo desempeño</option>
+                        </select>
                         <button type="submit" class="btn-feedback">💬 Guardar evaluación</button>
                     </form>
                 </div>
@@ -41,8 +64,9 @@
 </section>
 <style>
 .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
-.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
-.btn-volver-panel:hover { background:#fff5f5; }
+.btn-volver-cat { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#fff5f5; }
+.filtros-card { background:#fff; border-radius:10px; padding:0.7rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); margin-bottom:0.8rem; display:grid; gap:0.45rem; }
 .evaluaciones-lista { display:flex; flex-direction:column; gap:0.8rem; }
 .evaluacion-card { background:#fff; border-radius:12px; padding:0.9rem 1rem; box-shadow:0 2px 8px rgba(0,0,0,0.07); border-left:4px solid #f57c00; }
 .evaluacion-header { display:flex; align-items:flex-start; gap:0.7rem; margin-bottom:0.7rem; }
@@ -50,6 +74,7 @@
 .evaluacion-info { flex:1; }
 .evaluacion-paciente { margin:0; font-size:0.88rem; font-weight:700; color:#1a1a1a; }
 .evaluacion-meta { margin:0.1rem 0 0; font-size:0.75rem; color:#888; }
+.evaluacion-evidencia { margin:0.25rem 0 0; font-size:0.76rem; color:#444; background:#f7f7f7; border-radius:7px; padding:0.35rem 0.5rem; }
 .feedback-form { display:flex; flex-direction:column; gap:0.5rem; }
 .feedback-textarea { resize:vertical; min-height:60px; font-size:0.88rem; padding:0.6rem 0.8rem; }
 .btn-feedback { background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; border:none; border-radius:8px; padding:0.55rem 1rem; font-size:0.85rem; font-weight:700; cursor:pointer; align-self:flex-end; }

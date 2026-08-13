@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        <div class="acceso-juegos-card" onclick="sessionStorage.setItem('juegos_origen','/paciente/perfil'); window.location.href='/juegos/'">
+        <div class="acceso-juegos-card" onclick="sessionStorage.setItem('juegos_origen','/paciente/perfil'); sessionStorage.setItem('flujo_juegos_modo','hub'); window.location.href='/juegos/'">
             <div class="acceso-juegos-icono">🎮</div>
             <div class="acceso-juegos-info">
                 <h3>Juegos Fonoaudiológicos</h3>
@@ -186,20 +186,37 @@ localStorage.setItem('paciente_email_actual', _emailPaciente);
 sessionStorage.setItem('juegos_origen', '/paciente/perfil');
 </script>
 <script src="/static/js/paciente.js"></script>
+<script id="actividades-completadas-json" type="application/json">
+{{ actividades_completadas_urls | default([], true) | tojson }}
+</script>
 <script>
-const ACTIVIDADES_COMPLETADAS = new Set({{ actividades_completadas_urls | tojson }});
+const actividadesCompletadasRaw = document.getElementById('actividades-completadas-json')?.textContent || '[]';
+const ACTIVIDADES_COMPLETADAS = new Set(JSON.parse(actividadesCompletadasRaw).map(u => (u || '').replace(/\/+$/, '')));
 
 document.addEventListener('DOMContentLoaded', function() {
     const items = document.querySelectorAll('.actividad-link');
+    const actividadesHoy = [];
 
     items.forEach(item => {
         const url = item.dataset.url || item.getAttribute('href');
-        if (ACTIVIDADES_COMPLETADAS.has(url)) {
+        if (url && url !== '/juegos/') actividadesHoy.push(url.replace(/\/+$/, ''));
+        const urlNormalizada = (url || '').replace(/\/+$/, '');
+        if (ACTIVIDADES_COMPLETADAS.has(urlNormalizada)) {
             item.classList.add('completada');
             const check = item.querySelector('.actividad-check');
             if (check) check.textContent = '✓';
         }
+        item.addEventListener('click', function () {
+            sessionStorage.setItem('flujo_juegos_modo', 'actividades_hoy');
+            sessionStorage.setItem('juegos_origen', '/paciente/perfil');
+        });
     });
+
+    sessionStorage.setItem('actividades_hoy_urls', JSON.stringify(actividadesHoy));
+    sessionStorage.setItem(
+        'actividades_hoy_completadas',
+        JSON.stringify(Array.from(ACTIVIDADES_COMPLETADAS).map(u => (u || '').replace(/\/+$/, '')))
+    );
 
     const total = document.querySelectorAll('.actividad-link').length;
     const completadas = document.querySelectorAll('.actividad-link.completada').length;
@@ -224,5 +241,23 @@ document.addEventListener('DOMContentLoaded', function() {
 .sesion-completada { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1.5rem 1rem; background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-radius: 14px; border: 2px solid #4caf50; margin-top: 0.8rem; }
 .sesion-titulo { margin: 0.5rem 0 0.2rem; font-size: 1.1rem; font-weight: 800; color: #2e7d32; }
 .sesion-sub { margin: 0.2rem 0; font-size: 0.85rem; color: #555; }
+@media (max-width: 600px) {
+    .acceso-juegos-card {
+        justify-content: center;
+        text-align: center;
+        gap: 0.5rem;
+    }
+    .acceso-juegos-flecha { display: none; }
+    .acceso-juegos-info h3,
+    .acceso-juegos-info p { text-align: center; }
+    .calendario-grid {
+        justify-content: center;
+        gap: 0.4rem;
+    }
+    .lista-actividades {
+        padding-left: 0.15rem;
+        padding-right: 0.15rem;
+    }
+}
 </style>
 {% endblock %}

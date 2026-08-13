@@ -443,6 +443,11 @@ async def guardar_resultado_juego(
     ahora = datetime.now()
     inicio_dia = datetime(ahora.year, ahora.month, ahora.day)
     fin_dia = inicio_dia + timedelta(days=1)
+    total_pasos_seguro = max(1, int(total_pasos))
+    paso_seguro = max(0, int(paso_completado))
+    progreso_pct = int((paso_seguro / total_pasos_seguro) * 100)
+    puntos_norm = max(0, min(100, int(puntos)))
+    puntaje_actividad = int(round((progreso_pct * 0.65) + (puntos_norm * 0.35)))
 
     # 1. Guardar/actualizar en resultados_juegos (1 registro por paciente+juego+día)
     resultado = {
@@ -457,6 +462,8 @@ async def guardar_resultado_juego(
         "ruta": ruta,
         "notas": notas,
         "puntos": puntos,
+        "progreso_pct": progreso_pct,
+        "puntaje_actividad": puntaje_actividad,
         "nivel": nivel,
     }
     await db["resultados_juegos"].update_one(
@@ -480,8 +487,11 @@ async def guardar_resultado_juego(
             "actividad": actividad,
             "juego": juego,
             "puntos_obtenidos": puntos if puntos > 0 else paso_completado * 10,
+            "puntaje_sistema": puntaje_actividad,
             "nivel": nivel,
             "fecha": ahora,
+            "detalle_actividad": (notas or "").strip(),
+            "ruta_juego": ruta,
         }
         await db["historial_actividades"].update_one(
             {
@@ -549,3 +559,18 @@ async def seed_actividades(
     await db["actividades"].insert_many(juegos_por_categoria)
 
     return {"status": "ok", "categorias": len(juegos_por_categoria), "mensaje": "Colección 'actividades' actualizada con los juegos reales"}
+
+
+@router.get("/anuncio-activo", response_class=JSONResponse)
+async def anuncio_activo(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    doc = await db["contenido_admin"].find_one({}, {"anuncios_globales": 1})
+    anuncios = []
+    if doc:
+        anuncios = doc.get("anuncios_globales", [])
+    activos = [a for a in anuncios if isinstance(a, dict) and a.get("activo", True)]
+    if not activos:
+        return {"anuncio": None}
+    anuncio = activos[-1]
+    return {"anuncio": anuncio}

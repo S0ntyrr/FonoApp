@@ -44,7 +44,17 @@
         formData.append('ruta', window.location.pathname || '');
         return fetch('/juegos/resultado', { method: 'POST', body: formData })
             .then(r => r.json())
-            .then(data => console.log('Resultado guardado:', data))
+            .then(data => {
+                if (completado) {
+                    const completadas = JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]');
+                    const ruta = (window.location.pathname || '').replace(/\/+$/, '');
+                    if (!completadas.includes(ruta)) {
+                        completadas.push(ruta);
+                        sessionStorage.setItem('actividades_hoy_completadas', JSON.stringify(completadas));
+                    }
+                }
+                console.log('Resultado guardado:', data);
+            })
             .catch(e => console.warn('No se pudo guardar resultado:', e));
     }
 
@@ -80,6 +90,28 @@
         '/juegos/practica/asociacion',
     ];
 
+    function _normalizarRuta(path) {
+        return (path || '').replace(/\/+$/, '') || '/';
+    }
+
+    function _leerListaActividadesHoy() {
+        try {
+            const lista = JSON.parse(sessionStorage.getItem('actividades_hoy_urls') || '[]');
+            return Array.isArray(lista) ? lista.map(_normalizarRuta) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function _leerCompletadasHoy() {
+        try {
+            const lista = JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]');
+            return Array.isArray(lista) ? lista.map(_normalizarRuta) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
     function obtenerSiguienteJuego(rutaActual) {
         const limpia = (rutaActual || '').replace(/\/+$/, '') || '/';
         const idx = ORDEN_JUEGOS.indexOf(limpia);
@@ -88,13 +120,60 @@
     }
 
     function irSiguienteJuego() {
-        const siguiente = obtenerSiguienteJuego(window.location.pathname);
+        const rutaActual = _normalizarRuta(window.location.pathname);
+        const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
+        if (modoFlujo === 'actividades_hoy') {
+            const listaHoy = _leerListaActividadesHoy();
+            const completadasHoy = new Set(_leerCompletadasHoy());
+            if (listaHoy.length) {
+                const pendientes = listaHoy.filter(url => !completadasHoy.has(url));
+                if (!pendientes.length) {
+                    sessionStorage.setItem('flujo_juegos_modo', 'hub');
+                } else {
+                    const idxActual = listaHoy.indexOf(rutaActual);
+                    if (idxActual >= 0) {
+                        for (let i = idxActual + 1; i < listaHoy.length; i++) {
+                            if (!completadasHoy.has(listaHoy[i])) {
+                                window.location.href = listaHoy[i];
+                                return;
+                            }
+                        }
+                    }
+                    window.location.href = pendientes[0];
+                    return;
+                }
+            }
+        }
+
+        const siguiente = obtenerSiguienteJuego(rutaActual);
         if (siguiente) {
             window.location.href = siguiente;
             return;
         }
         const origen = sessionStorage.getItem('juegos_origen');
         window.location.href = origen || '/juegos/';
+    }
+
+    function _mostrarAnuncioGlobal() {
+        const clave = 'anuncio_global_visto';
+        fetch('/juegos/anuncio-activo')
+            .then(r => r.json())
+            .then(data => {
+                const anuncio = data && data.anuncio;
+                if (!anuncio || !anuncio.texto) return;
+                const firma = `${anuncio.tipo || 'aviso'}:${anuncio.texto}`;
+                if (sessionStorage.getItem(clave) === firma) return;
+                const burbuja = document.createElement('div');
+                burbuja.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:10000;background:#fffbe7;border:1px solid #ffd54f;border-left:4px solid #f57c00;border-radius:10px;padding:0.75rem 0.85rem;box-shadow:0 4px 16px rgba(0,0,0,0.15);font-size:0.85rem;';
+                burbuja.innerHTML = `<strong style="color:#d32f2f;display:block;margin-bottom:0.2rem;">${(anuncio.tipo || 'Aviso').toString().toUpperCase()}</strong><span style="color:#444;">${anuncio.texto}</span><button style="float:right;border:none;background:none;color:#999;font-weight:700;cursor:pointer;">✕</button>`;
+                const btnCerrar = burbuja.querySelector('button');
+                btnCerrar.onclick = function() {
+                    burbuja.remove();
+                    sessionStorage.setItem(clave, firma);
+                };
+                document.body.appendChild(burbuja);
+            })
+            .catch(() => {});
     }
 
     // Controlar el splash screen
@@ -121,16 +200,30 @@
             }, 2500);
         }
 
+        const rutaActual = _normalizarRuta(window.location.pathname);
+        const esHubOJuegosCategoria = /^\/juegos(\/(respiracion|fonacion|resonancia|articulacion|prosodia|discriminacion|practica))?$/.test(rutaActual);
+        if (esHubOJuegosCategoria) {
+            sessionStorage.setItem('flujo_juegos_modo', 'hub');
+        }
+
         // Auto-agregar botón "Siguiente" en páginas de juegos
-        const esPantallaJuego = window.location.pathname.startsWith('/juegos/') && window.location.pathname !== '/juegos/';
+        const esPantallaJuego = rutaActual.startsWith('/juegos/') && rutaActual !== '/juegos/';
         if (esPantallaJuego && !document.querySelector('.btn-continuar-global')) {
             const btnContinuar = document.createElement('button');
             btnContinuar.className = 'btn-continuar-global boton-rojo';
             btnContinuar.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:9999;padding:0.65rem 1rem;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);';
-            btnContinuar.textContent = obtenerSiguienteJuego(window.location.pathname) ? 'Siguiente' : 'Finalizar';
+            const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
+            if (modoFlujo === 'actividades_hoy') {
+                const pendientes = _leerListaActividadesHoy().filter(url => !_leerCompletadasHoy().includes(url));
+                btnContinuar.textContent = pendientes.length ? 'Siguiente actividad' : 'Siguiente libre';
+            } else {
+                btnContinuar.textContent = obtenerSiguienteJuego(window.location.pathname) ? 'Siguiente' : 'Finalizar';
+            }
             btnContinuar.onclick = irSiguienteJuego;
             document.body.appendChild(btnContinuar);
         }
+
+        _mostrarAnuncioGlobal();
     });
     </script>
     <script src="/static/js/terminos.js"></script>

@@ -117,6 +117,24 @@ function toggleMic(btn) {
 }
 document.getElementById('mic1').addEventListener('click', () => toggleMic(document.getElementById('mic1')));
 document.getElementById('mic2').addEventListener('click', () => toggleMic(document.getElementById('mic2')));
+
+const btnContinuar = document.getElementById('btn-continuar-veoveo');
+const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
+if (btnContinuar && modoFlujo === 'actividades_hoy') {
+  const normalizar = (u) => (u || '').replace(/\/+$/, '');
+  const actual = normalizar(window.location.pathname);
+  const lista = (JSON.parse(sessionStorage.getItem('actividades_hoy_urls') || '[]') || []).map(normalizar);
+  const completadas = new Set((JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]') || []).map(normalizar));
+  const pendientes = lista.filter((u) => !completadas.has(u) && u !== actual);
+  if (pendientes.length) {
+    btnContinuar.href = pendientes[0];
+    btnContinuar.textContent = 'Siguiente actividad';
+  } else {
+    sessionStorage.setItem('flujo_juegos_modo', 'hub');
+    btnContinuar.href = '/juegos/articulacion/letra-b';
+    btnContinuar.textContent = 'Seguir en juegos';
+  }
+}
 </script>
 </body>
 </html>

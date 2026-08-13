@@ -3,10 +3,31 @@
 <section class="pantalla-movil" style="padding-top:1rem;">
 
     <div class="panel-header">
-        <a href="/admin/dashboard" class="btn-volver-panel">← Dashboard</a>
+        <a href="/admin/dashboard" class="btn-volver-cat">← Dashboard</a>
         <h1 class="titulo-rojo" style="margin:0; font-size:1.1rem;">📋 Historial de actividades</h1>
         <div style="width:70px;"></div>
     </div>
+
+    <form method="get" action="/admin/historial" class="filtros-card">
+        <select name="paciente_email" class="campo-texto">
+            <option value="">Todos los pacientes</option>
+            {% for email in pacientes_lista %}
+                <option value="{{ email }}" {% if email == paciente_email_sel %}selected{% endif %}>{{ email }}</option>
+            {% endfor %}
+        </select>
+        <select name="categoria" class="campo-texto">
+            <option value="">Todas las categorías</option>
+            {% for cat in categorias %}
+                <option value="{{ cat }}" {% if cat == categoria_sel %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <select name="estado" class="campo-texto">
+            <option value="todos" {% if estado_sel == 'todos' %}selected{% endif %}>Todo</option>
+            <option value="pendientes" {% if estado_sel == 'pendientes' %}selected{% endif %}>Solo pendientes</option>
+            <option value="evaluadas" {% if estado_sel == 'evaluadas' %}selected{% endif %}>Solo evaluadas</option>
+        </select>
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:0;">Filtrar</button>
+    </form>
 
     <!-- Estadísticas por categoría -->
     {% if stats_categoria %}
@@ -37,12 +58,8 @@
                         <div class="hist-info">
                             <p class="hist-paciente">{{ h.paciente_email }}</p>
                             <p class="hist-actividad">{{ h.actividad }}</p>
-                            <p class="hist-meta">
-                                {{ h.categoria | title }}
-                                · 🏆 {{ h.puntos_obtenidos }} pts
-                                · Nivel {{ h.nivel }}
-                                · 📅 {{ h.fecha.strftime('%d/%m/%Y') if h.fecha else '-' }}
-                            </p>
+                            <p class="hist-meta">{{ h.categoria | title }} · 🧭 {{ h.pasos_label }} · 🏆 {{ h.puntaje_sistema or h.puntos_obtenidos }} pts · Nivel {{ h.nivel }} · 📅 {{ h.fecha.strftime('%d/%m/%Y') if h.fecha else '-' }}</p>
+                            <p class="hist-evidencia">{{ h.detalle_actividad }}</p>
                         </div>
                         {% if h.feedback %}
                             <span class="badge-eval">✓</span>
@@ -70,8 +87,9 @@
 
 <style>
 .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
-.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
-.btn-volver-panel:hover { background:#fff5f5; }
+.btn-volver-cat { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat:hover { background:#fff5f5; }
+.filtros-card { background:#fff; border-radius:10px; padding:0.7rem; margin-bottom:0.9rem; display:grid; gap:0.45rem; box-shadow:0 1px 5px rgba(0,0,0,0.05); }
 
 .stats-cat-grid { display:flex; flex-direction:column; gap:0.5rem; background:#fff; border-radius:12px; padding:0.8rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
 .stat-cat-card { display:flex; align-items:center; gap:0.6rem; }
@@ -89,6 +107,7 @@
 .hist-paciente { margin:0; font-size:0.78rem; color:#888; }
 .hist-actividad { margin:0.1rem 0; font-size:0.88rem; font-weight:700; color:#1a1a1a; }
 .hist-meta { margin:0; font-size:0.7rem; color:#aaa; }
+.hist-evidencia { margin:0.2rem 0 0; font-size:0.76rem; color:#444; background:#f7f7f7; border-radius:7px; padding:0.35rem 0.5rem; }
 .badge-eval { background:#e8f5e9; color:#2e7d32; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
 .badge-sin-eval { background:#fff3e0; color:#e65100; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
 .hist-feedback { display:flex; gap:0.4rem; background:#f9f9f9; border-radius:8px; padding:0.4rem 0.6rem; }

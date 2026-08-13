@@ -48,15 +48,16 @@ Colecciones MongoDB usadas:
 from uuid import uuid4
 
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status, File, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from random import choice
 from bson import ObjectId
 from bson.errors import InvalidId
 from collections import defaultdict
+import re
 
 from ..config import settings
 from ..database import get_db
@@ -73,6 +74,17 @@ templates = Jinja2Templates(directory="app/templates")
 UPLOAD_DIR = Path("app/static/uploads")
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov", ".ogg"}
+DESTINOS_PUBLICACION = [
+    {"id": "home_paciente", "label": "Home paciente"},
+    {"id": "hub_juegos", "label": "Hub de juegos"},
+    {"id": "juegos_respiracion", "label": "Juegos respiración"},
+    {"id": "juegos_fonacion", "label": "Juegos fonación"},
+    {"id": "juegos_resonancia", "label": "Juegos resonancia"},
+    {"id": "juegos_articulacion", "label": "Juegos articulación"},
+    {"id": "juegos_prosodia", "label": "Juegos prosodia"},
+    {"id": "juegos_discriminacion", "label": "Juegos discriminación auditiva"},
+    {"id": "juegos_practica", "label": "Juegos práctica conmigo"},
+]
 
 # Juegos disponibles en el sistema
 JUEGOS_DISPONIBLES = [
@@ -133,6 +145,37 @@ def _actividades_por_dificultad(dificultad: str) -> list[dict]:
                 "actividad": juego["nombre"],
             })
     return catalogo[:cantidad]
+
+
+async def _adjuntar_evidencia(historial_docs: list[dict], db: AsyncIOMotorDatabase) -> list[dict]:
+    for h in historial_docs:
+        detalle = ""
+        pasos = "-"
+        puntaje_sistema = h.get("puntaje_sistema", h.get("puntos_obtenidos", 0))
+        query = {
+            "paciente_email": h.get("paciente_email", ""),
+            "juego": h.get("juego", ""),
+        }
+        fecha = h.get("fecha")
+        if fecha:
+            inicio = datetime(fecha.year, fecha.month, fecha.day)
+            fin = inicio + timedelta(days=1)
+            query["fecha"] = {"$gte": inicio, "$lt": fin}
+        resultado = await db["resultados_juegos"].find_one(query, sort=[("fecha", -1)])
+        if resultado:
+            paso = resultado.get("paso_completado", 0)
+            total = resultado.get("total_pasos", 0)
+            pasos = f"{paso}/{total}" if total else "-"
+            puntaje_sistema = resultado.get("puntaje_actividad", resultado.get("puntos", puntaje_sistema))
+            detalle = (resultado.get("notas") or "").strip()
+            if not detalle and resultado.get("ruta"):
+                detalle = f"Recorrido en {resultado.get('ruta')} con progreso {pasos}"
+        if not detalle:
+            detalle = f"Completó {h.get('actividad', 'actividad')} ({h.get('categoria', 'categoría')})"
+        h["detalle_actividad"] = detalle
+        h["pasos_label"] = pasos
+        h["puntaje_sistema"] = puntaje_sistema
+    return historial_docs
 
 
 async def _guardar_upload_seguro(
@@ -234,6 +277,77 @@ async def listar_pacientes_admin(
             "titulo_pagina": "Gestión de Pacientes",
             "pacientes": pacientes,
             "medicos_disponibles": medicos_disponibles,
+        },
+    )
+
+
+@router.get("/pacientes/{paciente_id}", response_class=HTMLResponse)
+async def detalle_paciente_admin(
+    paciente_id: str,
+    request: Request,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    object_id = _parse_object_id(paciente_id)
+    if not object_id:
+        return RedirectResponse(url="/admin/pacientes?error=id_invalido", status_code=status.HTTP_303_SEE_OTHER)
+
+    paciente = await db["usuarios"].find_one({"_id": object_id, "rol": "paciente"})
+    if not paciente:
+        return RedirectResponse(url="/admin/pacientes?error=no_encontrado", status_code=status.HTTP_303_SEE_OTHER)
+    paciente["_id"] = str(paciente["_id"])
+
+    perfil = await db["perfiles_pacientes"].find_one({"paciente_email": paciente["email"]})
+    if perfil:
+        perfil["_id"] = str(perfil["_id"])
+
+    resultados = []
+    cursor_res = db["resultados_juegos"].find({"paciente_email": paciente["email"]}).sort("fecha", -1).limit(120)
+    async for doc in cursor_res:
+        doc["_id"] = str(doc["_id"])
+        resultados.append(doc)
+
+    stats_por_categoria = {}
+    for r in resultados:
+        cat = r.get("categoria", "otro")
+        if cat not in stats_por_categoria:
+            stats_por_categoria[cat] = {
+                "total": 0,
+                "completados": 0,
+                "en_progreso": 0,
+                "avance_acumulado": 0,
+                "puntaje_acumulado": 0,
+            }
+        stats_por_categoria[cat]["total"] += 1
+        total_pasos = max(1, int(r.get("total_pasos", 1)))
+        paso = max(0, int(r.get("paso_completado", 0)))
+        stats_por_categoria[cat]["avance_acumulado"] += int((paso / total_pasos) * 100)
+        stats_por_categoria[cat]["puntaje_acumulado"] += int(r.get("puntaje_actividad", r.get("puntos", 0)))
+        if r.get("completado"):
+            stats_por_categoria[cat]["completados"] += 1
+        else:
+            stats_por_categoria[cat]["en_progreso"] += 1
+    for cat, st in stats_por_categoria.items():
+        total = max(1, st["total"])
+        st["avance_promedio"] = int(st["avance_acumulado"] / total)
+        st["puntaje_promedio"] = int(st["puntaje_acumulado"] / total)
+
+    historial = []
+    cursor_hist = db["historial_actividades"].find({"paciente_email": paciente["email"]}).sort("fecha", -1).limit(50)
+    async for doc in cursor_hist:
+        doc["_id"] = str(doc["_id"])
+        historial.append(doc)
+    historial = await _adjuntar_evidencia(historial, db)
+
+    return templates.TemplateResponse(
+        "admin/perfil_paciente.html",
+        {
+            "request": request,
+            "titulo_pagina": f"Perfil de {paciente.get('nombre', paciente['email'])}",
+            "paciente": paciente,
+            "perfil": perfil,
+            "resultados": resultados[:20],
+            "stats_por_categoria": stats_por_categoria,
+            "historial": historial[:20],
         },
     )
 
@@ -475,6 +589,12 @@ async def vista_contenido_admin(
         doc["_id"] = str(doc["_id"])
         contenido = doc  # usar dict directamente para más flexibilidad
 
+    anuncios = []
+    publicaciones_media = []
+    if contenido:
+        anuncios = contenido.get("anuncios_globales", contenido.get("textos_sistema", []))
+        publicaciones_media = contenido.get("media_publicaciones", [])
+
     return templates.TemplateResponse(
         "admin/contenido.html",
         {
@@ -482,46 +602,70 @@ async def vista_contenido_admin(
             "titulo_pagina": "Contenido del sistema",
             "contenido": contenido,
             "juegos_disponibles": JUEGOS_DISPONIBLES,
+            "destinos_publicacion": DESTINOS_PUBLICACION,
+            "anuncios_globales": anuncios,
+            "publicaciones_media": publicaciones_media,
         },
     )
 
 
+@router.get("/contenido/destinos", response_class=JSONResponse)
+async def listar_destinos_publicacion():
+    return {"destinos": DESTINOS_PUBLICACION}
+
+
 @router.post("/contenido/texto")
-async def agregar_texto_admin(
+async def agregar_anuncio_admin(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db),
     texto: str = Form(...),
-    tipo: str = Form("instruccion"),  # instruccion, aviso, regla
+    tipo: str = Form("aviso"),  # aviso, instruccion, recordatorio
+    destino: str = Form("global"),
+    activo: str = Form("true"),
 ):
-    """Agrega un texto/instrucción al sistema."""
+    """Agrega un anuncio global del sistema."""
     doc = await db["contenido_admin"].find_one({})
     if not doc:
-        doc = {"imagenes": [], "videos": [], "audios_referencia": [], "textos_sistema": [], "instrucciones": None}
+        doc = {
+            "imagenes": [],
+            "videos": [],
+            "audios_referencia": [],
+            "textos_sistema": [],
+            "anuncios_globales": [],
+            "media_publicaciones": [],
+            "instrucciones": None,
+        }
         await db["contenido_admin"].insert_one(doc)
         doc = await db["contenido_admin"].find_one({})
 
-    entrada = {"texto": texto, "tipo": tipo, "fecha": datetime.utcnow().isoformat()}
+    entrada = {
+        "texto": texto,
+        "tipo": tipo,
+        "destino": destino,
+        "activo": str(activo).lower() == "true",
+        "fecha": datetime.utcnow().isoformat(),
+    }
     await db["contenido_admin"].update_one(
         {"_id": doc["_id"]},
-        {"$push": {"textos_sistema": entrada}}
+        {"$push": {"anuncios_globales": entrada}}
     )
     return RedirectResponse(url="/admin/contenido", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/contenido/texto/{idx}/eliminar")
-async def eliminar_texto_admin(
+async def eliminar_anuncio_admin(
     idx: int,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Elimina un texto por índice."""
+    """Elimina un anuncio por índice."""
     doc = await db["contenido_admin"].find_one({})
     if doc:
-        textos = doc.get("textos_sistema", [])
-        if 0 <= idx < len(textos):
-            textos.pop(idx)
+        anuncios = doc.get("anuncios_globales", doc.get("textos_sistema", []))
+        if 0 <= idx < len(anuncios):
+            anuncios.pop(idx)
             await db["contenido_admin"].update_one(
                 {"_id": doc["_id"]},
-                {"$set": {"textos_sistema": textos}}
+                {"$set": {"anuncios_globales": anuncios}}
             )
     return RedirectResponse(url="/admin/contenido", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -532,16 +676,27 @@ async def subir_media_admin(
     db: AsyncIOMotorDatabase = Depends(get_db),
     imagen: UploadFile | None = File(None),
     video: UploadFile | None = File(None),
+    destino_imagen: str = Form("home_paciente"),
+    destino_video: str = Form("hub_juegos"),
 ):
     """Sube imagen o video al sistema."""
     doc = await db["contenido_admin"].find_one({})
     if not doc:
-        doc = {"imagenes": [], "videos": [], "audios_referencia": [], "textos_sistema": [], "instrucciones": None}
+        doc = {
+            "imagenes": [],
+            "videos": [],
+            "audios_referencia": [],
+            "textos_sistema": [],
+            "anuncios_globales": [],
+            "media_publicaciones": [],
+            "instrucciones": None,
+        }
         await db["contenido_admin"].insert_one(doc)
         doc = await db["contenido_admin"].find_one({})
 
     imagenes = doc.get("imagenes", [])
     videos = doc.get("videos", [])
+    publicaciones = doc.get("media_publicaciones", [])
 
     ruta_imagen = await _guardar_upload_seguro(
         upload=imagen,
@@ -550,6 +705,12 @@ async def subir_media_admin(
     )
     if ruta_imagen:
         imagenes.append(ruta_imagen)
+        publicaciones.append({
+            "tipo": "imagen",
+            "url": ruta_imagen,
+            "destino": destino_imagen,
+            "fecha": datetime.utcnow().isoformat(),
+        })
 
     ruta_video = await _guardar_upload_seguro(
         upload=video,
@@ -558,10 +719,16 @@ async def subir_media_admin(
     )
     if ruta_video:
         videos.append(ruta_video)
+        publicaciones.append({
+            "tipo": "video",
+            "url": ruta_video,
+            "destino": destino_video,
+            "fecha": datetime.utcnow().isoformat(),
+        })
 
     await db["contenido_admin"].update_one(
         {"_id": doc["_id"]},
-        {"$set": {"imagenes": imagenes, "videos": videos}}
+        {"$set": {"imagenes": imagenes, "videos": videos, "media_publicaciones": publicaciones}}
     )
     return RedirectResponse(url="/admin/contenido", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -577,10 +744,12 @@ async def eliminar_media_admin(
     if doc:
         if tipo == "imagen":
             imagenes = [i for i in doc.get("imagenes", []) if i != url]
-            await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"imagenes": imagenes}})
+            publicaciones = [p for p in doc.get("media_publicaciones", []) if not (p.get("url") == url and p.get("tipo") == "imagen")]
+            await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"imagenes": imagenes, "media_publicaciones": publicaciones}})
         elif tipo == "video":
             videos = [v for v in doc.get("videos", []) if v != url]
-            await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"videos": videos}})
+            publicaciones = [p for p in doc.get("media_publicaciones", []) if not (p.get("url") == url and p.get("tipo") == "video")]
+            await db["contenido_admin"].update_one({"_id": doc["_id"]}, {"$set": {"videos": videos, "media_publicaciones": publicaciones}})
     return RedirectResponse(url="/admin/contenido", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -712,13 +881,27 @@ async def eliminar_asignacion_admin(
 @router.get("/historial", response_class=HTMLResponse)
 async def vista_historial_admin(
     request: Request,
+    paciente_email: str = "",
+    categoria: str = "",
+    estado: str = "todos",
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    cursor = db["historial_actividades"].find({}).sort("fecha", -1)
+    query = {}
+    if paciente_email:
+        query["paciente_email"] = paciente_email
+    if categoria:
+        query["categoria"] = categoria
+    if estado == "pendientes":
+        query["$or"] = [{"feedback": None}, {"feedback": ""}]
+    elif estado == "evaluadas":
+        query["feedback"] = {"$nin": [None, ""]}
+
+    cursor = db["historial_actividades"].find(query).sort("fecha", -1).limit(400)
     historial = []
     async for doc in cursor:
         doc["_id"] = str(doc["_id"])
         historial.append(doc)
+    historial = await _adjuntar_evidencia(historial, db)
 
     # Estadísticas por categoría de juego
     stats_categoria = defaultdict(lambda: {"total": 0, "con_feedback": 0})
@@ -728,6 +911,9 @@ async def vista_historial_admin(
         if h.get("feedback"):
             stats_categoria[cat]["con_feedback"] += 1
 
+    pacientes_lista = sorted({h.get("paciente_email", "") for h in historial if h.get("paciente_email")})
+    categorias = sorted({h.get("categoria", "") for h in historial if h.get("categoria")})
+
     return templates.TemplateResponse(
         "admin/historial.html",
         {
@@ -735,6 +921,11 @@ async def vista_historial_admin(
             "titulo_pagina": "Historial de actividades",
             "historial": historial,
             "stats_categoria": dict(stats_categoria),
+            "pacientes_lista": pacientes_lista,
+            "categorias": categorias,
+            "paciente_email_sel": paciente_email,
+            "categoria_sel": categoria,
+            "estado_sel": estado,
         },
     )
 
@@ -742,12 +933,27 @@ async def vista_historial_admin(
 @router.get("/resultados", response_class=HTMLResponse)
 async def vista_resultados_admin(
     request: Request,
+    paciente_email: str = "",
+    categoria: str = "",
+    buscar: str = "",
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    cursor = db["resultados_juegos"].find({}).sort("fecha", -1).limit(200)
+    query = {}
+    if paciente_email:
+        query["paciente_email"] = paciente_email
+    if categoria:
+        query["categoria"] = categoria
+    if buscar:
+        query["juego"] = {"$regex": re.escape(buscar.strip()), "$options": "i"}
+
+    cursor = db["resultados_juegos"].find(query).sort("fecha", -1).limit(500)
     resultados = []
     async for doc in cursor:
         doc["_id"] = str(doc["_id"])
+        total_pasos = max(1, int(doc.get("total_pasos", 1)))
+        paso = max(0, int(doc.get("paso_completado", 0)))
+        doc["avance_pct"] = int((paso / total_pasos) * 100)
+        doc["puntaje_sistema"] = int(doc.get("puntaje_actividad", doc.get("puntos", 0)))
         resultados.append(doc)
 
     # Estadísticas por paciente
@@ -760,13 +966,22 @@ async def vista_resultados_admin(
         else:
             stats_paciente[email]["en_progreso"] += 1
 
-    # Estadísticas por juego (aciertos/desaciertos)
-    stats_juego = defaultdict(lambda: {"total": 0, "completados": 0})
+    # Estadísticas por juego (avance promedio y puntaje promedio)
+    stats_juego = defaultdict(lambda: {"total": 0, "completados": 0, "avance_acumulado": 0, "puntaje_acumulado": 0})
     for r in resultados:
         key = r.get("juego", "desconocido")
         stats_juego[key]["total"] += 1
+        stats_juego[key]["avance_acumulado"] += r.get("avance_pct", 0)
+        stats_juego[key]["puntaje_acumulado"] += r.get("puntaje_sistema", 0)
         if r.get("completado"):
             stats_juego[key]["completados"] += 1
+    for juego, stats in stats_juego.items():
+        total = max(1, stats["total"])
+        stats["avance_promedio"] = int(stats["avance_acumulado"] / total)
+        stats["puntaje_promedio"] = int(stats["puntaje_acumulado"] / total)
+
+    pacientes_lista = sorted({r.get("paciente_email", "") for r in resultados if r.get("paciente_email")})
+    categorias = sorted({r.get("categoria", "") for r in resultados if r.get("categoria")})
 
     return templates.TemplateResponse(
         "admin/resultados.html",
@@ -776,5 +991,10 @@ async def vista_resultados_admin(
             "resultados": resultados,
             "stats_paciente": dict(stats_paciente),
             "stats_juego": dict(stats_juego),
+            "pacientes_lista": pacientes_lista,
+            "categorias": categorias,
+            "paciente_email_sel": paciente_email,
+            "categoria_sel": categoria,
+            "buscar_sel": buscar,
         },
     )

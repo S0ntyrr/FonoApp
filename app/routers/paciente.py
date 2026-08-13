@@ -278,6 +278,7 @@ async def guardar_perfil_paciente(
     
     Después de guardar, redirige de vuelta al dashboard del paciente.
     """
+    paciente_email = user["email"]
     # Buscar si ya existe un perfil para este paciente
     existente = await db["perfiles_pacientes"].find_one({"paciente_email": paciente_email})
 
@@ -304,5 +305,4 @@ async def guardar_perfil_paciente(
         await db["perfiles_pacientes"].insert_one(datos)
 
     # Redirigir de vuelta al dashboard del paciente
-    return RedirectResponse(url=f"/paciente/perfil?email={paciente_email}", status_code=303)
-    paciente_email = user["email"]
+    return RedirectResponse(url="/paciente/perfil", status_code=303)

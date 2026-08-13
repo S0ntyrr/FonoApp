@@ -47,6 +47,7 @@
                         </div>
                     </div>
                     <div class="usuario-acciones">
+                        <a href="/admin/pacientes/{{ p._id }}" class="btn-accion ver" title="Ver perfil">👁️</a>
                         {% if not p.tiene_asignacion and medicos_disponibles %}
                             <button class="btn-accion asignar" onclick="toggleAsignar('asig-{{ p._id }}')">🔗</button>
                         {% endif %}
@@ -121,6 +122,8 @@
 .badge-sin-asig { font-size:0.7rem; color:#999; background:#f5f5f5; padding:0.1rem 0.5rem; border-radius:8px; }
 .usuario-acciones { display:flex; gap:0.3rem; }
 .btn-accion { background:none; border:none; font-size:1.1rem; cursor:pointer; padding:0.3rem; border-radius:6px; transition:background 0.1s; }
+.btn-accion.ver { text-decoration:none; }
+.btn-accion.ver:hover { background:#e3f2fd; }
 .btn-accion.asignar:hover { background:#e3f2fd; }
 .btn-accion.eliminar:hover { background:#ffebee; }
 

@@ -1,67 +1,60 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ titulo_pagina }}</title>
-  <link rel="stylesheet" href="/static/css/estilos.css">
-  <style>
-    body{margin:0;background:#f9f9f9;font-family:'Segoe UI',sans-serif;}
-    .container{max-width:900px;margin:0 auto;padding:24px;}
-    h1{color:#e63946;border-bottom:2px solid #e63946;padding-bottom:10px;}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);}
-    th{background:#e63946;color:#fff;padding:12px;text-align:left;font-size:0.9rem;}
-    td{padding:10px 12px;border-bottom:1px solid #eee;font-size:0.9rem;}
-    tr:last-child td{border-bottom:none;}
-    .badge{padding:3px 10px;border-radius:12px;font-size:0.8rem;font-weight:bold;}
-    .badge.ok{background:#c8f7c5;color:#27ae60;}
-    .badge.pending{background:#fff3cd;color:#856404;}
-    .nav-links{margin-bottom:20px;}
-    .nav-links a{color:#e63946;text-decoration:none;margin-right:16px;}
-    .empty{text-align:center;padding:40px;color:#999;}
-  </style>
-</head>
-<body>
-<div class="container">
-  <div class="nav-links">
-    <a href="/doctor/home">← Panel Doctor</a>
-    <a href="/doctor/historial">Historial</a>
-  </div>
-  <h1>📊 Resultados de Juegos</h1>
-  {% if resultados %}
-  <table>
-    <thead>
-      <tr>
-        <th>Paciente</th>
-        <th>Categoría</th>
-        <th>Juego</th>
-        <th>Progreso</th>
-        <th>Estado</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in resultados %}
-      <tr>
-        <td>{{ r.paciente_email }}</td>
-        <td>{{ r.categoria }}</td>
-        <td>{{ r.juego }}</td>
-        <td>{{ r.paso_completado }} / {{ r.total_pasos }}</td>
-        <td>
-          {% if r.completado %}
-            <span class="badge ok">✓ Completado</span>
-          {% else %}
-            <span class="badge pending">En progreso</span>
-          {% endif %}
-        </td>
-        <td>{{ r.fecha.strftime('%d/%m/%Y %H:%M') if r.fecha else '-' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty">No hay resultados registrados aún.</div>
-  {% endif %}
-</div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil" style="padding-top:1rem;">
+    <div class="panel-header">
+        <a href="/doctor/home" class="btn-volver-cat">← Volver</a>
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.05rem;">📊 Resultados de juegos</h1>
+        <div style="width:72px;"></div>
+    </div>
+
+    <form method="get" action="/doctor/resultados" class="filtros-card">
+        <select name="paciente_email" class="campo-texto">
+            <option value="">Todos los pacientes</option>
+            {% for email in pacientes_lista %}
+                <option value="{{ email }}" {% if email == paciente_email_sel %}selected{% endif %}>{{ email }}</option>
+            {% endfor %}
+        </select>
+        <select name="categoria" class="campo-texto">
+            <option value="">Todas las categorías</option>
+            {% for cat in categorias %}
+                <option value="{{ cat }}" {% if cat == categoria_sel %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="buscar" class="campo-texto" placeholder="Buscar juego..." value="{{ buscar_sel or '' }}" />
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:0;">Aplicar filtros</button>
+    </form>
+
+    {% if resultados %}
+        <div class="lista-resultados">
+            {% for r in resultados %}
+                <div class="resultado-card {% if r.completado %}ok{% else %}progress{% endif %}">
+                    <p class="res-top">{{ r.paciente_email }}</p>
+                    <p class="res-title">{{ r.juego | replace('_', ' ') | title }}</p>
+                    <p class="res-meta">{{ r.categoria }} · {{ r.paso_completado }}/{{ r.total_pasos }} pasos · {{ r.avance_pct }}%</p>
+                    <p class="res-meta">🏆 Puntaje sistema: {{ r.puntaje_actividad or r.puntos or 0 }} · Nivel {{ r.nivel or 1 }}</p>
+                    <p class="res-meta">📅 {{ r.fecha.strftime('%d/%m/%Y %H:%M') if r.fecha else '-' }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="actividad-vacia" style="margin-top:1rem;">
+            <span style="font-size:2rem;">📉</span>
+            <p>No hay resultados para los filtros seleccionados.</p>
+        </div>
+    {% endif %}
+</section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.9rem; }
+.btn-volver-cat { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:600; text-decoration:none; }
+.btn-volver-cat:hover { background:#fff5f5; }
+.filtros-card { background:#fff; border-radius:12px; padding:0.8rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); margin-bottom:0.9rem; display:grid; gap:0.45rem; }
+.lista-resultados { display:flex; flex-direction:column; gap:0.55rem; }
+.resultado-card { background:#fff; border-radius:10px; padding:0.75rem 0.85rem; border-left:4px solid #ddd; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+.resultado-card.ok { border-left-color:#4caf50; }
+.resultado-card.progress { border-left-color:#ff9800; }
+.res-top { margin:0; font-size:0.74rem; color:#888; }
+.res-title { margin:0.15rem 0; font-size:0.92rem; font-weight:700; color:#1a1a1a; }
+.res-meta { margin:0.1rem 0; font-size:0.74rem; color:#666; }
+</style>
+{% endblock %}
