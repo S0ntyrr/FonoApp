@@ -18,6 +18,7 @@ async def home_emisor(request: Request):
     Pantalla sencilla de inicio para el emisor (MOVIL)
     """
     return templates.TemplateResponse(
+        request,
         "emisor/home.html",
         {
             "request": request,

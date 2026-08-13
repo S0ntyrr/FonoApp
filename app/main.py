@@ -36,7 +36,6 @@ from .config import settings
 from .routers import auth, emisor, paciente
 from .routers import routes_admin, routes_doctor, routes_juegos
 
-
 @asynccontextmanager
 async def lifespan(app):
     """

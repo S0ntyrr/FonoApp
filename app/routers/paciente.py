@@ -241,6 +241,7 @@ async def vista_perfil_paciente(
     ]
 
     return templates.TemplateResponse(
+        request,
         "paciente/perfil.html",
         {
             "request": request,

@@ -80,6 +80,7 @@ async def hub_juegos(request: Request):
     Accesible por admin, doctor y paciente.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/index.html",
         {
             "request": request,
@@ -96,6 +97,7 @@ async def juego_practica(request: Request):
     Hub de 'Practica Conmigo': rompecabezas, constructor de cara y asociación de imágenes.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/practica/index.html",
         {
             "request": request,
@@ -110,6 +112,7 @@ async def juego_rompecabezas(request: Request):
     Juego de rompecabezas con letras y animales.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/practica/rompecabezas.html",
         {
             "request": request,
@@ -124,6 +127,7 @@ async def juego_cara(request: Request):
     Juego de construcción de cara: arrastra partes del rostro.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/practica/cara.html",
         {
             "request": request,
@@ -138,6 +142,7 @@ async def juego_asociacion(request: Request):
     Juego de asociación de imágenes con conceptos.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/practica/asociacion.html",
         {
             "request": request,
@@ -155,6 +160,7 @@ async def juego_respiracion(request: Request):
     Usa el micrófono para detectar el soplido.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/respiracion/index.html",
         {
             "request": request,
@@ -169,6 +175,7 @@ async def juego_globo(request: Request):
     Infla el globo soplando (micrófono).
     """
     return templates.TemplateResponse(
+        request,
         "juegos/respiracion/globo.html",
         {
             "request": request,
@@ -183,6 +190,7 @@ async def juego_molino(request: Request):
     Ayuda a Pepe a arreglar el molino soplando.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/respiracion/molino.html",
         {
             "request": request,
@@ -199,6 +207,7 @@ async def juego_fonacion(request: Request):
     Hub de juegos de Fonación.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/fonacion/index.html",
         {
             "request": request,
@@ -213,6 +222,7 @@ async def juego_gol(request: Request):
     Juego de fútbol: emite 'goooool' con la voz para marcar goles.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/fonacion/gol.html",
         {
             "request": request,
@@ -227,6 +237,7 @@ async def juego_escala(request: Request):
     Juego de escala musical: imita sonidos /a/, /e/, /i/ con la flauta.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/fonacion/escala.html",
         {
             "request": request,
@@ -243,6 +254,7 @@ async def juego_resonancia(request: Request):
     Hub de juegos de Resonancia.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/resonancia/index.html",
         {
             "request": request,
@@ -257,6 +269,7 @@ async def juego_escaleras(request: Request):
     Personaje sube/baja escaleras según el tono de voz del usuario.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/resonancia/escaleras.html",
         {
             "request": request,
@@ -271,6 +284,7 @@ async def juego_piano(request: Request):
     Piano interactivo: toca 'Estrellita' y luego cántala.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/resonancia/piano.html",
         {
             "request": request,
@@ -285,6 +299,7 @@ async def juego_veoveo(request: Request):
     Juego Veo Veo: encuentra la imagen objetivo entre muchas y luego nómbrala con el micrófono.
     """
     return templates.TemplateResponse(
+        request,
         "juegos/resonancia/veoveo.html",
         {
             "request": request,
@@ -299,6 +314,7 @@ async def juego_veoveo(request: Request):
 async def juego_articulacion(request: Request):
     """Hub de juegos de Articulación."""
     return templates.TemplateResponse(
+        request,
         "juegos/articulacion/index.html",
         {"request": request, "titulo_pagina": "Articulación"},
     )
@@ -306,6 +322,7 @@ async def juego_articulacion(request: Request):
 @router.get("/articulacion/letra-b", response_class=HTMLResponse)
 async def articulacion_letra_b(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/articulacion/letra_b.html",
         {"request": request, "titulo_pagina": "Articulación - Letra B"},
     )
@@ -313,6 +330,7 @@ async def articulacion_letra_b(request: Request):
 @router.get("/articulacion/letra-d", response_class=HTMLResponse)
 async def articulacion_letra_d(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/articulacion/letra_d.html",
         {"request": request, "titulo_pagina": "Articulación - Letra D"},
     )
@@ -320,6 +338,7 @@ async def articulacion_letra_d(request: Request):
 @router.get("/articulacion/letra-f", response_class=HTMLResponse)
 async def articulacion_letra_f(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/articulacion/letra_f.html",
         {"request": request, "titulo_pagina": "Articulación - Letra F"},
     )
@@ -327,6 +346,7 @@ async def articulacion_letra_f(request: Request):
 @router.get("/articulacion/letra-r", response_class=HTMLResponse)
 async def articulacion_letra_r(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/articulacion/letra_r.html",
         {"request": request, "titulo_pagina": "Articulación - Letra R"},
     )
@@ -335,6 +355,7 @@ async def articulacion_letra_r(request: Request):
 @router.get("/articulacion/completa-palabra", response_class=HTMLResponse)
 async def articulacion_completa_palabra(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/articulacion/completa_palabra.html",
         {"request": request, "titulo_pagina": "Completa la palabra"},
     )
@@ -342,6 +363,7 @@ async def articulacion_completa_palabra(request: Request):
 @router.get("/articulacion/moto-voz", response_class=HTMLResponse)
 async def articulacion_moto_voz(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/articulacion/moto_voz.html",
         {"request": request, "titulo_pagina": "¡Acelera la moto!"},
     )
@@ -352,6 +374,7 @@ async def articulacion_moto_voz(request: Request):
 @router.get("/prosodia", response_class=HTMLResponse)
 async def hub_prosodia(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/prosodia/index.html",
         {"request": request, "titulo_pagina": "Prosodia"},
     )
@@ -359,6 +382,7 @@ async def hub_prosodia(request: Request):
 @router.get("/prosodia/adivina-animal", response_class=HTMLResponse)
 async def prosodia_adivina_animal(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/prosodia/adivina_animal.html",
         {"request": request, "titulo_pagina": "Adivina el animal"},
     )
@@ -366,6 +390,7 @@ async def prosodia_adivina_animal(request: Request):
 @router.get("/prosodia/trabalenguas", response_class=HTMLResponse)
 async def prosodia_trabalenguas(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/prosodia/trabalenguas.html",
         {"request": request, "titulo_pagina": "Trabalenguas"},
     )
@@ -373,6 +398,7 @@ async def prosodia_trabalenguas(request: Request):
 @router.get("/prosodia/adivinanza-imagen", response_class=HTMLResponse)
 async def prosodia_adivinanza_imagen(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/prosodia/adivinanza_imagen.html",
         {"request": request, "titulo_pagina": "Relaciona la adivinanza"},
     )
@@ -380,6 +406,7 @@ async def prosodia_adivinanza_imagen(request: Request):
 @router.get("/prosodia/completa-cancion", response_class=HTMLResponse)
 async def prosodia_completa_cancion(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/prosodia/completa_cancion.html",
         {"request": request, "titulo_pagina": "Completa la canción"},
     )
@@ -390,6 +417,7 @@ async def prosodia_completa_cancion(request: Request):
 @router.get("/discriminacion", response_class=HTMLResponse)
 async def hub_discriminacion(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/discriminacion/index.html",
         {"request": request, "titulo_pagina": "Discriminación Auditiva"},
     )
@@ -397,6 +425,7 @@ async def hub_discriminacion(request: Request):
 @router.get("/discriminacion/sonidos-animales", response_class=HTMLResponse)
 async def discriminacion_sonidos_animales(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/discriminacion/sonidos_animales.html",
         {"request": request, "titulo_pagina": "Sonidos de animales"},
     )
@@ -404,6 +433,7 @@ async def discriminacion_sonidos_animales(request: Request):
 @router.get("/discriminacion/sonidos-objetos", response_class=HTMLResponse)
 async def discriminacion_sonidos_objetos(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/discriminacion/sonidos_objetos.html",
         {"request": request, "titulo_pagina": "Sonidos de objetos"},
     )
@@ -411,6 +441,7 @@ async def discriminacion_sonidos_objetos(request: Request):
 @router.get("/discriminacion/arrastra-sonido", response_class=HTMLResponse)
 async def discriminacion_arrastra_sonido(request: Request):
     return templates.TemplateResponse(
+        request,
         "juegos/discriminacion/arrastra_sonido.html",
         {"request": request, "titulo_pagina": "Arrastra al sonido"},
     )

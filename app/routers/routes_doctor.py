@@ -168,7 +168,7 @@ async def home_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_d
             "$or": [{"feedback": None}, {"feedback": ""}],
         })
 
-    return templates.TemplateResponse("doctor/home.html", {
+    return templates.TemplateResponse(request, "doctor/home.html", {
         "request": request,
         "titulo_pagina": "Panel del doctor",
         "estado_actual": doctor_doc.get("estado", "activo"),
@@ -200,7 +200,7 @@ async def vista_pacientes_doctor(request: Request, db: AsyncIOMotorDatabase = De
             doc["juegos_completados"] = completados_j
             pacientes.append(doc)
 
-    return templates.TemplateResponse("doctor/pacientes.html", {
+    return templates.TemplateResponse(request, "doctor/pacientes.html", {
         "request": request,
         "titulo_pagina": "Mis pacientes",
         "pacientes": pacientes,
@@ -276,7 +276,7 @@ async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIO
         doc["_id"] = str(doc["_id"])
         historial.append(doc)
 
-    return templates.TemplateResponse("doctor/perfil_paciente.html", {
+    return templates.TemplateResponse(request, "doctor/perfil_paciente.html", {
         "request": request,
         "titulo_pagina": f"Perfil de {paciente.get('nombre', paciente['email'])}",
         "paciente": paciente,
@@ -336,7 +336,7 @@ async def vista_actividades_doctor(request: Request):
     user = get_current_user(request)
     if not user or user.get("rol") not in ("medico", "doctor"):
         return RedirectResponse(url="/auth/login", status_code=303)
-    return templates.TemplateResponse("doctor/actividades.html", {
+    return templates.TemplateResponse(request, "doctor/actividades.html", {
         "request": request, "titulo_pagina": "Juegos disponibles", "juegos_disponibles": JUEGOS_DISPONIBLES,
     })
 
@@ -366,7 +366,7 @@ async def vista_asignaciones_doctor(request: Request, db: AsyncIOMotorDatabase =
         if doc["email"] not in emails_asignados:
             sin_asignar.append(doc)
 
-    return templates.TemplateResponse("doctor/asignaciones.html", {
+    return templates.TemplateResponse(request, "doctor/asignaciones.html", {
         "request": request, "titulo_pagina": "Asignaciones",
         "asignaciones": asignaciones, "sin_asignar": sin_asignar,
     })
@@ -445,7 +445,7 @@ async def vista_historial_doctor(
 
     categorias = sorted({h.get("categoria", "") for h in historial if h.get("categoria")})
 
-    return templates.TemplateResponse("doctor/historial.html", {
+    return templates.TemplateResponse(request, "doctor/historial.html", {
         "request": request,
         "titulo_pagina": "Historial de actividades",
         "historial": historial,
@@ -495,7 +495,7 @@ async def vista_resultados_doctor(
 
     categorias = sorted({r.get("categoria", "") for r in resultados if r.get("categoria")})
 
-    return templates.TemplateResponse("doctor/resultados.html", {
+    return templates.TemplateResponse(request, "doctor/resultados.html", {
         "request": request,
         "titulo_pagina": "Resultados de juegos",
         "resultados": resultados,
@@ -543,7 +543,7 @@ async def vista_evaluaciones_pendientes(
 
     categorias = sorted({e.get("categoria", "") for e in evaluaciones if e.get("categoria")})
 
-    return templates.TemplateResponse("doctor/evaluaciones_pendientes.html", {
+    return templates.TemplateResponse(request, "doctor/evaluaciones_pendientes.html", {
         "request": request,
         "titulo_pagina": "Evaluaciones Pendientes",
         "evaluaciones": evaluaciones,

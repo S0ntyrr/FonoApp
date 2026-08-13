@@ -227,6 +227,7 @@ async def vista_dashboard_admin(
     asignaciones_pendientes = await db["asignaciones"].count_documents({"estado": "pendiente"})
 
     return templates.TemplateResponse(
+        request,
         "admin/dashboard.html",
         {
             "request": request,
@@ -271,6 +272,7 @@ async def listar_pacientes_admin(
         medicos_disponibles.append(m)
 
     return templates.TemplateResponse(
+        request,
         "admin/pacientes.html",
         {
             "request": request,
@@ -339,6 +341,7 @@ async def detalle_paciente_admin(
     historial = await _adjuntar_evidencia(historial, db)
 
     return templates.TemplateResponse(
+        request,
         "admin/perfil_paciente.html",
         {
             "request": request,
@@ -422,6 +425,7 @@ async def listar_medicos_admin(
         medicos.append(doc)
 
     return templates.TemplateResponse(
+        request,
         "admin/medicos.html",
         {
             "request": request,
@@ -496,6 +500,7 @@ async def editar_medico_form_admin(
         raise HTTPException(status_code=404, detail="Médico no encontrado")
     doc["_id"] = str(doc["_id"])
     return templates.TemplateResponse(
+        request,
         "admin/editar_medico.html",
         {"request": request, "titulo_pagina": "Editar Médico", "medico": doc},
     )
@@ -538,6 +543,7 @@ async def ver_consultas_medico_admin(
         doc["_id"] = str(doc["_id"])
         asignaciones.append(doc)
     return templates.TemplateResponse(
+        request,
         "admin/consultas_medico.html",
         {
             "request": request,
@@ -568,6 +574,7 @@ async def vista_actividades_admin(
             stats_juegos[key]["completados"] += 1
 
     return templates.TemplateResponse(
+        request,
         "admin/actividades.html",
         {
             "request": request,
@@ -596,6 +603,7 @@ async def vista_contenido_admin(
         publicaciones_media = contenido.get("media_publicaciones", [])
 
     return templates.TemplateResponse(
+        request,
         "admin/contenido.html",
         {
             "request": request,
@@ -789,6 +797,7 @@ async def vista_asignaciones_admin(
     }
 
     return templates.TemplateResponse(
+        request,
         "admin/asignaciones.html",
         {
             "request": request,
@@ -915,6 +924,7 @@ async def vista_historial_admin(
     categorias = sorted({h.get("categoria", "") for h in historial if h.get("categoria")})
 
     return templates.TemplateResponse(
+        request,
         "admin/historial.html",
         {
             "request": request,
@@ -984,6 +994,7 @@ async def vista_resultados_admin(
     categorias = sorted({r.get("categoria", "") for r in resultados if r.get("categoria")})
 
     return templates.TemplateResponse(
+        request,
         "admin/resultados.html",
         {
             "request": request,

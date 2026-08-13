@@ -67,6 +67,7 @@ async def mostrar_pantalla_login(request: Request):
     Accesible por todos los usuarios (no requiere autenticación).
     """
     return templates.TemplateResponse(
+        request,
         "auth/login.html",
         {
             "request": request,
@@ -85,6 +86,7 @@ async def mostrar_pantalla_registro(request: Request):
     Los médicos y admins son creados por el administrador.
     """
     return templates.TemplateResponse(
+        request,
         "auth/registro.html",
         {
             "request": request,
@@ -103,6 +105,7 @@ async def mostrar_terminos_condiciones(request: Request):
     Se puede abrir en modal o en nueva pestaña.
     """
     return templates.TemplateResponse(
+        request,
         "auth/terminos_condiciones.html",
         {
             "request": request,
@@ -140,6 +143,7 @@ async def procesar_registro(
     # Validar aceptación de términos
     if not acepta_terminos:
         return templates.TemplateResponse(
+            request,
             "auth/registro.html",
             {
                 "request": request,
@@ -155,6 +159,7 @@ async def procesar_registro(
     existente = await db["usuarios"].find_one({"email": email})
     if existente:
         return templates.TemplateResponse(
+            request,
             "auth/registro.html",
             {
                 "request": request,
@@ -207,6 +212,7 @@ async def procesar_login(
     # Verificar que exista el usuario
     if not usuario:
         return templates.TemplateResponse(
+            request,
             "auth/login.html",
             {
                 "request": request,
@@ -221,6 +227,7 @@ async def procesar_login(
     stored_password = usuario.get("password", "")
     if not verify_password(password, stored_password):
         return templates.TemplateResponse(
+            request,
             "auth/login.html",
             {
                 "request": request,
