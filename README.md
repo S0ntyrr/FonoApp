@@ -135,30 +135,6 @@ Las colecciones principales:
 
 ---
 
-## ▲ Despliegue en Vercel
-
-Este proyecto quedó preparado para Vercel con:
-
-- [vercel.json](C:/Users/santy/Desktop/CC/FonoApp/vercel.json)
-- [api/index.py](C:/Users/santy/Desktop/CC/FonoApp/api/index.py)
-
-### Variables de entorno mínimas
-
-- `MONGODB_URI`
-- `MONGODB_DB_NAME`
-- `SESSION_SECRET_KEY`
-- `SESSION_HTTPS_ONLY=true` (recomendado en producción)
-
-### Pasos rápidos
-
-1. Conecta el repositorio en Vercel.
-2. Configura las variables de entorno.
-3. Deploy.
-
-> Nota: los archivos subidos en `app/static/uploads` se guardan en filesystem local del runtime. En producción serverless se recomienda moverlos a almacenamiento externo (S3, Cloudinary, etc.).
-
----
-
 ## 📁 Documentación
 
 En la carpeta [`DOCS/`](DOCS/) hay diagramas del sistema:
