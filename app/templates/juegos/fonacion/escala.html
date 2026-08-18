@@ -349,16 +349,13 @@ function actualizarNotaActual() {
 
 function reproducirNota(idx) {
     try {
-        if (!audioCtxSonido) audioCtxSonido = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtxSonido.createOscillator();
-        const gain = audioCtxSonido.createGain();
-        osc.connect(gain); gain.connect(audioCtxSonido.destination);
-        osc.frequency.value = FRECUENCIAS[idx];
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.3, audioCtxSonido.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxSonido.currentTime + 0.8);
-        osc.start(audioCtxSonido.currentTime);
-        osc.stop(audioCtxSonido.currentTime + 0.8);
+        if (!audioCtxSonido) audioCtxSonido = crearContextoAudioFono();
+        crearTonoFono(audioCtxSonido, {
+            frequency: FRECUENCIAS[idx],
+            duration: 0.8,
+            volumeBase: 0.28,
+            type: 'sine'
+        });
     } catch(e) {}
 }
 
@@ -371,7 +368,7 @@ function toggleMicEscala() {
 async function iniciarMicEscala() {
     try {
         micStreamE = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtxE = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtxE = crearContextoAudioFono();
         const source = audioCtxE.createMediaStreamSource(micStreamE);
         analyserE = audioCtxE.createAnalyser();
         analyserE.fftSize = 2048;

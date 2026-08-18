@@ -207,7 +207,7 @@ P-01  Implementar encriptación de contraseñas con bcrypt.
 P-02  Implementar autenticación JWT para sesiones más seguras.
 P-03  Agregar HTTPS (requerido para Web Audio API en producción).
 P-04  Implementar notificaciones push para el médico cuando un paciente completa actividades.
-P-05  Agregar sistema de niveles y puntos funcional (actualmente los campos existen pero no se actualizan).
+P-05  Agregar sistema de niveles y puntos funcional.
 P-06  Implementar recuperación de contraseña por email.
 P-07  Agregar sonidos reales en los juegos de discriminación auditiva.
 P-08  Implementar exportación de reportes a PDF/Excel.

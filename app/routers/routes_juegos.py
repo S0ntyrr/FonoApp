@@ -56,14 +56,16 @@ Sistema de guardado de resultados:
 """
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
-from fastapi import APIRouter, Request, Depends, Form
+from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
 from ..security import require_role
+from ..upload_utils import save_upload_safely
 
 router = APIRouter(
     prefix="/juegos",
@@ -71,6 +73,58 @@ router = APIRouter(
     dependencies=[Depends(require_role(["admin", "medico", "doctor", "paciente", "emisor"]))],
 )
 templates = Jinja2Templates(directory="app/templates")
+AUDIO_UPLOAD_DIR = Path("app/static/uploads/evidencias_audio")
+ALLOWED_AUDIO_EXTENSIONS = {".webm", ".wav", ".ogg", ".m4a", ".mp3", ".mp4"}
+MAX_AUDIO_BYTES = 4 * 1024 * 1024
+
+
+async def _crear_notificaciones_doctor(
+    db: AsyncIOMotorDatabase,
+    *,
+    paciente_email: str,
+    categoria: str,
+    juego: str,
+    actividad: str,
+    puntaje_actividad: int,
+    fecha: datetime,
+) -> None:
+    fecha_dia = datetime(fecha.year, fecha.month, fecha.day)
+    asignaciones = db["asignaciones"].find(
+        {
+            "paciente_email": paciente_email,
+            "estado": {"$in": ["aceptada", "activo", "asignada"]},
+        },
+        {"medico_email": 1},
+    )
+    async for asignacion in asignaciones:
+        medico_email = (asignacion.get("medico_email") or "").strip()
+        if not medico_email:
+            continue
+        await db["notificaciones_doctor"].update_one(
+            {
+                "medico_email": medico_email,
+                "paciente_email": paciente_email,
+                "juego": juego,
+                "fecha_dia": fecha_dia,
+            },
+            {
+                "$set": {
+                    "categoria": categoria,
+                    "actividad": actividad,
+                    "puntaje_actividad": puntaje_actividad,
+                    "fecha_actividad": fecha,
+                    "leida": False,
+                },
+                "$setOnInsert": {
+                    "medico_email": medico_email,
+                    "paciente_email": paciente_email,
+                    "juego": juego,
+                    "fecha_dia": fecha_dia,
+                    "creada_en": datetime.utcnow(),
+                },
+            },
+            upsert=True,
+        )
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -449,6 +503,21 @@ async def discriminacion_arrastra_sonido(request: Request):
 
 # ─── RESULTADO DE JUEGO ───────────────────────────────────────────────────────
 
+@router.post("/evidencia-audio", response_class=JSONResponse)
+async def subir_evidencia_audio(
+    audio: UploadFile = File(...),
+    user: dict = Depends(require_role(["paciente"])),
+):
+    ruta = await save_upload_safely(
+        audio,
+        upload_dir=AUDIO_UPLOAD_DIR,
+        allowed_extensions=ALLOWED_AUDIO_EXTENSIONS,
+        max_size_bytes=MAX_AUDIO_BYTES,
+        public_prefix="/static/uploads/evidencias_audio",
+    )
+    return {"status": "ok", "audio_url": ruta, "paciente_email": user["email"]}
+
+
 @router.post("/resultado", response_class=JSONResponse)
 async def guardar_resultado_juego(
     db: AsyncIOMotorDatabase = Depends(get_db),
@@ -459,6 +528,9 @@ async def guardar_resultado_juego(
     total_pasos: int = Form(...),
     completado: bool = Form(False),
     notas: str = Form(""),
+    audio_transcripcion: str = Form(""),
+    audio_url: str = Form(""),
+    requiere_revision_audio: bool = Form(False),
     puntos: int = Form(0),
     nivel: int = Form(1),
     ruta: str = Form(""),
@@ -479,6 +551,10 @@ async def guardar_resultado_juego(
     progreso_pct = int((paso_seguro / total_pasos_seguro) * 100)
     puntos_norm = max(0, min(100, int(puntos)))
     puntaje_actividad = int(round((progreso_pct * 0.65) + (puntos_norm * 0.35)))
+    notas_limpias = (notas or "").strip()
+    transcripcion_limpia = (audio_transcripcion or "").strip()
+    audio_url_limpia = (audio_url or "").strip()
+    tiene_evidencia_audio = bool(requiere_revision_audio and (audio_url_limpia or transcripcion_limpia))
 
     # 1. Guardar/actualizar en resultados_juegos (1 registro por paciente+juego+día)
     resultado = {
@@ -491,7 +567,10 @@ async def guardar_resultado_juego(
         "fecha": ahora,
         "fecha_dia": inicio_dia,
         "ruta": ruta,
-        "notas": notas,
+        "notas": notas_limpias,
+        "audio_transcripcion": transcripcion_limpia,
+        "audio_url": audio_url_limpia,
+        "requiere_revision_audio": tiene_evidencia_audio,
         "puntos": puntos,
         "progreso_pct": progreso_pct,
         "puntaje_actividad": puntaje_actividad,
@@ -512,6 +591,7 @@ async def guardar_resultado_juego(
     # para que el doctor pueda ver y evaluar el progreso
     if completado:
         actividad = juego.replace("_", " ").replace("-", " ").title()
+        detalle_actividad = notas_limpias or transcripcion_limpia
         historial_entry = {
             "paciente_email": paciente_email,
             "categoria": categoria,
@@ -521,8 +601,11 @@ async def guardar_resultado_juego(
             "puntaje_sistema": puntaje_actividad,
             "nivel": nivel,
             "fecha": ahora,
-            "detalle_actividad": (notas or "").strip(),
+            "detalle_actividad": detalle_actividad,
             "ruta_juego": ruta,
+            "audio_transcripcion": transcripcion_limpia,
+            "audio_url": audio_url_limpia,
+            "requiere_revision_audio": tiene_evidencia_audio,
         }
         await db["historial_actividades"].update_one(
             {
@@ -534,6 +617,15 @@ async def guardar_resultado_juego(
             {"$set": historial_entry, "$setOnInsert": {"feedback": None}},
             upsert=True,
         )
+        await _crear_notificaciones_doctor(
+            db,
+            paciente_email=paciente_email,
+            categoria=categoria,
+            juego=juego,
+            actividad=actividad,
+            puntaje_actividad=puntaje_actividad,
+            fecha=ahora,
+        )
 
     # 3. Registrar uso diario para el calendario de actividad
     await db["sesiones_app"].update_one(
@@ -542,7 +634,13 @@ async def guardar_resultado_juego(
         upsert=True,
     )
 
-    return {"status": "ok", "completado": completado, "puntos": puntos}
+    return {
+        "status": "ok",
+        "completado": completado,
+        "puntos": puntos,
+        "audio_url": audio_url_limpia,
+        "audio_transcripcion": transcripcion_limpia,
+    }
 
 
 @router.get("/seed-actividades", response_class=JSONResponse)

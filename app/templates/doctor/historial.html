@@ -37,6 +37,16 @@
                             <p class="historial-actividad-nombre">{{ h.actividad }}</p>
                             <p class="historial-meta">{{ h.categoria | title }} · 🧭 {{ h.pasos_label }} · 🏆 {{ h.puntaje_sistema or h.puntos_obtenidos }} pts · Nivel {{ h.nivel }} · 📅 {{ h.fecha.strftime('%d/%m/%Y') if h.fecha else '-' }}</p>
                             <p class="historial-evidencia">{{ h.detalle_actividad }}</p>
+                            {% if h.tiene_evidencia_audio %}
+                               <div class="historial-audio">
+                                   {% if h.audio_transcripcion %}
+                                       <p class="historial-transcripcion">🗣️ {{ h.audio_transcripcion }}</p>
+                                   {% endif %}
+                                   {% if h.audio_url %}
+                                       <a href="{{ h.audio_url }}" target="_blank" rel="noopener" class="btn-audio-evidencia">🎧 Escuchar lo que dijo</a>
+                                   {% endif %}
+                               </div>
+                            {% endif %}
                         </div>
                         {% if h.feedback %}<span class="badge-evaluado">✓</span>
                         {% else %}<span class="badge-pendiente">⏳</span>{% endif %}
@@ -74,6 +84,9 @@
 .historial-actividad-nombre { margin:0.1rem 0; font-size:0.9rem; font-weight:700; color:#1a1a1a; }
 .historial-meta { margin:0; font-size:0.7rem; color:#aaa; }
 .historial-evidencia { margin:0.2rem 0 0; font-size:0.76rem; color:#444; background:#f7f7f7; border-radius:7px; padding:0.35rem 0.5rem; }
+.historial-audio { margin-top:0.4rem; display:flex; flex-direction:column; gap:0.35rem; }
+.historial-transcripcion { margin:0; font-size:0.76rem; color:#5d4037; background:#fff8e1; border-radius:7px; padding:0.35rem 0.5rem; }
+.btn-audio-evidencia { display:inline-flex; align-items:center; justify-content:center; width:max-content; max-width:100%; font-size:0.78rem; color:#1565c0; text-decoration:none; font-weight:700; padding:0.38rem 0.65rem; border:1px solid #bbdefb; border-radius:8px; background:#eef6ff; }
 .badge-evaluado { background:#e8f5e9; color:#2e7d32; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
 .badge-pendiente { background:#fff3e0; color:#e65100; font-size:0.72rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:8px; }
 .hist-feedback { display:flex; gap:0.4rem; background:#f9f9f9; border-radius:8px; padding:0.4rem 0.6rem; }

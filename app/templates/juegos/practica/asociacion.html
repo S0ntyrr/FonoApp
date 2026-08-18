@@ -251,16 +251,13 @@ function reiniciar() {
 
 function reproducirSonido(correcto) {
     try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = correcto ? 880 : 220;
-        osc.type = correcto ? 'sine' : 'sawtooth';
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.4);
+        const ctx = crearContextoAudioFono();
+        crearTonoFono(ctx, {
+            frequency: correcto ? 880 : 220,
+            duration: 0.4,
+            volumeBase: 0.24,
+            type: correcto ? 'sine' : 'sawtooth'
+        });
     } catch(e) {}
 }
 

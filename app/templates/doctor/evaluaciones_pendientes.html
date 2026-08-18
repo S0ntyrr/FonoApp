@@ -34,6 +34,16 @@
                             <p class="evaluacion-meta">{{ ev.categoria | title }} · {{ ev.actividad }}</p>
                             <p class="evaluacion-meta">📅 {{ ev.fecha.strftime('%d/%m/%Y %H:%M') if ev.fecha else '-' }} · 🧭 {{ ev.pasos_label }} · 🏆 {{ ev.puntaje_sistema or ev.puntos_obtenidos }} pts · Nivel {{ ev.nivel }}</p>
                             <p class="evaluacion-evidencia">{{ ev.detalle_actividad }}</p>
+                            {% if ev.tiene_evidencia_audio %}
+                               <div class="evaluacion-audio">
+                                   {% if ev.audio_transcripcion %}
+                                       <p class="evaluacion-transcripcion">🗣️ {{ ev.audio_transcripcion }}</p>
+                                   {% endif %}
+                                   {% if ev.audio_url %}
+                                       <a href="{{ ev.audio_url }}" target="_blank" rel="noopener" class="btn-audio-evidencia">🎧 Escuchar lo que dijo</a>
+                                   {% endif %}
+                               </div>
+                            {% endif %}
                         </div>
                     </div>
                     <form method="post" action="/doctor/evaluaciones/{{ ev._id }}/feedback" class="feedback-form">
@@ -75,6 +85,9 @@
 .evaluacion-paciente { margin:0; font-size:0.88rem; font-weight:700; color:#1a1a1a; }
 .evaluacion-meta { margin:0.1rem 0 0; font-size:0.75rem; color:#888; }
 .evaluacion-evidencia { margin:0.25rem 0 0; font-size:0.76rem; color:#444; background:#f7f7f7; border-radius:7px; padding:0.35rem 0.5rem; }
+.evaluacion-audio { margin-top:0.45rem; display:flex; flex-direction:column; gap:0.35rem; }
+.evaluacion-transcripcion { margin:0; font-size:0.76rem; color:#5d4037; background:#fff8e1; border-radius:7px; padding:0.35rem 0.5rem; }
+.btn-audio-evidencia { display:inline-flex; align-items:center; justify-content:center; width:max-content; max-width:100%; font-size:0.78rem; color:#1565c0; text-decoration:none; font-weight:700; padding:0.38rem 0.65rem; border:1px solid #bbdefb; border-radius:8px; background:#eef6ff; }
 .feedback-form { display:flex; flex-direction:column; gap:0.5rem; }
 .feedback-textarea { resize:vertical; min-height:60px; font-size:0.88rem; padding:0.6rem 0.8rem; }
 .btn-feedback { background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; border:none; border-radius:8px; padding:0.55rem 1rem; font-size:0.85rem; font-weight:700; cursor:pointer; align-self:flex-end; }

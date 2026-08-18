@@ -326,7 +326,7 @@ function toggleMicGol() {
 async function iniciarMicGol() {
     try {
         micStreamG = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtxG = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtxG = crearContextoAudioFono();
         const source = audioCtxG.createMediaStreamSource(micStreamG);
         analyserG = audioCtxG.createAnalyser();
         analyserG.fftSize = 256;

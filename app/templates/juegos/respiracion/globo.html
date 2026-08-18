@@ -188,7 +188,7 @@ function toggleMic() {
 async function iniciarMic() {
     try {
         micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtx = crearContextoAudioFono();
         const source = audioCtx.createMediaStreamSource(micStream);
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;

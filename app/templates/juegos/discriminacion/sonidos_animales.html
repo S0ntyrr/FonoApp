@@ -115,7 +115,7 @@ function reproducirSonido() {
         audioActual.pause();
         audioActual.currentTime = 0;
     }
-    audioActual = new Audio(p.audioUrl);
+    audioActual = crearAudioFono(p.audioUrl);
     btn.classList.add('reproduciendo');
     document.getElementById('sonido-estado').textContent = '🔊 Reproduciendo...';
     audioActual.play().catch(() => {
@@ -146,6 +146,7 @@ function verificar(idx, btn) {
 }
 
 function siguientePregunta() {
+    if (audioActual) { audioActual.pause(); audioActual.currentTime = 0; }
     if (indiceActual < PREGUNTAS.length - 1) {
         mostrarPregunta(indiceActual + 1);
     } else {
@@ -159,6 +160,7 @@ function siguientePregunta() {
 }
 
 function reiniciar() {
+    if (audioActual) { audioActual.pause(); audioActual.currentTime = 0; }
     aciertos = 0;
     mostrarPregunta(0);
 }

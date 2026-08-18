@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from bson.errors import InvalidId
 from datetime import datetime, timedelta
 from collections import defaultdict
+from html import escape
 import re
 
 from ..database import get_db
@@ -105,6 +106,15 @@ def _filtro_feedback(estado: str):
     return {}
 
 
+def _parse_fecha_param(fecha_texto: str) -> datetime | None:
+    if not fecha_texto:
+        return None
+    try:
+        return datetime.strptime(fecha_texto, "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
 async def _adjuntar_evidencia_historial(
     db: AsyncIOMotorDatabase,
     historial_docs: list[dict],
@@ -117,6 +127,9 @@ async def _adjuntar_evidencia_historial(
         pasos_label = "-"
         ruta_juego = ""
         puntaje_sistema = doc.get("puntaje_sistema", doc.get("puntos_obtenidos", 0))
+        audio_transcripcion = (doc.get("audio_transcripcion") or "").strip()
+        audio_url = (doc.get("audio_url") or "").strip()
+        requiere_revision_audio = bool(doc.get("requiere_revision_audio"))
 
         query = {
             "paciente_email": paciente_email,
@@ -135,8 +148,13 @@ async def _adjuntar_evidencia_historial(
             total = resultado.get("total_pasos", 0)
             pasos_label = f"{paso}/{total}" if total else "-"
             puntaje_sistema = resultado.get("puntaje_actividad", resultado.get("puntos", puntaje_sistema))
+            audio_transcripcion = (resultado.get("audio_transcripcion") or audio_transcripcion).strip()
+            audio_url = (resultado.get("audio_url") or audio_url).strip()
+            requiere_revision_audio = bool(resultado.get("requiere_revision_audio", requiere_revision_audio))
             if nota:
                 evidencia = nota
+            elif audio_transcripcion:
+                evidencia = f"Dijo: {audio_transcripcion}"
             elif ruta_juego:
                 evidencia = f"Recorrido en {ruta_juego} con progreso {pasos_label}"
         if not evidencia:
@@ -146,7 +164,143 @@ async def _adjuntar_evidencia_historial(
         doc["pasos_label"] = pasos_label
         doc["ruta_juego"] = ruta_juego
         doc["puntaje_sistema"] = puntaje_sistema
+        doc["audio_transcripcion"] = audio_transcripcion
+        doc["audio_url"] = audio_url
+        doc["requiere_revision_audio"] = requiere_revision_audio
+        doc["tiene_evidencia_audio"] = bool(requiere_revision_audio and (audio_url or audio_transcripcion))
     return historial_docs
+
+
+async def _construir_reporte_diario_doctor(
+    db: AsyncIOMotorDatabase,
+    *,
+    paciente_email: str,
+    fecha_base: datetime,
+) -> dict:
+    inicio = datetime(fecha_base.year, fecha_base.month, fecha_base.day)
+    fin = inicio + timedelta(days=1)
+
+    resultados = []
+    historial_por_juego = {}
+    cursor_hist = db["historial_actividades"].find(
+        {
+            "paciente_email": paciente_email,
+            "fecha": {"$gte": inicio, "$lt": fin},
+        }
+    )
+    async for doc in cursor_hist:
+        historial_por_juego[doc.get("juego", "")] = doc
+
+    cursor_resultados = db["resultados_juegos"].find(
+        {
+            "paciente_email": paciente_email,
+            "fecha": {"$gte": inicio, "$lt": fin},
+        }
+    ).sort([("categoria", 1), ("juego", 1), ("fecha", 1)])
+
+    async for doc in cursor_resultados:
+        total_pasos = max(1, int(doc.get("total_pasos", 1)))
+        paso = max(0, int(doc.get("paso_completado", 0)))
+        historial = historial_por_juego.get(doc.get("juego", ""), {})
+        transcripcion = (doc.get("audio_transcripcion") or historial.get("audio_transcripcion") or "").strip()
+        evidencia_texto = (doc.get("notas") or historial.get("detalle_actividad") or "").strip()
+        if not evidencia_texto and transcripcion:
+            evidencia_texto = f"Dijo: {transcripcion}"
+        resultados.append(
+            {
+                "categoria": doc.get("categoria", ""),
+                "juego": doc.get("juego", ""),
+                "actividad": historial.get("actividad", doc.get("juego", "").replace("_", " ").title()),
+                "completado": bool(doc.get("completado")),
+                "progreso": int((paso / total_pasos) * 100),
+                "pasos_label": f"{paso}/{total_pasos}",
+                "puntaje_sistema": int(doc.get("puntaje_actividad", doc.get("puntos", 0)) or 0),
+                "nivel": int(doc.get("nivel", 1) or 1),
+                "fecha": doc.get("fecha"),
+                "detalle_actividad": evidencia_texto,
+                "audio_transcripcion": transcripcion,
+                "audio_url": (doc.get("audio_url") or historial.get("audio_url") or "").strip(),
+                "tiene_evidencia_audio": bool(
+                    doc.get("requiere_revision_audio") or historial.get("requiere_revision_audio")
+                ) and bool((doc.get("audio_url") or historial.get("audio_url") or "").strip() or transcripcion),
+                "feedback": (historial.get("feedback") or "").strip(),
+                "puntaje_clinico": historial.get("puntaje_clinico"),
+            }
+        )
+
+    completadas = [r for r in resultados if r["completado"]]
+    promedio = round(sum(r["puntaje_sistema"] for r in completadas) / len(completadas), 1) if completadas else 0
+    return {
+        "fecha": inicio,
+        "filas": resultados,
+        "resumen": {
+            "total": len(resultados),
+            "completadas": len(completadas),
+            "promedio": promedio,
+        },
+    }
+
+
+def _reporte_excel_xml(paciente_email: str, fecha_base: datetime, filas: list[dict]) -> str:
+    def celda(valor: str | int | float) -> str:
+        return (
+            "<Cell><Data ss:Type=\"String\">"
+            f"{escape(str(valor))}"
+            "</Data></Cell>"
+        )
+
+    encabezados = [
+        "Paciente",
+        "Fecha",
+        "Categoría",
+        "Juego",
+        "Actividad",
+        "Completado",
+        "Progreso",
+        "Puntaje sistema",
+        "Nivel",
+        "Detalle",
+        "Transcripción",
+        "Audio",
+        "Feedback doctor",
+        "Puntaje clínico",
+    ]
+    rows = ["<Row>" + "".join(celda(h) for h in encabezados) + "</Row>"]
+    fecha_txt = fecha_base.strftime("%Y-%m-%d")
+    for fila in filas:
+        rows.append(
+            "<Row>"
+            + "".join(
+                [
+                    celda(paciente_email),
+                    celda(fecha_txt),
+                    celda(fila.get("categoria", "")),
+                    celda(fila.get("juego", "")),
+                    celda(fila.get("actividad", "")),
+                    celda("Sí" if fila.get("completado") else "No"),
+                    celda(f"{fila.get('progreso', 0)}%"),
+                    celda(fila.get("puntaje_sistema", 0)),
+                    celda(fila.get("nivel", 1)),
+                    celda(fila.get("detalle_actividad", "")),
+                    celda(fila.get("audio_transcripcion", "")),
+                    celda(fila.get("audio_url", "")),
+                    celda(fila.get("feedback", "")),
+                    celda(fila.get("puntaje_clinico", "")),
+                ]
+            )
+            + "</Row>"
+        )
+    return (
+        "<?xml version=\"1.0\"?>"
+        "<?mso-application progid=\"Excel.Sheet\"?>"
+        "<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" "
+        "xmlns:o=\"urn:schemas-microsoft-com:office:office\" "
+        "xmlns:x=\"urn:schemas-microsoft-com:office:excel\" "
+        "xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">"
+        "<Worksheet ss:Name=\"Reporte diario\"><Table>"
+        + "".join(rows)
+        + "</Table></Worksheet></Workbook>"
+    )
 
 
 @router.get("/home", response_class=HTMLResponse)
@@ -507,6 +661,78 @@ async def vista_resultados_doctor(
     })
 
 
+@router.get("/reportes-diarios", response_class=HTMLResponse)
+async def vista_reportes_diarios_doctor(
+    request: Request,
+    paciente_email: str = "",
+    fecha: str = "",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
+    pacientes_lista = sorted(list(pacientes_asignados))
+    fecha_base = _parse_fecha_param(fecha) or datetime.utcnow()
+    reporte = None
+
+    if paciente_email and paciente_email in pacientes_asignados:
+        reporte = await _construir_reporte_diario_doctor(
+            db,
+            paciente_email=paciente_email,
+            fecha_base=fecha_base,
+        )
+
+    return templates.TemplateResponse(request, "doctor/reportes_diarios.html", {
+        "request": request,
+        "titulo_pagina": "Reportes diarios",
+        "pacientes_lista": pacientes_lista,
+        "paciente_email_sel": paciente_email,
+        "fecha_sel": fecha_base.strftime("%Y-%m-%d"),
+        "reporte": reporte,
+    })
+
+
+@router.get("/reportes-diarios/excel")
+async def descargar_reporte_diario_excel(
+    request: Request,
+    paciente_email: str,
+    fecha: str = "",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
+    if paciente_email not in pacientes_asignados:
+        return RedirectResponse(url="/doctor/reportes-diarios", status_code=303)
+
+    fecha_base = _parse_fecha_param(fecha) or datetime.utcnow()
+    reporte = await _construir_reporte_diario_doctor(
+        db,
+        paciente_email=paciente_email,
+        fecha_base=fecha_base,
+    )
+    contenido = _reporte_excel_xml(paciente_email, reporte["fecha"], reporte["filas"])
+    fecha_archivo = reporte["fecha"].strftime("%Y-%m-%d")
+    headers = {
+        "Content-Disposition": (
+            f'attachment; filename="reporte-diario-{paciente_email}-{fecha_archivo}.xls"'
+        )
+    }
+    return Response(content=contenido, media_type="application/vnd.ms-excel", headers=headers)
+
+
 @router.get("/evaluaciones-pendientes", response_class=HTMLResponse)
 async def vista_evaluaciones_pendientes(
     request: Request,
@@ -552,6 +778,45 @@ async def vista_evaluaciones_pendientes(
         "paciente_email_sel": paciente_email,
         "categoria_sel": categoria,
     })
+
+
+@router.get("/notificaciones/pending", response_class=JSONResponse)
+async def notificaciones_pendientes_doctor(
+    request: Request,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    user = get_current_user(request)
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return JSONResponse({"items": []}, status_code=401)
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not doctor_doc:
+        return {"items": []}
+
+    docs = []
+    ids = []
+    cursor = db["notificaciones_doctor"].find(
+        {"medico_email": doctor_doc["email"], "leida": False}
+    ).sort("creada_en", -1).limit(20)
+    async for doc in cursor:
+        ids.append(doc["_id"])
+        docs.append(
+            {
+                "id": str(doc["_id"]),
+                "paciente_email": doc.get("paciente_email", ""),
+                "actividad": doc.get("actividad", ""),
+                "categoria": doc.get("categoria", ""),
+                "puntaje_actividad": doc.get("puntaje_actividad", 0),
+            }
+        )
+
+    if ids:
+        await db["notificaciones_doctor"].update_many(
+            {"_id": {"$in": ids}},
+            {"$set": {"leida": True, "leida_en": datetime.utcnow()}},
+        )
+
+    return {"items": docs}
 
 
 @router.post("/evaluaciones/{historial_id}/feedback")

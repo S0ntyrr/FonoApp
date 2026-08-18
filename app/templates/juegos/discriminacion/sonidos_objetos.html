@@ -109,7 +109,7 @@ function reproducirSonido() {
         audioActual.pause();
         audioActual.currentTime = 0;
     }
-    audioActual = new Audio(p.audioUrl);
+    audioActual = crearAudioFono(p.audioUrl);
     btn.classList.add('reproduciendo');
     document.getElementById('sonido-estado').textContent = '🔊 Reproduciendo...';
     audioActual.play().catch(() => {
@@ -136,6 +136,7 @@ function verificar(idx, btn) {
 }
 
 function siguientePregunta() {
+    if (audioActual) { audioActual.pause(); audioActual.currentTime = 0; }
     if (indiceActual < PREGUNTAS.length - 1) { mostrarPregunta(indiceActual + 1); }
     else {
         document.getElementById('pregunta-area').style.display = 'none';
@@ -147,7 +148,11 @@ function siguientePregunta() {
     }
 }
 
-function reiniciar() { aciertos = 0; mostrarPregunta(0); }
+function reiniciar() {
+    if (audioActual) { audioActual.pause(); audioActual.currentTime = 0; }
+    aciertos = 0;
+    mostrarPregunta(0);
+}
 mostrarPregunta(0);
 </script>
 {% endblock %}

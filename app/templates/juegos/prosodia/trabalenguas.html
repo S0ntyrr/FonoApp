@@ -88,6 +88,10 @@ const TRABALENGUAS = [
 let indiceActual = 0;
 let micActivo = false;
 let recognition = null;
+let ultimaTranscripcion = '';
+let detalleVozPromise = Promise.resolve({});
+let transcripcionesTrabalenguas = [];
+const evidenciaVozTrabalenguas = crearCapturaActividad({ categoria: 'prosodia', juego: 'trabalenguas' });
 
 function comenzar() {
     document.getElementById('btn-comenzar').style.display = 'none';
@@ -96,6 +100,8 @@ function comenzar() {
 
 function mostrarTrabale(idx) {
     indiceActual = idx;
+    ultimaTranscripcion = '';
+    detalleVozPromise = Promise.resolve({});
     document.getElementById('trabalenguas-num').textContent = `Trabalenguas ${idx + 1} de ${TRABALENGUAS.length}`;
     document.getElementById('trabalenguas-texto').textContent = TRABALENGUAS[idx];
     document.getElementById('mic-area').style.display = 'flex';
@@ -110,18 +116,26 @@ function siguienteTrabale() {
     } else {
         // Mostrar registro de palabras difíciles
         document.getElementById('mic-area').style.display = 'none';
-        document.getElementById('palavras-dificiles') || (document.getElementById('palabras-dificiles').style.display = 'block');
         document.getElementById('palabras-dificiles').style.display = 'block';
     }
 }
 
-function guardarPalabras() {
+async function guardarPalabras() {
+    const detalleVoz = await detalleVozPromise;
+    const palabras = Array.from(document.querySelectorAll('.palabra-input'))
+        .map(input => input.value.trim())
+        .filter(Boolean);
     document.getElementById('palabras-dificiles').style.display = 'none';
     document.getElementById('resultado-final').style.display = 'block';
-    guardarResultadoJuego('prosodia', 'trabalenguas', TRABALENGUAS.length, TRABALENGUAS.length, true, 60, 1);
+    guardarResultadoJuego('prosodia', 'trabalenguas', TRABALENGUAS.length, TRABALENGUAS.length, true, 60, 1, {
+        notas: palabras.length ? `Palabras difíciles: ${palabras.join(', ')}` : '',
+        audioTranscripcion: transcripcionesTrabalenguas.join(' | '),
+        ...detalleVoz,
+    });
 }
 
 function reiniciar() {
+    transcripcionesTrabalenguas = [];
     document.getElementById('resultado-final').style.display = 'none';
     document.querySelectorAll('.palabra-input').forEach(i => i.value = '');
     mostrarTrabale(0);
@@ -133,6 +147,8 @@ function toggleMic() {
 
 async function iniciarMic() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        ultimaTranscripcion = '';
+        detalleVozPromise = evidenciaVozTrabalenguas.iniciar().then(() => ({})).catch(() => ({}));
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SR();
         recognition.lang = 'es-ES';
@@ -140,6 +156,7 @@ async function iniciarMic() {
         recognition.interimResults = true;
         recognition.onresult = (e) => {
             const texto = Array.from(e.results).map(r => r[0].transcript).join(' ');
+            ultimaTranscripcion = texto;
             document.getElementById('mic-estado').textContent = `🔴 "${texto}"`;
         };
         recognition.onerror = () => { detenerMic(); };
@@ -153,8 +170,13 @@ async function iniciarMic() {
 }
 
 function detenerMic() {
+    const estabaGrabando = micActivo || !!recognition;
     micActivo = false;
     if (recognition) { recognition.stop(); recognition = null; }
+    if (estabaGrabando && ultimaTranscripcion) {
+        transcripcionesTrabalenguas.push(ultimaTranscripcion);
+    }
+    detalleVozPromise = evidenciaVozTrabalenguas.detener({ transcripcion: ultimaTranscripcion });
     document.getElementById('btn-mic').classList.remove('activo');
     document.getElementById('mic-estado').textContent = 'Toca para hablar';
 }

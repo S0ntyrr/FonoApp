@@ -153,7 +153,7 @@ function toggleMicMolino() {
 async function iniciarMicMolino() {
     try {
         micStreamM = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        audioCtxM = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtxM = crearContextoAudioFono();
         const source = audioCtxM.createMediaStreamSource(micStreamM);
         analyserM = audioCtxM.createAnalyser();
         analyserM.fftSize = 256;

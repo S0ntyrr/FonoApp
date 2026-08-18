@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="pantalla-movil" style="padding-top:1rem;">
+    <div class="panel-header">
+        <a href="/doctor/home" class="btn-volver-cat">← Volver</a>
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.05rem;">🧾 Reporte diario</h1>
+        <div style="width:72px;"></div>
+    </div>
+
+    <form method="get" action="/doctor/reportes-diarios" class="filtros-card">
+        <select name="paciente_email" class="campo-texto" required>
+            <option value="">Selecciona un paciente</option>
+            {% for email in pacientes_lista %}
+                <option value="{{ email }}" {% if email == paciente_email_sel %}selected{% endif %}>{{ email }}</option>
+            {% endfor %}
+        </select>
+        <input type="date" name="fecha" class="campo-texto" value="{{ fecha_sel }}" required />
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:0;">Ver reporte</button>
+    </form>
+
+    {% if reporte %}
+        <div class="acciones-reporte">
+            <button type="button" class="boton-rojo-borde" onclick="window.print()">🖨️ Descargar PDF</button>
+            <a href="/doctor/reportes-diarios/excel?paciente_email={{ paciente_email_sel }}&fecha={{ fecha_sel }}" class="boton-rojo-borde">📥 Descargar Excel</a>
+        </div>
+
+        <div class="resumen-grid">
+            <div class="resumen-card">
+                <span>Total</span>
+                <strong>{{ reporte.resumen.total }}</strong>
+            </div>
+            <div class="resumen-card">
+                <span>Completadas</span>
+                <strong>{{ reporte.resumen.completadas }}</strong>
+            </div>
+            <div class="resumen-card">
+                <span>Promedio</span>
+                <strong>{{ reporte.resumen.promedio }}</strong>
+            </div>
+        </div>
+
+        <div class="reporte-card">
+            <p class="reporte-titulo">Paciente: {{ paciente_email_sel }}</p>
+            <p class="reporte-fecha">Fecha: {{ reporte.fecha.strftime('%d/%m/%Y') }}</p>
+            <div class="tabla-scroll">
+                <table class="tabla-reporte">
+                    <thead>
+                        <tr>
+                            <th>Categoría</th>
+                            <th>Juego</th>
+                            <th>Estado</th>
+                            <th>Progreso</th>
+                            <th>Puntaje</th>
+                            <th>Detalle</th>
+                            <th>Evidencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in reporte.filas %}
+                            <tr>
+                                <td>{{ fila.categoria }}</td>
+                                <td>{{ fila.actividad }}</td>
+                                <td>{{ 'Completo' if fila.completado else 'En progreso' }}</td>
+                                <td>{{ fila.pasos_label }} ({{ fila.progreso }}%)</td>
+                                <td>{{ fila.puntaje_sistema }}</td>
+                                <td>{{ fila.detalle_actividad or '-' }}</td>
+                                <td>
+                                    {% if fila.audio_transcripcion %}
+                                        <div class="reporte-audio-texto">🗣️ {{ fila.audio_transcripcion }}</div>
+                                    {% endif %}
+                                    {% if fila.audio_url %}
+                                        <a href="{{ fila.audio_url }}" target="_blank" rel="noopener" class="btn-audio-evidencia">🎧 Escuchar</a>
+                                    {% elif not fila.audio_transcripcion %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% elif paciente_email_sel %}
+        <div class="actividad-vacia" style="margin-top:1rem;">
+            <span style="font-size:2rem;">📭</span>
+            <p>No hay registros para ese paciente en la fecha seleccionada.</p>
+        </div>
+    {% endif %}
+</section>
+
+<style>
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.9rem; }
+.btn-volver-cat { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.85rem; font-size:0.82rem; font-weight:600; text-decoration:none; }
+.filtros-card { background:#fff; border-radius:12px; padding:0.8rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); margin-bottom:0.9rem; display:grid; gap:0.45rem; }
+.acciones-reporte { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.8rem; }
+.acciones-reporte .boton-rojo-borde { flex:1; min-width:170px; text-align:center; text-decoration:none; padding:0.7rem; }
+.resumen-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; margin-bottom:0.8rem; }
+.resumen-card { background:#fff; border-radius:12px; padding:0.75rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); text-align:center; }
+.resumen-card span { display:block; font-size:0.75rem; color:#888; }
+.resumen-card strong { font-size:1.15rem; color:#d32f2f; }
+.reporte-card { background:#fff; border-radius:12px; padding:0.85rem; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
+.reporte-titulo, .reporte-fecha { margin:0 0 0.2rem; font-size:0.86rem; color:#444; }
+.tabla-scroll { overflow:auto; margin-top:0.6rem; }
+.tabla-reporte { width:100%; border-collapse:collapse; font-size:0.78rem; }
+.tabla-reporte th, .tabla-reporte td { border-bottom:1px solid #f0f0f0; padding:0.55rem; text-align:left; vertical-align:top; }
+.tabla-reporte th { background:#fff7f7; color:#b71c1c; position:sticky; top:0; }
+.reporte-audio-texto { margin-bottom:0.35rem; color:#5d4037; }
+.btn-audio-evidencia { display:inline-flex; align-items:center; justify-content:center; font-size:0.76rem; color:#1565c0; text-decoration:none; font-weight:700; padding:0.32rem 0.55rem; border:1px solid #bbdefb; border-radius:8px; background:#eef6ff; }
+@media print {
+    .panel-header, .filtros-card, .acciones-reporte, .btn-continuar-global, .fono-volume-widget, .fono-doctor-notify { display:none !important; }
+    body { background:#fff; }
+    .contenedor-principal, .pantalla-movil { width:100%; max-width:none; padding:0; margin:0; }
+    .reporte-card, .resumen-card { box-shadow:none; border:1px solid #ddd; }
+}
+</style>
+{% endblock %}

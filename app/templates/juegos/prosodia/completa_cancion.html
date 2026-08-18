@@ -104,10 +104,17 @@ let cancionActual = null;
 let parteActual = 0;
 let micActivo = false;
 let recognition = null;
+let ultimaTranscripcion = '';
+let detalleVozPromise = Promise.resolve({});
+let transcripcionesCancion = [];
+const evidenciaVozCancion = crearCapturaActividad({ categoria: 'prosodia', juego: 'completa_cancion' });
 
 function elegirCancion(idx) {
     cancionActual = CANCIONES[idx];
     parteActual = 0;
+    ultimaTranscripcion = '';
+    detalleVozPromise = Promise.resolve({});
+    transcripcionesCancion = [];
     document.getElementById('cancion-titulo').textContent = cancionActual.titulo;
     document.getElementById('selector-cancion').style.display = 'none';
     document.getElementById('resultado-final').style.display = 'none';
@@ -125,14 +132,19 @@ function mostrarParte(idx) {
     `;
 }
 
-function siguienteParte() {
+async function siguienteParte() {
     detenerMic();
     if (parteActual < cancionActual.partes.length - 1) {
         mostrarParte(parteActual + 1);
     } else {
         document.getElementById('letra-area').style.display = 'none';
         document.getElementById('resultado-final').style.display = 'block';
-        guardarResultadoJuego('prosodia', 'completa_cancion', cancionActual.partes.length, cancionActual.partes.length, true, 70, 1);
+        const detalleVoz = await detalleVozPromise;
+        guardarResultadoJuego('prosodia', 'completa_cancion', cancionActual.partes.length, cancionActual.partes.length, true, 70, 1, {
+            notas: `Canción practicada: ${cancionActual ? cancionActual.titulo : ''}`,
+            audioTranscripcion: transcripcionesCancion.join(' | '),
+            ...detalleVoz,
+        });
     }
 }
 
@@ -149,6 +161,8 @@ function toggleMic() {
 
 async function iniciarMic() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        ultimaTranscripcion = '';
+        detalleVozPromise = evidenciaVozCancion.iniciar().then(() => ({})).catch(() => ({}));
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SR();
         recognition.lang = 'es-ES';
@@ -156,6 +170,7 @@ async function iniciarMic() {
         recognition.interimResults = true;
         recognition.onresult = (e) => {
             const texto = Array.from(e.results).map(r => r[0].transcript).join(' ');
+            ultimaTranscripcion = texto;
             document.getElementById('mic-estado').textContent = `🎵 "${texto}"`;
         };
         recognition.onerror = () => { detenerMic(); };
@@ -169,8 +184,13 @@ async function iniciarMic() {
 }
 
 function detenerMic() {
+    const estabaGrabando = micActivo || !!recognition;
     micActivo = false;
     if (recognition) { recognition.stop(); recognition = null; }
+    if (estabaGrabando && ultimaTranscripcion) {
+        transcripcionesCancion.push(ultimaTranscripcion);
+    }
+    detalleVozPromise = evidenciaVozCancion.detener({ transcripcion: ultimaTranscripcion });
     document.getElementById('btn-mic').classList.remove('activo');
     document.getElementById('mic-estado').textContent = 'Toca para cantar';
 }

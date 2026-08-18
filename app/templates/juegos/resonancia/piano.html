@@ -188,6 +188,7 @@ const MELODIA_ESTRELLITA = [0,0,4,4,5,5,4, 3,3,2,2,1,1,0];
 const NOMBRES_MELODIA = ['DO','DO','SOL','SOL','LA','LA','SOL','FA','FA','MI','MI','RE','RE','DO'];
 
 let audioCtxP = null;
+let audioCtxMicP = null;
 let puntosP = 0;
 let notaMelodiaActual = 0;
 let faseCantar = false;
@@ -263,7 +264,7 @@ function activarFaseCantar() {
 
 async function asegurarAudioPiano() {
     if (!audioCtxP) {
-        audioCtxP = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtxP = crearContextoAudioFono();
     }
     if (audioCtxP.state === 'suspended') {
         await audioCtxP.resume();
@@ -274,15 +275,12 @@ async function asegurarAudioPiano() {
 async function reproducirFrecuencia(freq, duracion) {
     try {
         await asegurarAudioPiano();
-        const osc = audioCtxP.createOscillator();
-        const gain = audioCtxP.createGain();
-        osc.connect(gain); gain.connect(audioCtxP.destination);
-        osc.frequency.value = freq;
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.4, audioCtxP.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxP.currentTime + duracion);
-        osc.start(audioCtxP.currentTime);
-        osc.stop(audioCtxP.currentTime + duracion);
+        crearTonoFono(audioCtxP, {
+            frequency: freq,
+            duration: duracion,
+            volumeBase: 0.26,
+            type: 'sine'
+        });
     } catch(e) {
         console.warn('No se pudo reproducir la nota del piano', e);
     }
@@ -293,15 +291,13 @@ async function reproducirMelodia() {
     MELODIA_ESTRELLITA.forEach((idx, i) => {
         const freq = NOTAS_PIANO[idx].freq;
         const t = audioCtxP.currentTime + i * 0.5;
-        const osc = audioCtxP.createOscillator();
-        const gain = audioCtxP.createGain();
-        osc.connect(gain); gain.connect(audioCtxP.destination);
-        osc.frequency.value = freq;
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-        osc.start(t);
-        osc.stop(t + 0.45);
+        crearTonoFono(audioCtxP, {
+            frequency: freq,
+            startTime: t,
+            duration: 0.45,
+            volumeBase: 0.24,
+            type: 'sine'
+        });
 
         // Iluminar tecla
         setTimeout(() => {
@@ -356,9 +352,9 @@ function toggleMicPiano() {
 async function iniciarMicPiano() {
     try {
         micStreamP = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
-        const source = ctx2.createMediaStreamSource(micStreamP);
-        analyserP = ctx2.createAnalyser();
+        audioCtxMicP = crearContextoAudioFono();
+        const source = audioCtxMicP.createMediaStreamSource(micStreamP);
+        analyserP = audioCtxMicP.createAnalyser();
         analyserP.fftSize = 256;
         source.connect(analyserP);
         micActivoP = true;
@@ -373,6 +369,7 @@ async function iniciarMicPiano() {
 function detenerMicPiano() {
     micActivoP = false;
     if (micStreamP) { micStreamP.getTracks().forEach(t => t.stop()); micStreamP = null; }
+    if (audioCtxMicP) { audioCtxMicP.close(); audioCtxMicP = null; }
     if (animFrameP) { cancelAnimationFrame(animFrameP); animFrameP = null; }
     document.getElementById('btn-mic-piano').classList.remove('activo');
     document.getElementById('mic-estado-piano').textContent = 'Toca para cantar';

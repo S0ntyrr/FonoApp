@@ -14,6 +14,216 @@
     <link rel="stylesheet" href="/static/css/estilos.css?v=9" />
     <style>body { font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif; }</style>
     <script>
+    const FONOAPP_VOLUME_KEY = 'fonoapp_master_volume';
+    const __fonoAudios = new Set();
+    const __fonoAudioContexts = new Set();
+    const __fonoAudioCleanup = new Set();
+
+    function obtenerVolumenFono() {
+        const guardado = parseFloat(localStorage.getItem(FONOAPP_VOLUME_KEY) || '0.7');
+        if (Number.isNaN(guardado)) return 0.7;
+        return Math.max(0, Math.min(1, guardado));
+    }
+
+    function actualizarEtiquetaVolumenFono(valor) {
+        const label = document.getElementById('fono-volume-value');
+        if (label) label.textContent = `${Math.round(valor * 100)}%`;
+    }
+
+    function registrarAudioFono(audio) {
+        if (!audio) return audio;
+        audio.volume = obtenerVolumenFono();
+        __fonoAudios.add(audio);
+        return audio;
+    }
+
+    function crearAudioFono(url) {
+        return registrarAudioFono(new Audio(url));
+    }
+
+    function crearContextoAudioFono() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        const ctx = new Ctx();
+        __fonoAudioContexts.add(ctx);
+        return ctx;
+    }
+
+    function crearTonoFono(ctx, opciones) {
+        if (!ctx) return null;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const inicio = opciones.startTime ?? ctx.currentTime;
+        const duracion = opciones.duration ?? 0.5;
+        const volumen = Math.max(0.0001, (opciones.volumeBase ?? 0.3) * obtenerVolumenFono());
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = opciones.frequency ?? 440;
+        osc.type = opciones.type || 'sine';
+        gain.gain.setValueAtTime(volumen, inicio);
+        gain.gain.exponentialRampToValueAtTime(0.001, inicio + duracion);
+        osc.start(inicio);
+        osc.stop(inicio + duracion);
+        return { osc, gain };
+    }
+
+    function registrarLimpiezaSonido(fn) {
+        if (typeof fn !== 'function') return;
+        __fonoAudioCleanup.add(fn);
+        return function cancelarRegistroLimpieza() {
+            __fonoAudioCleanup.delete(fn);
+        };
+    }
+
+    function detenerSonidosFono() {
+        __fonoAudioCleanup.forEach(fn => {
+            try { fn(); } catch (e) {}
+        });
+        __fonoAudios.forEach(audio => {
+            try {
+                audio.pause();
+                audio.currentTime = 0;
+            } catch (e) {}
+        });
+        __fonoAudioContexts.forEach(ctx => {
+            try {
+                if (ctx && typeof ctx.close === 'function' && ctx.state !== 'closed') {
+                    ctx.close();
+                }
+            } catch (e) {}
+        });
+        __fonoAudios.clear();
+        __fonoAudioContexts.clear();
+    }
+
+    async function subirEvidenciaAudio(blob, categoria, juego) {
+        if (!blob || !blob.size) return '';
+        const formData = new FormData();
+        const extension = (blob.type || '').includes('ogg') ? 'ogg' : 'webm';
+        formData.append('audio', blob, `${juego || 'actividad'}.${extension}`);
+        formData.append('categoria', categoria || '');
+        formData.append('juego', juego || '');
+        const response = await fetch('/juegos/evidencia-audio', { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('No se pudo subir la evidencia de audio');
+        const data = await response.json();
+        return data.audio_url || '';
+    }
+
+    function crearCapturaActividad(config) {
+        let mediaRecorder = null;
+        let stream = null;
+        let chunks = [];
+        let ultimoDetalle = {};
+
+        async function iniciar() {
+            if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                return false;
+            }
+            if (mediaRecorder && mediaRecorder.state === 'recording') return true;
+            chunks = [];
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) chunks.push(event.data);
+            };
+            mediaRecorder.start();
+            return true;
+        }
+
+        async function detener(meta) {
+            const extras = meta || {};
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                ultimoDetalle = {
+                    ...ultimoDetalle,
+                    audioTranscripcion: extras.transcripcion || ultimoDetalle.audioTranscripcion || '',
+                    requiereRevisionAudio: !!(ultimoDetalle.audioUrl || extras.transcripcion),
+                };
+                return ultimoDetalle;
+            }
+            return await new Promise((resolve) => {
+                const recorder = mediaRecorder;
+                recorder.onstop = async () => {
+                    let audioUrl = '';
+                    try {
+                        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+                        audioUrl = await subirEvidenciaAudio(blob, config.categoria, config.juego);
+                    } catch (e) {
+                        console.warn('No se pudo subir la evidencia de audio:', e);
+                    }
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                        stream = null;
+                    }
+                    mediaRecorder = null;
+                    chunks = [];
+                    ultimoDetalle = {
+                        audioUrl,
+                        audioTranscripcion: extras.transcripcion || '',
+                        requiereRevisionAudio: !!(audioUrl || extras.transcripcion),
+                    };
+                    resolve(ultimoDetalle);
+                };
+                recorder.stop();
+            });
+        }
+
+        function obtenerDetalle(meta) {
+            const extras = meta || {};
+            return {
+                audioUrl: ultimoDetalle.audioUrl || '',
+                audioTranscripcion: extras.transcripcion || ultimoDetalle.audioTranscripcion || '',
+                requiereRevisionAudio: !!(ultimoDetalle.audioUrl || ultimoDetalle.audioTranscripcion || extras.transcripcion),
+            };
+        }
+
+        function limpiar() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                try { mediaRecorder.stop(); } catch (e) {}
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            mediaRecorder = null;
+            chunks = [];
+        }
+
+        registrarLimpiezaSonido(limpiar);
+        return { iniciar, detener, obtenerDetalle, limpiar };
+    }
+
+    function _renderizarControlVolumen() {
+        const rutaActual = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+        if (!rutaActual.startsWith('/juegos/')) return;
+        if (document.querySelector('.fono-volume-widget')) return;
+        const valor = obtenerVolumenFono();
+        const widget = document.createElement('div');
+        widget.className = 'fono-volume-widget';
+        widget.innerHTML = `
+            <div class="fono-volume-head">
+                <span>🔊 Volumen</span>
+                <strong id="fono-volume-value">${Math.round(valor * 100)}%</strong>
+            </div>
+            <input id="fono-volume-slider" type="range" min="0" max="100" value="${Math.round(valor * 100)}" />
+        `;
+        widget.style.cssText = 'position:fixed;left:12px;right:12px;bottom:72px;z-index:9998;background:#ffffff;border:1px solid #f1d4d4;border-radius:14px;padding:0.65rem 0.85rem;box-shadow:0 5px 18px rgba(0,0,0,0.16);max-width:360px;margin:0 auto;';
+        const esMovil = window.matchMedia('(max-width: 768px)').matches;
+        if (!esMovil) {
+            widget.style.left = '14px';
+            widget.style.right = 'auto';
+            widget.style.bottom = '14px';
+            widget.style.width = '240px';
+        }
+        document.body.appendChild(widget);
+        const slider = document.getElementById('fono-volume-slider');
+        slider.addEventListener('input', function() {
+            const nuevoValor = Math.max(0, Math.min(1, Number(this.value) / 100));
+            localStorage.setItem(FONOAPP_VOLUME_KEY, String(nuevoValor));
+            actualizarEtiquetaVolumenFono(nuevoValor);
+            __fonoAudios.forEach(audio => { audio.volume = nuevoValor; });
+        });
+    }
+
     /**
      * Guarda el resultado de un juego en la base de datos.
      * Llamar desde cualquier juego cuando el paciente lo complete.
@@ -25,7 +235,7 @@
      * @param {number} puntos - Puntos obtenidos (opcional)
      * @param {number} nivel - Nivel del paciente (opcional)
      */
-    function guardarResultadoJuego(categoria, juego, pasoCompletado, totalPasos, completado, puntos=0, nivel=1) {
+    function guardarResultadoJuego(categoria, juego, pasoCompletado, totalPasos, completado, puntos=0, nivel=1, detalles={}) {
         // El backend toma el email desde la sesión firmada.
         // Este valor solo se envía como respaldo para compatibilidad.
         let email = sessionStorage.getItem('paciente_email')
@@ -45,6 +255,10 @@
         formData.append('puntos', puntos);
         formData.append('nivel', nivel);
         formData.append('ruta', window.location.pathname || '');
+        formData.append('notas', detalles.notas || '');
+        formData.append('audio_transcripcion', detalles.audioTranscripcion || '');
+        formData.append('audio_url', detalles.audioUrl || '');
+        formData.append('requiere_revision_audio', detalles.requiereRevisionAudio ? 'true' : 'false');
         return fetch('/juegos/resultado', { method: 'POST', body: formData })
             .then(r => r.json())
             .then(data => {
@@ -64,6 +278,7 @@
 
     // Función global para volver al inicio (dashboard del usuario)
     function volverInicio() {
+        detenerSonidosFono();
         const origen = sessionStorage.getItem('juegos_origen');
         window.location.href = origen || '/paciente/perfil';
     }
@@ -136,6 +351,7 @@
     }
 
     function irSiguienteJuego() {
+        detenerSonidosFono();
         const rutaActual = _normalizarRuta(window.location.pathname);
         const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
         if (modoFlujo === 'actividades_hoy') {
@@ -244,6 +460,8 @@
             sessionStorage.setItem('flujo_juegos_modo', 'hub');
         }
 
+        _renderizarControlVolumen();
+
         // Auto-agregar botón "Siguiente" en páginas de juegos
         const esPantallaJuego = rutaActual.startsWith('/juegos/') && rutaActual !== '/juegos/';
         if (esPantallaJuego && !document.querySelector('.btn-continuar-global')) {
@@ -266,8 +484,45 @@
             document.body.appendChild(btnContinuar);
         }
 
+        if (window.location.pathname.startsWith('/doctor/')) {
+            _inicializarNotificacionesDoctor();
+        }
+
         _mostrarAnuncioGlobal();
     });
+    window.addEventListener('pagehide', detenerSonidosFono);
+    window.addEventListener('beforeunload', detenerSonidosFono);
+
+    function _inicializarNotificacionesDoctor() {
+        if (document.querySelector('.fono-doctor-notify')) return;
+        const banner = document.createElement('div');
+        banner.className = 'fono-doctor-notify';
+        banner.style.cssText = 'position:fixed;left:12px;right:12px;top:12px;z-index:9999;background:#fff;border:1px solid #d9e6ff;border-radius:12px;padding:0.7rem 0.85rem;box-shadow:0 5px 18px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:space-between;gap:0.6rem;';
+        banner.innerHTML = '<span style="font-size:0.82rem;color:#1f3b73;font-weight:600;">Activa las notificaciones del navegador para nuevos avances de pacientes.</span><button type="button" class="boton-rojo" style="margin:0;padding:0.45rem 0.7rem;">Activar</button>';
+        if ('Notification' in window && Notification.permission === 'default') {
+            document.body.appendChild(banner);
+            banner.querySelector('button').onclick = async function() {
+                const permiso = await Notification.requestPermission();
+                if (permiso !== 'default') banner.remove();
+            };
+        }
+
+        if (!('Notification' in window)) return;
+        const revisar = () => {
+            if (Notification.permission !== 'granted') return;
+            fetch('/doctor/notificaciones/pending')
+                .then(r => r.ok ? r.json() : { items: [] })
+                .then(data => {
+                    (data.items || []).forEach(item => {
+                        const cuerpo = `${item.paciente_email} completó ${item.actividad} (${item.categoria}). Puntaje: ${item.puntaje_actividad}.`;
+                        new Notification('Nuevo avance de paciente', { body: cuerpo, icon: '/static/img/splash.svg' });
+                    });
+                })
+                .catch(() => {});
+        };
+        revisar();
+        setInterval(revisar, 45000);
+    }
     </script>
     <script src="/static/js/terminos.js"></script>
 </head>

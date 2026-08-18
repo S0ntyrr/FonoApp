@@ -45,8 +45,6 @@ Colecciones MongoDB usadas:
   - contenido_admin: textos, imágenes y videos
 """
 
-from uuid import uuid4
-
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -63,6 +61,7 @@ from ..config import settings
 from ..database import get_db
 from ..models import ContenidoAdmin, HistorialActividad
 from ..security import hash_password, require_role
+from ..upload_utils import save_upload_safely
 
 router = APIRouter(
     prefix="/admin",
@@ -183,33 +182,13 @@ async def _guardar_upload_seguro(
     allowed_extensions: set[str],
     max_size_bytes: int,
 ) -> str | None:
-    if not upload or not upload.filename:
-        return None
-
-    extension = Path(upload.filename).suffix.lower()
-    if extension not in allowed_extensions:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Extensión no permitida: {extension}",
-        )
-
-    contenido = await upload.read()
-    if not contenido:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo subido está vacío.",
-        )
-    if len(contenido) > max_size_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"El archivo excede el límite de {max_size_bytes} bytes.",
-        )
-
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    nombre_archivo = f"{uuid4().hex}{extension}"
-    ruta_fs = UPLOAD_DIR / nombre_archivo
-    ruta_fs.write_bytes(contenido)
-    return f"/static/uploads/{nombre_archivo}"
+    return await save_upload_safely(
+        upload,
+        upload_dir=UPLOAD_DIR,
+        allowed_extensions=allowed_extensions,
+        max_size_bytes=max_size_bytes,
+        public_prefix="/static/uploads",
+    )
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

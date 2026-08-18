@@ -230,7 +230,7 @@ function toggleMicRes() {
 async function iniciarMicRes() {
     try {
         micStreamR = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtxR = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtxR = crearContextoAudioFono();
         const source = audioCtxR.createMediaStreamSource(micStreamR);
         analyserR = audioCtxR.createAnalyser();
         analyserR.fftSize = 2048;
@@ -323,19 +323,17 @@ function reiniciarRes() {
 
 function reproducirEjemplo() {
     try {
-        const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx2 = crearContextoAudioFono();
         // Sonido "mmm" ascendente
         const freqs = [150, 200, 250, 300, 350, 400, 450, 500];
         freqs.forEach((f, i) => {
-            const osc = ctx2.createOscillator();
-            const gain = ctx2.createGain();
-            osc.connect(gain); gain.connect(ctx2.destination);
-            osc.frequency.value = f;
-            osc.type = 'sine';
-            gain.gain.setValueAtTime(0.2, ctx2.currentTime + i * 0.3);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx2.currentTime + i * 0.3 + 0.28);
-            osc.start(ctx2.currentTime + i * 0.3);
-            osc.stop(ctx2.currentTime + i * 0.3 + 0.28);
+            crearTonoFono(ctx2, {
+                frequency: f,
+                startTime: ctx2.currentTime + i * 0.3,
+                duration: 0.28,
+                volumeBase: 0.2,
+                type: 'sine'
+            });
         });
     } catch(e) {}
 }

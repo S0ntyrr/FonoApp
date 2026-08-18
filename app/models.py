@@ -151,6 +151,9 @@ class HistorialActividad(ModeloBase):
     nivel: int
     fecha: datetime
     feedback: str | None = None  # Evaluación del médico (None = pendiente)
+    audio_transcripcion: str | None = None
+    audio_url: str | None = None
+    requiere_revision_audio: bool = False
 
 
 # ── Perfil del paciente ────────────────────────────────────────────────────────
@@ -221,5 +224,8 @@ class ResultadoJuego(ModeloBase):
     completado: bool        # True si el juego fue completado exitosamente
     fecha: datetime
     notas: str | None = None
+    audio_transcripcion: str | None = None
+    audio_url: str | None = None
+    requiere_revision_audio: bool = False
     puntos: int = 0         # Puntos obtenidos en el juego
     nivel: int = 1          # Nivel del paciente al momento de jugar
