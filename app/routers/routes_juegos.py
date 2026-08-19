@@ -55,17 +55,18 @@ Sistema de guardado de resultados:
      para que el médico pueda evaluarlo en /doctor/evaluaciones-pendientes
 """
 
+import base64
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from bson import ObjectId
 from fastapi import APIRouter, Request, Depends, Form, File, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
 from ..security import require_role
-from ..upload_utils import save_upload_safely
 
 router = APIRouter(
     prefix="/juegos",
@@ -73,9 +74,17 @@ router = APIRouter(
     dependencies=[Depends(require_role(["admin", "medico", "doctor", "paciente", "emisor"]))],
 )
 templates = Jinja2Templates(directory="app/templates")
-AUDIO_UPLOAD_DIR = Path("app/static/uploads/evidencias_audio")
 ALLOWED_AUDIO_EXTENSIONS = {".webm", ".wav", ".ogg", ".m4a", ".mp3", ".mp4"}
 MAX_AUDIO_BYTES = 4 * 1024 * 1024
+
+CONTENT_TYPE_MAP = {
+    ".webm": "audio/webm",
+    ".wav": "audio/wav",
+    ".ogg": "audio/ogg",
+    ".m4a": "audio/mp4",
+    ".mp3": "audio/mpeg",
+    ".mp4": "audio/mp4",
+}
 
 
 async def _crear_notificaciones_doctor(
@@ -506,16 +515,57 @@ async def discriminacion_arrastra_sonido(request: Request):
 @router.post("/evidencia-audio", response_class=JSONResponse)
 async def subir_evidencia_audio(
     audio: UploadFile = File(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(require_role(["paciente"])),
 ):
-    ruta = await save_upload_safely(
-        audio,
-        upload_dir=AUDIO_UPLOAD_DIR,
-        allowed_extensions=ALLOWED_AUDIO_EXTENSIONS,
-        max_size_bytes=MAX_AUDIO_BYTES,
-        public_prefix="/static/uploads/evidencias_audio",
+    """Guarda evidencia de audio en MongoDB (evita filesystem de solo lectura en Vercel)."""
+    if not audio or not audio.filename:
+        return {"status": "ok", "audio_url": "", "paciente_email": user["email"]}
+
+    ext = Path(audio.filename).suffix.lower()
+    if ext not in ALLOWED_AUDIO_EXTENSIONS:
+        return JSONResponse(status_code=400, content={"detail": f"Extensión no permitida: {ext}"})
+
+    contenido = await audio.read()
+    if not contenido:
+        return {"status": "ok", "audio_url": "", "paciente_email": user["email"]}
+    if len(contenido) > MAX_AUDIO_BYTES:
+        return JSONResponse(status_code=413, content={"detail": "Archivo demasiado grande (máx 4 MB)"})
+
+    doc = {
+        "paciente_email": user["email"],
+        "extension": ext,
+        "content_type": CONTENT_TYPE_MAP.get(ext, "audio/webm"),
+        "data_b64": base64.b64encode(contenido).decode(),
+        "fecha": datetime.utcnow(),
+    }
+    result = await db["evidencias_audio"].insert_one(doc)
+    audio_url = f"/juegos/evidencia-audio/{result.inserted_id}"
+    return {"status": "ok", "audio_url": audio_url, "paciente_email": user["email"]}
+
+
+@router.get("/evidencia-audio/{audio_id}")
+async def servir_evidencia_audio(
+    audio_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(require_role(["paciente", "medico", "doctor", "admin"])),
+):
+    """Sirve un audio guardado en MongoDB."""
+    try:
+        oid = ObjectId(audio_id)
+    except Exception:
+        return Response(status_code=404)
+
+    doc = await db["evidencias_audio"].find_one({"_id": oid})
+    if not doc:
+        return Response(status_code=404)
+
+    audio_bytes = base64.b64decode(doc["data_b64"])
+    return Response(
+        content=audio_bytes,
+        media_type=doc.get("content_type", "audio/webm"),
+        headers={"Cache-Control": "private, max-age=3600"},
     )
-    return {"status": "ok", "audio_url": ruta, "paciente_email": user["email"]}
 
 
 @router.post("/resultado", response_class=JSONResponse)

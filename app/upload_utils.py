@@ -4,6 +4,18 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile, status
 
 
+def _es_solo_lectura(directorio: Path) -> bool:
+    """Verifica si el sistema de archivos del directorio es de solo lectura."""
+    test_path = directorio / f".write_test_{uuid4().hex}"
+    try:
+        directorio.mkdir(parents=True, exist_ok=True)
+        test_path.touch()
+        test_path.unlink()
+        return False
+    except (OSError, PermissionError):
+        return True
+
+
 async def save_upload_safely(
     upload: UploadFile,
     *,
@@ -35,8 +47,18 @@ async def save_upload_safely(
             detail=f"El archivo excede el límite de {max_size_bytes} bytes.",
         )
 
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    # En Vercel el filesystem es de solo lectura; intentar /tmp como fallback.
+    directorio_efectivo = upload_dir
+    if _es_solo_lectura(upload_dir):
+        tmp_dir = Path("/tmp") / upload_dir.name
+        try:
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            directorio_efectivo = tmp_dir
+        except (OSError, PermissionError):
+            # No se puede escribir en ningún lado — devolver None sin romper el flujo
+            return None
+
     nombre_archivo = f"{uuid4().hex}{extension}"
-    ruta_fs = upload_dir / nombre_archivo
+    ruta_fs = directorio_efectivo / nombre_archivo
     ruta_fs.write_bytes(contenido)
     return f"{public_prefix.rstrip('/')}/{nombre_archivo}"
