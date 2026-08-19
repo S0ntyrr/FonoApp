@@ -40,10 +40,14 @@
                             {% if h.tiene_evidencia_audio %}
                                <div class="historial-audio">
                                    {% if h.audio_transcripcion %}
-                                       <p class="historial-transcripcion">🗣️ {{ h.audio_transcripcion }}</p>
+                                       <p class="historial-transcripcion">🗣️ <strong>Lo que dijo:</strong> {{ h.audio_transcripcion }}</p>
                                    {% endif %}
                                    {% if h.audio_url %}
-                                       <a href="{{ h.audio_url }}" target="_blank" rel="noopener" class="btn-audio-evidencia">🎧 Escuchar lo que dijo</a>
+                                       <p class="audio-label">🎧 Grabación de voz:</p>
+                                       <audio controls preload="none" class="audio-player-evidencia">
+                                           <source src="{{ h.audio_url }}">
+                                           Tu navegador no soporta audio.
+                                       </audio>
                                    {% endif %}
                                </div>
                             {% endif %}
@@ -94,5 +98,7 @@
 .feedback-texto { margin:0; font-size:0.82rem; color:#333; }
 .btn-evaluar { display:inline-block; margin-top:0.4rem; font-size:0.78rem; color:#e65100; text-decoration:none; font-weight:600; padding:0.25rem 0.6rem; border:1px solid #ffe0b2; border-radius:8px; background:#fff8f0; }
 .btn-evaluar:hover { background:#fff3e0; }
+.audio-label { margin:0.3rem 0 0.15rem; font-size:0.75rem; color:#555; font-weight:600; }
+.audio-player-evidencia { width:100%; max-width:340px; height:36px; border-radius:8px; outline:none; display:block; }
 </style>
 {% endblock %}

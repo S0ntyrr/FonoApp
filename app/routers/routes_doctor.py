@@ -167,7 +167,7 @@ async def _adjuntar_evidencia_historial(
         doc["audio_transcripcion"] = audio_transcripcion
         doc["audio_url"] = audio_url
         doc["requiere_revision_audio"] = requiere_revision_audio
-        doc["tiene_evidencia_audio"] = bool(requiere_revision_audio and (audio_url or audio_transcripcion))
+        doc["tiene_evidencia_audio"] = bool(audio_url or audio_transcripcion)
     return historial_docs
 
 
@@ -221,8 +221,8 @@ async def _construir_reporte_diario_doctor(
                 "audio_transcripcion": transcripcion,
                 "audio_url": (doc.get("audio_url") or historial.get("audio_url") or "").strip(),
                 "tiene_evidencia_audio": bool(
-                    doc.get("requiere_revision_audio") or historial.get("requiere_revision_audio")
-                ) and bool((doc.get("audio_url") or historial.get("audio_url") or "").strip() or transcripcion),
+                    (doc.get("audio_url") or historial.get("audio_url") or "").strip() or transcripcion
+                ),
                 "feedback": (historial.get("feedback") or "").strip(),
                 "puntaje_clinico": historial.get("puntaje_clinico"),
             }
