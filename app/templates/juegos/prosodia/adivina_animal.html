@@ -3,8 +3,8 @@
 <section class="pantalla-movil">
     <div class="juegos-header">
         <a href="/juegos/prosodia" class="btn-volver-cat">← Prosodia</a>
-        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🐾 Adivina el animal</h1>
-        <div style="width:70px;"></div>
+        <h1 class="titulo-rojo centrado juegos-titulo">🐾 Adivina el animal</h1>
+        <div class="juegos-header-spacer" aria-hidden="true"></div>
     </div>
 
     <div class="juego-container">
@@ -61,7 +61,9 @@
 </section>
 
 <style>
-.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.juegos-header { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
+.juegos-header-spacer { width:70px; flex-shrink:0; }
+.juegos-titulo { margin:0; font-size:1.1rem; line-height:1.2; }
 .btn-volver-cat { background:none; border:1px solid #7b1fa2; color:#7b1fa2; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
 .btn-volver-cat:hover { background:#f3e5f5; }
 .juego-container { display:flex; flex-direction:column; gap:1rem; }
@@ -84,13 +86,27 @@
 @keyframes pulso { 0%,100%{box-shadow:0 0 0 0 rgba(123,31,162,0.4);} 50%{box-shadow:0 0 0 12px rgba(123,31,162,0);} }
 .mic-estado { margin:0; font-size:0.82rem; color:#888; }
 .respuesta-input-area { display:flex; gap:0.5rem; width:100%; }
-.respuesta-input-area .campo-texto { flex:1; }
+.respuesta-input-area .campo-texto { flex:1; min-width:0; }
 .respuesta-input-area .boton-rojo { margin-top:0; white-space:nowrap; }
 .resultado-card { border-radius:12px; padding:1rem; text-align:center; }
 .resultado-card p { margin:0 0 0.8rem; font-size:1rem; font-weight:700; }
 .resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
 .resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
 .resultado-card.perdiste { background:#fff3e0; border:2px solid #ff9800; color:#e65100; }
+@media (max-width: 430px) {
+    .juegos-header { gap:0.5rem; flex-wrap:wrap; }
+    .juegos-header-spacer { display:none; }
+    .juegos-titulo { font-size:0.95rem; flex:1; order:2; text-align:center; }
+    .btn-volver-cat { font-size:0.75rem; padding:0.3rem 0.7rem; }
+    .animal-display { padding:1.4rem 1rem; }
+    .animal-emoji { font-size:3.8rem; }
+    .instruccion-texto, .animal-pista, .pista-texto, .mic-estado { font-size:0.8rem; }
+    .respuesta-input-area { flex-direction:column; }
+    .respuesta-input-area .boton-rojo { width:100%; }
+    .btn-microfono { width:60px; height:60px; font-size:1.7rem; }
+    .pista-card, .instruccion-card { padding:0.8rem 0.9rem; }
+    .resultado-card p { font-size:0.95rem; }
+}
 </style>
 
 <script>
