@@ -11,6 +11,10 @@ class TestEmailCaseInsensitive(unittest.TestCase):
         expected = {"email": {"$regex": r"^user@example\.com$", "$options": "i"}}
         self.assertEqual(email_match_filter("USER@Example.com"), expected)
 
+    def test_paciente_router_has_email_match_filter_imported(self):
+        from app.routers import paciente
+        self.assertTrue(callable(getattr(paciente, "email_match_filter", None)))
+
 
 if __name__ == "__main__":
     unittest.main()

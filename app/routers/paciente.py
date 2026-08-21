@@ -40,7 +40,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
 from ..models import PerfilPaciente, SesionApp
-from ..security import require_role
+from ..security import email_match_filter, require_role
 
 router = APIRouter(
     prefix="/paciente",
