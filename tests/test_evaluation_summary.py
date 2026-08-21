@@ -25,6 +25,25 @@ class TestEvaluationSummary(unittest.TestCase):
         self.assertIn("Recorrido", summary["evidencia"][0])
         self.assertIn("La /a/", summary["evidencia"][1])
 
+    def test_summary_includes_notes_and_audio_when_saved_in_result(self):
+        doc = {
+            "puntaje_sistema": 72,
+            "paso_completado": 2,
+            "total_pasos": 3,
+            "progreso_pct": 67,
+            "notas": "Palabras difíciles: traba, claro, tiro.",
+            "audio_transcripcion": "La /a/ salió mejor que la semana pasada.",
+            "audio_url": "/juegos/evidencia-audio/abc123",
+            "ruta_juego": "/juegos/prosodia/trabalenguas",
+            "completado": True,
+        }
+
+        summary = _resumen_desempeno_evaluacion(doc)
+
+        self.assertIn("Palabras difíciles", " ".join(summary["evidencia"]))
+        self.assertIn("La /a/ salió mejor", " ".join(summary["evidencia"]))
+        self.assertTrue(any("audio" in item.lower() for item in summary["evidencia"]))
+
 
 if __name__ == "__main__":
     unittest.main()

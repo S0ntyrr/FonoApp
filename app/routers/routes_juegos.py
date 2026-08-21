@@ -604,7 +604,8 @@ async def guardar_resultado_juego(
     notas_limpias = (notas or "").strip()
     transcripcion_limpia = (audio_transcripcion or "").strip()
     audio_url_limpia = (audio_url or "").strip()
-    tiene_evidencia_audio = bool(requiere_revision_audio and (audio_url_limpia or transcripcion_limpia))
+    tiene_evidencia_audio = bool(audio_url_limpia or transcripcion_limpia)
+    requiere_revision_audio = bool(requiere_revision_audio or tiene_evidencia_audio)
 
     # 1. Guardar/actualizar en resultados_juegos (1 registro por paciente+juego+día)
     resultado = {
@@ -620,7 +621,7 @@ async def guardar_resultado_juego(
         "notas": notas_limpias,
         "audio_transcripcion": transcripcion_limpia,
         "audio_url": audio_url_limpia,
-        "requiere_revision_audio": tiene_evidencia_audio,
+        "requiere_revision_audio": requiere_revision_audio,
         "puntos": puntos,
         "progreso_pct": progreso_pct,
         "puntaje_actividad": puntaje_actividad,
@@ -651,11 +652,12 @@ async def guardar_resultado_juego(
             "puntaje_sistema": puntaje_actividad,
             "nivel": nivel,
             "fecha": ahora,
-            "detalle_actividad": detalle_actividad,
+            "detalle_actividad": detalle_actividad or f"Progreso {paso_completado}/{total_pasos}",
             "ruta_juego": ruta,
             "audio_transcripcion": transcripcion_limpia,
             "audio_url": audio_url_limpia,
-            "requiere_revision_audio": tiene_evidencia_audio,
+            "notas": notas_limpias,
+            "requiere_revision_audio": requiere_revision_audio,
         }
         await db["historial_actividades"].update_one(
             {

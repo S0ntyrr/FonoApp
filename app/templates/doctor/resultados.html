@@ -33,6 +33,21 @@
                     <p class="res-meta">{{ r.categoria }} · {{ r.paso_completado }}/{{ r.total_pasos }} pasos · {{ r.avance_pct }}%</p>
                     <p class="res-meta">🏆 Puntaje sistema: {{ r.puntaje_actividad or r.puntos or 0 }} · Nivel {{ r.nivel or 1 }}</p>
                     <p class="res-meta">📅 {{ r.fecha.strftime('%d/%m/%Y %H:%M') if r.fecha else '-' }}</p>
+                    {% if r.notas %}
+                        <p class="res-evidencia">📝 {{ r.notas }}</p>
+                    {% endif %}
+                    {% if r.audio_transcripcion %}
+                        <p class="res-evidencia audio-texto">🗣️ {{ r.audio_transcripcion }}</p>
+                    {% endif %}
+                    {% if r.audio_url %}
+                        <div class="res-audio-wrap">
+                            <p class="audio-label">🎧 Grabación de voz:</p>
+                            <audio controls preload="none" class="audio-player-evidencia">
+                                <source src="{{ r.audio_url }}">
+                                Tu navegador no soporta audio.
+                            </audio>
+                        </div>
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>
@@ -56,5 +71,10 @@
 .res-top { margin:0; font-size:0.74rem; color:#888; }
 .res-title { margin:0.15rem 0; font-size:0.92rem; font-weight:700; color:#1a1a1a; }
 .res-meta { margin:0.1rem 0; font-size:0.74rem; color:#666; }
+.res-evidencia { margin:0.25rem 0 0; background:#f7f7f7; border-radius:7px; padding:0.35rem 0.5rem; font-size:0.74rem; color:#444; }
+.audio-texto { background:#fff8e1; color:#5d4037; }
+.res-audio-wrap { margin-top:0.45rem; }
+.audio-label { margin:0.2rem 0 0.15rem; font-size:0.72rem; color:#555; font-weight:700; }
+.audio-player-evidencia { width:100%; max-width:340px; height:36px; border-radius:8px; outline:none; display:block; }
 </style>
 {% endblock %}

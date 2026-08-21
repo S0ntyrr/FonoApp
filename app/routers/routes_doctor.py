@@ -135,15 +135,25 @@ def _resumen_desempeno_evaluacion(doc: dict) -> dict:
 
     evidencia = []
     detalle = (doc.get("detalle_actividad") or "").strip()
+    notas = (doc.get("notas") or "").strip()
+    audio_texto = (doc.get("audio_transcripcion") or "").strip()
+    audio_url = (doc.get("audio_url") or "").strip()
+    ruta = (doc.get("ruta_juego") or doc.get("ruta") or "").strip()
+
     if detalle:
         evidencia.append(detalle)
-    audio_texto = (doc.get("audio_transcripcion") or "").strip()
+    elif notas:
+        evidencia.append(f"Notas del paciente: {notas}")
+    if notas and detalle and notas not in detalle:
+        evidencia.append(f"Notas del paciente: {notas}")
     if audio_texto:
         evidencia.append(f"Lo que dijo: {audio_texto}")
-    if not evidencia and doc.get("ruta_juego"):
-        evidencia.append(f"Ruta: {doc.get('ruta_juego')}")
-    elif doc.get("ruta_juego") and detalle:
-        evidencia.append(f"Ruta: {doc.get('ruta_juego')}")
+    if audio_url:
+        evidencia.append("Evidencia de audio disponible para revisión.")
+    if not evidencia and ruta:
+        evidencia.append(f"Ruta: {ruta}")
+    elif ruta and detalle:
+        evidencia.append(f"Ruta: {ruta}")
 
     return {
         "estado": estado,
