@@ -11,6 +11,7 @@ import re
 
 from ..database import get_db
 from ..security import email_match_filter, get_current_user, require_role
+from ..time_utils import app_now, day_bounds
 
 router = APIRouter(
     prefix="/doctor",
@@ -226,8 +227,7 @@ async def _construir_reporte_diario_doctor(
     paciente_email: str,
     fecha_base: datetime,
 ) -> dict:
-    inicio = datetime(fecha_base.year, fecha_base.month, fecha_base.day)
-    fin = inicio + timedelta(days=1)
+    inicio, fin = day_bounds(fecha_base)
 
     resultados = []
     historial_por_juego = {}
@@ -732,7 +732,7 @@ async def vista_reportes_diarios_doctor(
 
     pacientes_asignados = await _emails_pacientes_asignados(db, doctor_doc["email"])
     pacientes_lista = sorted(list(pacientes_asignados))
-    fecha_base = _parse_fecha_param(fecha) or datetime.utcnow()
+    fecha_base = _parse_fecha_param(fecha) or app_now()
     reporte = None
 
     if paciente_email and paciente_email in pacientes_asignados:
@@ -771,7 +771,7 @@ async def descargar_reporte_diario_excel(
     if paciente_email not in pacientes_asignados:
         return RedirectResponse(url="/doctor/reportes-diarios", status_code=303)
 
-    fecha_base = _parse_fecha_param(fecha) or datetime.utcnow()
+    fecha_base = _parse_fecha_param(fecha) or app_now()
     reporte = await _construir_reporte_diario_doctor(
         db,
         paciente_email=paciente_email,

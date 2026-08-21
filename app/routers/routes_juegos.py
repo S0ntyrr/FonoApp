@@ -67,6 +67,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
 from ..security import require_role
+from ..time_utils import app_now, day_bounds
 
 router = APIRouter(
     prefix="/juegos",
@@ -593,9 +594,8 @@ async def guardar_resultado_juego(
     """
     paciente_email = user["email"]
 
-    ahora = datetime.now()
-    inicio_dia = datetime(ahora.year, ahora.month, ahora.day)
-    fin_dia = inicio_dia + timedelta(days=1)
+    ahora = app_now()
+    inicio_dia, fin_dia = day_bounds(ahora)
     total_pasos_seguro = max(1, int(total_pasos))
     paso_seguro = max(0, int(paso_completado))
     progreso_pct = int((paso_seguro / total_pasos_seguro) * 100)

@@ -25,8 +25,9 @@ Colecciones principales:
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Request
+from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -62,6 +63,16 @@ app.add_middleware(
     same_site="lax",
     https_only=settings.SESSION_HTTPS_ONLY,
 )
+
+
+@app.exception_handler(HTTPException)
+async def manejar_error_autenticacion(request: Request, exc: HTTPException):
+    """Evita mostrar un JSON crudo 401/403 al navegar: redirige al login en peticiones de página."""
+    if exc.status_code in (401, 403):
+        acepta_html = "text/html" in request.headers.get("accept", "")
+        if request.method == "GET" and acepta_html:
+            return RedirectResponse(url="/auth/login", status_code=303)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 @app.get("/", include_in_schema=False)

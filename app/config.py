@@ -29,6 +29,7 @@ class AppSettings(BaseSettings):
     SESSION_COOKIE_NAME: str = "fonoapp_session"
     SESSION_MAX_AGE: int = 86400
     SESSION_HTTPS_ONLY: bool = True
+    APP_TIMEZONE: str = "America/Bogota"
     MAX_IMAGE_UPLOAD_BYTES: int = 5 * 1024 * 1024
     MAX_VIDEO_UPLOAD_BYTES: int = 25 * 1024 * 1024
 
