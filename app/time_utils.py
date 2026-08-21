@@ -1,15 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from .config import settings
 
 
-def _app_zone() -> ZoneInfo:
-    """Return configured application timezone, falling back to UTC if invalid."""
+def _app_zone():
+    """Return configured application timezone; falls back to stdlib UTC (no tzdata needed) if unavailable."""
     try:
         return ZoneInfo(settings.APP_TIMEZONE)
     except Exception:
-        return ZoneInfo("UTC")
+        return timezone.utc
 
 
 def app_now() -> datetime:

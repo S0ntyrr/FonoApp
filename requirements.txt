@@ -9,3 +9,4 @@ email-validator
 pydantic
 bcrypt
 itsdangerous
+tzdata
