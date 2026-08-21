@@ -177,7 +177,8 @@ function iniciarValidacionLetra(letraEsperada, mensajeOk) {
   if (reconocimientoActiva) return;
   reconocimientoActiva = true;
   if (btn) { btn.textContent = '⏹️'; btn.style.background = '#27ae60'; }
-  evidenciaVozB.iniciar().catch(() => {});
+  mostrarEstadoMic(`Escuchando la letra ${letraEsperada.toUpperCase()}...`, false);
+
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'es-ES';
@@ -214,7 +215,13 @@ function iniciarValidacionLetra(letraEsperada, mensajeOk) {
     reconocimientoActiva = false;
     if (btn) { btn.textContent = '🎤'; btn.style.background = '#e63946'; }
   };
-  recognition.start();
+  try {
+    recognition.start();
+  } catch (error) {
+    reconocimientoActiva = false;
+    if (btn) { btn.textContent = '🎤'; btn.style.background = '#e63946'; }
+    mostrarEstadoMic('El micrófono ya estaba en uso. Intenta otra vez.', false);
+  }
 }
 
 function goStep(n) {

@@ -163,7 +163,10 @@ function iniciarValidacionLetraR(letraEsperada, mensajeOk) {
   if (reconocimientoActivaR) return;
   reconocimientoActivaR = true;
   btn.textContent = '⏹️'; btn.style.background = '#27ae60';
-  evidenciaVozR.iniciar().catch(() => {});
+  document.getElementById('fb-moto').textContent = `Escuchando la letra ${letraEsperada.toUpperCase()}...`;
+  document.getElementById('fb-moto').style.display = 'block';
+  document.getElementById('fb-moto').style.color = '#333';
+
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognitionR = new SR();
   recognitionR.lang = 'es-ES';
@@ -202,7 +205,14 @@ function iniciarValidacionLetraR(letraEsperada, mensajeOk) {
     reconocimientoActivaR = false;
     btn.textContent = '🎤'; btn.style.background = '#e63946';
   };
-  recognitionR.start();
+  try {
+    recognitionR.start();
+  } catch (error) {
+    reconocimientoActivaR = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+    document.getElementById('fb-moto').textContent = 'El micrófono ya estaba en uso. Intenta de nuevo.';
+    document.getElementById('fb-moto').style.display = 'block';
+  }
 }
 
 function goStep(n){

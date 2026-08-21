@@ -130,13 +130,14 @@ function activarMicPalabra() {
   }
   if (micActivaPalabra) return;
   micActivaPalabra = true;
-  evidenciaVozPalabra.iniciar().catch(() => {});
+  document.getElementById('resultado-incorrecto').textContent = `Escuchando: "${letraCorrecta}"...`;
+  document.getElementById('resultado-incorrecto').style.display = 'block';
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognitionPalabra = new SR();
   recognitionPalabra.lang = 'es-ES';
   recognitionPalabra.continuous = false;
   recognitionPalabra.interimResults = true;
-  recognitionPalabra.onresult = (event) => {
+  recognitionPalabra.onresult = async (event) => {
     const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
     ultimaTranscripcionPalabra = texto;
     const normalizado = normalizarTexto(texto);
@@ -147,6 +148,10 @@ function activarMicPalabra() {
       document.getElementById('resultado-correcto').querySelector('p').textContent = `🎉 ¡Correcto! La respuesta era ${letraCorrecta}`;
       recognitionPalabra.stop();
       micActivaPalabra = false;
+      try {
+        const detalle = await evidenciaVozPalabra.detener({ transcripcion: texto });
+        ultimaTranscripcionPalabra = detalle.audioTranscripcion || texto;
+      } catch (e) {}
       return;
     }
     if (texto) {
@@ -160,7 +165,13 @@ function activarMicPalabra() {
     micActivaPalabra = false;
   };
   recognitionPalabra.onend = () => { micActivaPalabra = false; };
-  recognitionPalabra.start();
+  try {
+    recognitionPalabra.start();
+  } catch (error) {
+    micActivaPalabra = false;
+    document.getElementById('resultado-incorrecto').textContent = 'El micrófono ya estaba en uso. Intenta de nuevo.';
+    document.getElementById('resultado-incorrecto').style.display = 'block';
+  }
 }
 
 function comenzar() {

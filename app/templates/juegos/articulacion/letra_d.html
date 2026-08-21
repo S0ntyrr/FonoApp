@@ -149,7 +149,10 @@ function iniciarValidacionLetraD(letraEsperada, mensajeOk) {
   if (reconocimientoActivaD) return;
   reconocimientoActivaD = true;
   btn.textContent = '⏹️'; btn.style.background = '#27ae60';
-  evidenciaVozD.iniciar().catch(() => {});
+  document.getElementById('fb-s1').textContent = `Escuchando la letra ${letraEsperada.toUpperCase()}...`;
+  document.getElementById('fb-s1').style.display = 'block';
+  document.getElementById('fb-s1').style.color = '#333';
+
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognitionD = new SR();
   recognitionD.lang = 'es-ES';
@@ -189,7 +192,14 @@ function iniciarValidacionLetraD(letraEsperada, mensajeOk) {
     reconocimientoActivaD = false;
     btn.textContent = '🎤'; btn.style.background = '#e63946';
   };
-  recognitionD.start();
+  try {
+    recognitionD.start();
+  } catch (error) {
+    reconocimientoActivaD = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+    document.getElementById('fb-s1').textContent = 'El micrófono ya estaba en uso. Intenta de nuevo.';
+    document.getElementById('fb-s1').style.display = 'block';
+  }
 }
 
 function goStep(n) {
