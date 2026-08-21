@@ -82,6 +82,86 @@ const PALABRAS = [
 
 let indiceActual = 0;
 let aciertos = 0;
+let ultimaTranscripcionPalabra = '';
+let validacionPalabra = false;
+let recognitionPalabra = null;
+let micActivaPalabra = false;
+
+const evidenciaVozPalabra = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'completa_palabra' }) : {
+  iniciar: async () => ({}),
+  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
+
+function normalizarTexto(texto) {
+  return (texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function reproducirSonidoExito() {
+  try {
+    const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
+    if (!ctx) return;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      crearTonoFono(ctx, { frequency: freq, startTime: ctx.currentTime + i * 0.15, duration: 0.28, volumeBase: 0.23, type: 'sine' });
+    });
+  } catch (e) {}
+}
+
+async function guardarResultadoConAudioPalabra() {
+  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
+  const detalle = await evidenciaVozPalabra.detener({ transcripcion: ultimaTranscripcionPalabra || '' });
+  const fd = new FormData();
+  fd.append('paciente_email', email); fd.append('categoria', 'articulacion'); fd.append('juego', 'completa_palabra');
+  fd.append('paso_completado', PALABRAS.length); fd.append('total_pasos', PALABRAS.length);
+  fd.append('completado', true); fd.append('puntos', aciertos * 10); fd.append('nivel', 1);
+  fd.append('ruta', window.location.pathname || '');
+  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionPalabra || '');
+  fd.append('audio_url', detalle.audioUrl || '');
+  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
+  fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
+}
+
+function activarMicPalabra() {
+  const p = PALABRAS[indiceActual];
+  const letraCorrecta = p.palabra[p.falta];
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    document.getElementById('resultado-incorrecto').textContent = 'Tu navegador no soporta reconocimiento de voz.';
+    document.getElementById('resultado-incorrecto').style.display = 'block';
+    return;
+  }
+  if (micActivaPalabra) return;
+  micActivaPalabra = true;
+  evidenciaVozPalabra.iniciar().catch(() => {});
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognitionPalabra = new SR();
+  recognitionPalabra.lang = 'es-ES';
+  recognitionPalabra.continuous = false;
+  recognitionPalabra.interimResults = true;
+  recognitionPalabra.onresult = (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    ultimaTranscripcionPalabra = texto;
+    const normalizado = normalizarTexto(texto);
+    const objetivo = normalizarTexto(letraCorrecta);
+    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+      validacionPalabra = true;
+      document.getElementById('resultado-correcto').style.display = 'block';
+      document.getElementById('resultado-correcto').querySelector('p').textContent = `🎉 ¡Correcto! La respuesta era ${letraCorrecta}`;
+      recognitionPalabra.stop();
+      micActivaPalabra = false;
+      return;
+    }
+    if (texto) {
+      document.getElementById('resultado-incorrecto').textContent = `Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraCorrecta}".`;
+      document.getElementById('resultado-incorrecto').style.display = 'block';
+    }
+  };
+  recognitionPalabra.onerror = () => {
+    document.getElementById('resultado-incorrecto').textContent = 'No se entendió bien, intenta de nuevo.';
+    document.getElementById('resultado-incorrecto').style.display = 'block';
+    micActivaPalabra = false;
+  };
+  recognitionPalabra.onend = () => { micActivaPalabra = false; };
+  recognitionPalabra.start();
+}
 
 function comenzar() {
     document.getElementById('btn-comenzar').style.display = 'none';
@@ -98,8 +178,9 @@ function mostrarPregunta(idx) {
     document.getElementById('resultado-final').style.display = 'none';
     document.getElementById('pregunta-area').style.display = 'block';
     document.getElementById('respuesta-input').value = '';
+    validacionPalabra = false;
+    ultimaTranscripcionPalabra = '';
 
-    // Mostrar palabra con hueco
     const display = document.getElementById('palabra-display');
     display.innerHTML = '';
     p.palabra.split('').forEach((letra, i) => {
@@ -109,7 +190,6 @@ function mostrarPregunta(idx) {
         display.appendChild(box);
     });
 
-    // Opciones de letras
     const opciones = document.getElementById('letras-opciones');
     opciones.innerHTML = '';
     p.opciones.forEach(letra => {
@@ -126,12 +206,12 @@ function verificar() {
     const respuesta = document.getElementById('respuesta-input').value.toUpperCase().trim();
     const letraCorrecta = p.palabra[p.falta];
     if (respuesta === letraCorrecta) {
-        // Mostrar letra correcta
         const boxes = document.querySelectorAll('.letra-box');
         boxes[p.falta].textContent = letraCorrecta;
         boxes[p.falta].classList.remove('vacia');
         aciertos++;
         document.getElementById('resultado-correcto').style.display = 'block';
+        validacionPalabra = true;
     } else {
         document.getElementById('resultado-incorrecto').style.display = 'block';
         setTimeout(() => document.getElementById('resultado-incorrecto').style.display = 'none', 1000);
@@ -139,19 +219,26 @@ function verificar() {
     document.getElementById('respuesta-input').value = '';
 }
 
-function siguientePregunta() {
+async function siguientePregunta() {
     if (indiceActual < PALABRAS.length - 1) { mostrarPregunta(indiceActual + 1); }
     else {
         document.getElementById('pregunta-area').style.display = 'none';
         document.getElementById('resultado-correcto').style.display = 'none';
         document.getElementById('puntaje-final').textContent = `Completaste ${aciertos} de ${PALABRAS.length} palabras`;
         document.getElementById('resultado-final').style.display = 'block';
-        guardarResultadoJuego('articulacion', 'completa_palabra', PALABRAS.length, PALABRAS.length, true, aciertos * 10, 1);
+        await guardarResultadoConAudioPalabra();
+        reproducirSonidoExito();
     }
 }
 
 function reiniciar() { aciertos = 0; mostrarPregunta(0); }
 
 document.getElementById('respuesta-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificar(); });
+const micBtn = document.createElement('button');
+micBtn.type = 'button';
+micBtn.className = 'boton-rojo';
+micBtn.textContent = '🎤 Escuchar';
+micBtn.onclick = activarMicPalabra;
+document.querySelector('.respuesta-area').appendChild(micBtn);
 </script>
 {% endblock %}

@@ -12,6 +12,7 @@
     fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
     fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
     fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
+    if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
   }
   </script>
   <style>
@@ -104,15 +105,115 @@
 </div>
 
 <script>
+let reconocimientoActivaR = false;
+let recognitionR = null;
+let ultimaTranscripcionR = '';
+let validacionCorrectaR = false;
+
+const evidenciaVozR = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'letra_r' }) : {
+  iniciar: async () => ({}),
+  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
+
+function normalizarTexto(texto) {
+  return (texto || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function reproducirSonidoExito() {
+  try {
+    const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
+    if (!ctx) return;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      crearTonoFono(ctx, {
+        frequency: freq,
+        startTime: ctx.currentTime + i * 0.15,
+        duration: 0.28,
+        volumeBase: 0.23,
+        type: 'sine'
+      });
+    });
+  } catch (e) {}
+}
+
+async function guardarResultadoConAudioR(cat, juego, paso, total, completado, puntos = 0, nivel = 1) {
+  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
+  const detalle = await evidenciaVozR.detener({ transcripcion: ultimaTranscripcionR || '' });
+  const fd = new FormData();
+  fd.append('paciente_email', email); fd.append('categoria', cat); fd.append('juego', juego);
+  fd.append('paso_completado', paso); fd.append('total_pasos', total);
+  fd.append('completado', completado); fd.append('puntos', puntos); fd.append('nivel', nivel);
+  fd.append('ruta', window.location.pathname || '');
+  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionR || '');
+  fd.append('audio_url', detalle.audioUrl || '');
+  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
+  fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
+}
+
+function iniciarValidacionLetraR(letraEsperada, mensajeOk) {
+  const btn = document.getElementById('mic-moto');
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    document.getElementById('fb-moto').textContent = 'Tu navegador no soporta reconocimiento de voz.';
+    document.getElementById('fb-moto').style.display = 'block';
+    return;
+  }
+  if (reconocimientoActivaR) return;
+  reconocimientoActivaR = true;
+  btn.textContent = '⏹️'; btn.style.background = '#27ae60';
+  evidenciaVozR.iniciar().catch(() => {});
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognitionR = new SR();
+  recognitionR.lang = 'es-ES';
+  recognitionR.continuous = false;
+  recognitionR.interimResults = true;
+  recognitionR.onresult = async (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    ultimaTranscripcionR = texto;
+    const normalizado = normalizarTexto(texto);
+    const objetivo = normalizarTexto(letraEsperada);
+    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+      validacionCorrectaR = true;
+      document.getElementById('fb-moto').textContent = mensajeOk;
+      document.getElementById('fb-moto').style.display = 'block';
+      recognitionR.stop();
+      reconocimientoActivaR = false;
+      btn.textContent = '🎤'; btn.style.background = '#e63946';
+      const detalle = await evidenciaVozR.detener({ transcripcion: texto });
+      ultimaTranscripcionR = detalle.audioTranscripcion || texto;
+      return;
+    }
+    if (texto) {
+      document.getElementById('fb-moto').textContent = `Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraEsperada.toUpperCase()}".`;
+      document.getElementById('fb-moto').style.display = 'block';
+      document.getElementById('fb-moto').style.color = '#d32f2f';
+    }
+  };
+  recognitionR.onerror = () => {
+    document.getElementById('fb-moto').textContent = 'No se entendió bien, intenta de nuevo.';
+    document.getElementById('fb-moto').style.display = 'block';
+    document.getElementById('fb-moto').style.color = '#d32f2f';
+    reconocimientoActivaR = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+  };
+  recognitionR.onend = () => {
+    reconocimientoActivaR = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+  };
+  recognitionR.start();
+}
+
 function goStep(n){
   document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
   document.getElementById('s'+n).classList.add('active');
   window.scrollTo(0,0);
 }
 
-// Motorcycle mic
 let motoPos=10;
 document.getElementById('mic-moto').addEventListener('click',function(){
+  iniciarValidacionLetraR('r', '¡Muy bien! 🏆');
   this.textContent='⏹️';this.style.background='#27ae60';
   const interval=setInterval(()=>{
     motoPos=Math.min(motoPos+15,80);
@@ -125,7 +226,22 @@ document.getElementById('mic-moto').addEventListener('click',function(){
   },2000);
 });
 
-// Complete the word
+async function finalizarLetraR() {
+  if (!validacionCorrectaR || !ultimaTranscripcionR) {
+    document.getElementById('fb-moto').textContent = 'Debes decir la letra R correctamente con el micrófono para continuar.';
+    document.getElementById('fb-moto').style.display = 'block';
+    return;
+  }
+  await guardarResultadoConAudioR('articulacion', 'letra_r', 5, 5, true, 60, 1);
+  reproducirSonidoExito();
+  goStep(5);
+}
+
+const btnFinishR = document.querySelector('#s4 .btn-next');
+if (btnFinishR) {
+  btnFinishR.setAttribute('onclick', 'finalizarLetraR()');
+}
+
 const words=[
   {emoji:'❤️',word:'co__azón'},
   {emoji:'🏔️',word:'a__ena'},

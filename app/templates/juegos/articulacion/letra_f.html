@@ -12,6 +12,7 @@
     fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
     fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
     fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
+    if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
   }
   </script>
   <style>
@@ -89,6 +90,106 @@
 </div>
 
 <script>
+let reconocimientoActivaF = false;
+let recognitionF = null;
+let ultimaTranscripcionF = '';
+let validacionCorrectaF = false;
+
+const evidenciaVozF = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'letra_f' }) : {
+  iniciar: async () => ({}),
+  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
+
+function normalizarTexto(texto) {
+  return (texto || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function reproducirSonidoExito() {
+  try {
+    const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
+    if (!ctx) return;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      crearTonoFono(ctx, {
+        frequency: freq,
+        startTime: ctx.currentTime + i * 0.15,
+        duration: 0.28,
+        volumeBase: 0.23,
+        type: 'sine'
+      });
+    });
+  } catch (e) {}
+}
+
+async function guardarResultadoConAudioF(cat, juego, paso, total, completado, puntos = 0, nivel = 1) {
+  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
+  const detalle = await evidenciaVozF.detener({ transcripcion: ultimaTranscripcionF || '' });
+  const fd = new FormData();
+  fd.append('paciente_email', email); fd.append('categoria', cat); fd.append('juego', juego);
+  fd.append('paso_completado', paso); fd.append('total_pasos', total);
+  fd.append('completado', completado); fd.append('puntos', puntos); fd.append('nivel', nivel);
+  fd.append('ruta', window.location.pathname || '');
+  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionF || '');
+  fd.append('audio_url', detalle.audioUrl || '');
+  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
+  fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
+}
+
+function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {
+  const btn = document.getElementById(btnId);
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    document.getElementById('fb-s1').textContent = 'Tu navegador no soporta reconocimiento de voz.';
+    return;
+  }
+  if (reconocimientoActivaF) return;
+  reconocimientoActivaF = true;
+  btn.textContent = '⏹️'; btn.style.background = '#27ae60';
+  evidenciaVozF.iniciar().catch(() => {});
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognitionF = new SR();
+  recognitionF.lang = 'es-ES';
+  recognitionF.continuous = false;
+  recognitionF.interimResults = true;
+  recognitionF.onresult = async (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    ultimaTranscripcionF = texto;
+    const normalizado = normalizarTexto(texto);
+    const objetivo = normalizarTexto(letraEsperada);
+    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+      validacionCorrectaF = true;
+      document.getElementById('fb-s1').textContent = mensajeOk;
+      document.getElementById('fb-s1').style.display = 'block';
+      document.getElementById('letra-f-display').textContent = '🧒 F';
+      recognitionF.stop();
+      reconocimientoActivaF = false;
+      btn.textContent = '🎤'; btn.style.background = '#e63946';
+      const detalle = await evidenciaVozF.detener({ transcripcion: texto });
+      ultimaTranscripcionF = detalle.audioTranscripcion || texto;
+      return;
+    }
+    if (texto) {
+      document.getElementById('fb-s1').textContent = `Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraEsperada.toUpperCase()}".`;
+      document.getElementById('fb-s1').style.display = 'block';
+      document.getElementById('fb-s1').style.color = '#d32f2f';
+    }
+  };
+  recognitionF.onerror = () => {
+    document.getElementById('fb-s1').textContent = 'No se entendió bien, intenta de nuevo.';
+    document.getElementById('fb-s1').style.display = 'block';
+    document.getElementById('fb-s1').style.color = '#d32f2f';
+    reconocimientoActivaF = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+  };
+  recognitionF.onend = () => {
+    reconocimientoActivaF = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+  };
+  recognitionF.start();
+}
+
 function goStep(n){
   document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
   document.getElementById('s'+n).classList.add('active');
@@ -96,20 +197,28 @@ function goStep(n){
 }
 
 document.getElementById('mic-s1').addEventListener('click',function(){
-  this.textContent='⏹️';this.style.background='#27ae60';
-  setTimeout(()=>{
-    this.textContent='🎤';
-    this.style.background='#e63946';
-    document.getElementById('fb-s1').style.display='block';
-    document.getElementById('letra-f-display').textContent='🧒 F';
-  },1800);
+  iniciarValidacionLetraF('f', '¡Muy bien! Es la letra F 🎉', 'mic-s1');
 });
 document.getElementById('mic-s2').addEventListener('click',function(){
-  this.textContent='⏹️';this.style.background='#27ae60';
-  setTimeout(()=>{this.textContent='🎤';this.style.background='#e63946';document.getElementById('fb-s2').style.display='block';},1800);
+  iniciarValidacionLetraF('f', '¡Excelente! 🎉', 'mic-s2');
 });
 
-// Vowel rows
+async function finalizarLetraF() {
+  if (!validacionCorrectaF || !ultimaTranscripcionF) {
+    document.getElementById('fb-s1').textContent = 'Debes decir la letra F correctamente con el micrófono para continuar.';
+    document.getElementById('fb-s1').style.display = 'block';
+    return;
+  }
+  await guardarResultadoConAudioF('articulacion', 'letra_f', 5, 5, true, 60, 1);
+  reproducirSonidoExito();
+  goStep(5);
+}
+
+const btnFinishF = document.getElementById('btn-finalizar-f');
+if (btnFinishF) {
+  btnFinishF.setAttribute('onclick', 'if (foundWords.size === wsWords.length) { finalizarLetraF(); } else { alert("Completa primero la sopa de letras."); }');
+}
+
 const vowels=[['a','🍎'],['e','🐘'],['i','🦎'],['o','🍊'],['u','🍇']];
 const vr=document.getElementById('vowel-rows');
 vowels.forEach(([v,em])=>{
@@ -123,7 +232,6 @@ function recordVowel(btn,syl){
   setTimeout(()=>{btn.textContent='✓';btn.classList.add('done');},1500);
 }
 
-// Word search (simplified 8x8)
 const wsLetters=[
   ['F','R','E','S','A','P','Q','Z'],
   ['U','A','B','C','D','E','F','G'],

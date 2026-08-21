@@ -13,6 +13,7 @@
     fd.append('paso_completado', paso); fd.append('total_pasos', total);
     fd.append('completado', completado); fd.append('puntos', puntos); fd.append('nivel', nivel);
     fetch('/juegos/resultado', {method:'POST', body:fd}).catch(e=>console.warn(e));
+    if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
   }
   </script>
   <style>
@@ -110,23 +111,135 @@
 </div>
 
 <script>
+let reconocimientoActiva = false;
+let recognition = null;
+let ultimaTranscripcion = '';
+let validacionCorrecta = false;
+
+const evidenciaVozB = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'letra_b' }) : {
+  iniciar: async () => ({}),
+  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
+
+function normalizarTexto(texto) {
+  return (texto || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function reproducirSonidoExito() {
+  try {
+    const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
+    if (!ctx) return;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      crearTonoFono(ctx, {
+        frequency: freq,
+        startTime: ctx.currentTime + i * 0.15,
+        duration: 0.28,
+        volumeBase: 0.23,
+        type: 'sine'
+      });
+    });
+  } catch (e) {}
+}
+
+function mostrarEstadoMic(msg, ok = false) {
+  const fb = document.getElementById('fb-s1');
+  if (!fb) return;
+  fb.textContent = msg;
+  fb.style.display = 'block';
+  fb.style.color = ok ? '#27ae60' : '#d32f2f';
+}
+
+async function guardarResultadoConAudio(cat, juego, paso, total, completado, puntos = 0, nivel = 1) {
+  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
+  const detalle = await evidenciaVozB.detener({ transcripcion: ultimaTranscripcion || '' });
+  const fd = new FormData();
+  fd.append('paciente_email', email); fd.append('categoria', cat); fd.append('juego', juego);
+  fd.append('paso_completado', paso); fd.append('total_pasos', total);
+  fd.append('completado', completado); fd.append('puntos', puntos); fd.append('nivel', nivel);
+  fd.append('ruta', window.location.pathname || '');
+  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcion || '');
+  fd.append('audio_url', detalle.audioUrl || '');
+  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
+  fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
+}
+
+function iniciarValidacionLetra(letraEsperada, mensajeOk) {
+  const btn = document.getElementById('mic-s1');
+  const info = document.getElementById('fb-s1');
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    mostrarEstadoMic('Tu navegador no soporta reconocimiento de voz.', false);
+    return;
+  }
+  if (reconocimientoActiva) return;
+  reconocimientoActiva = true;
+  if (btn) { btn.textContent = '⏹️'; btn.style.background = '#27ae60'; }
+  evidenciaVozB.iniciar().catch(() => {});
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'es-ES';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.onresult = async (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    ultimaTranscripcion = texto;
+    const normalizado = normalizarTexto(texto);
+    const objetivo = normalizarTexto(letraEsperada);
+    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+      validacionCorrecta = true;
+      mostrarEstadoMic(mensajeOk, true);
+      document.getElementById('letra-b-display').textContent = '🐝 B';
+      if (recognition) recognition.stop();
+      reconocimientoActiva = false;
+      if (btn) { btn.textContent = '🎤'; btn.style.background = '#e63946'; }
+      try {
+        const detalle = await evidenciaVozB.detener({ transcripcion: texto });
+        ultimaTranscripcion = detalle.audioTranscripcion || texto;
+      } catch (e) {}
+      return;
+    }
+    if (texto) {
+      mostrarEstadoMic(`Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraEsperada.toUpperCase()}".`, false);
+    }
+  };
+  recognition.onerror = () => {
+    mostrarEstadoMic('No se entendió bien, intenta de nuevo.', false);
+    reconocimientoActiva = false;
+    if (btn) { btn.textContent = '🎤'; btn.style.background = '#e63946'; }
+  };
+  recognition.onend = () => {
+    reconocimientoActiva = false;
+    if (btn) { btn.textContent = '🎤'; btn.style.background = '#e63946'; }
+  };
+  recognition.start();
+}
+
 function goStep(n) {
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
   document.getElementById('s'+n).classList.add('active');
   window.scrollTo(0,0);
 }
 
-// Mic simulation
 document.getElementById('mic-s1').addEventListener('click', function() {
-  this.textContent = '⏹️'; this.style.background='#27ae60';
-  setTimeout(() => {
-    this.textContent='🎤'; this.style.background='#e63946';
-    document.getElementById('fb-s1').style.display='block';
-    document.getElementById('letra-b-display').textContent='🐝 B';
-  }, 1800);
+  iniciarValidacionLetra('b', 'Muy bien es la letra B 🎉');
 });
 
-// Sound simulation with Web Audio
+async function finalizarLetraB() {
+  if (!validacionCorrecta || !ultimaTranscripcion) {
+    mostrarEstadoMic('Debes decir la letra B correctamente con el micrófono para poder continuar.', false);
+    return;
+  }
+  await guardarResultadoConAudio('articulacion', 'letra_b', 5, 5, true, 60, 1);
+  reproducirSonidoExito();
+  goStep(5);
+}
+
+const btnFinish = document.getElementById('btn-finish');
+if (btnFinish) { btnFinish.setAttribute('onclick', 'finalizarLetraB()'); }
+
 function playSound(btn, syl) {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = ctx.createOscillator();
@@ -141,7 +254,6 @@ function playSound(btn, syl) {
   btn.textContent = '✓ ' + syl;
 }
 
-// Word search
 const allWords = [
   {w:'Beber',hasB:true},{w:'Nido',hasB:false},{w:'Diente',hasB:false},
   {w:'Dedo',hasB:false},{w:'Bailar',hasB:true},{w:'Dado',hasB:false},

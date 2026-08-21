@@ -49,6 +49,29 @@
         return ctx;
     }
 
+    let __ultimoSonidoExitoMs = 0;
+
+    function reproducirSonidoExito() {
+        const ahora = window.performance ? performance.now() : Date.now();
+        if (ahora - __ultimoSonidoExitoMs < 500) return;
+        __ultimoSonidoExitoMs = ahora;
+        try {
+            const ctx = crearContextoAudioFono();
+            if (!ctx) return;
+            [523, 659, 784, 1047].forEach((freq, i) => {
+                crearTonoFono(ctx, {
+                    frequency: freq,
+                    startTime: ctx.currentTime + i * 0.15,
+                    duration: 0.28,
+                    volumeBase: 0.23,
+                    type: 'sine'
+                });
+            });
+        } catch (e) {
+            console.warn('No se pudo reproducir el sonido de éxito:', e);
+        }
+    }
+
     function crearTonoFono(ctx, opciones) {
         if (!ctx) return null;
         const osc = ctx.createOscillator();
@@ -263,6 +286,7 @@
             .then(r => r.json())
             .then(data => {
                 if (completado) {
+                    reproducirSonidoExito();
                     const completadas = JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]');
                     const ruta = (window.location.pathname || '').replace(/\/+$/, '');
                     if (!completadas.includes(ruta)) {

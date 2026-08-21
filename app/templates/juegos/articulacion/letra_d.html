@@ -12,6 +12,7 @@
     fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
     fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
     fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
+    if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
   }
   </script>
   <style>
@@ -90,6 +91,107 @@
 </div>
 
 <script>
+let reconocimientoActivaD = false;
+let recognitionD = null;
+let ultimaTranscripcionD = '';
+let validacionCorrectaD = false;
+
+const evidenciaVozD = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'letra_d' }) : {
+  iniciar: async () => ({}),
+  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
+
+function normalizarTexto(texto) {
+  return (texto || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function reproducirSonidoExito() {
+  try {
+    const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
+    if (!ctx) return;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      crearTonoFono(ctx, {
+        frequency: freq,
+        startTime: ctx.currentTime + i * 0.15,
+        duration: 0.28,
+        volumeBase: 0.23,
+        type: 'sine'
+      });
+    });
+  } catch (e) {}
+}
+
+async function guardarResultadoConAudioD(cat, juego, paso, total, completado, puntos = 0, nivel = 1) {
+  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
+  const detalle = await evidenciaVozD.detener({ transcripcion: ultimaTranscripcionD || '' });
+  const fd = new FormData();
+  fd.append('paciente_email', email); fd.append('categoria', cat); fd.append('juego', juego);
+  fd.append('paso_completado', paso); fd.append('total_pasos', total);
+  fd.append('completado', completado); fd.append('puntos', puntos); fd.append('nivel', nivel);
+  fd.append('ruta', window.location.pathname || '');
+  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionD || '');
+  fd.append('audio_url', detalle.audioUrl || '');
+  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
+  fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
+}
+
+function iniciarValidacionLetraD(letraEsperada, mensajeOk) {
+  const btn = document.getElementById('mic-s1');
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    document.getElementById('fb-s1').textContent = 'Tu navegador no soporta reconocimiento de voz.';
+    document.getElementById('fb-s1').style.display = 'block';
+    return;
+  }
+  if (reconocimientoActivaD) return;
+  reconocimientoActivaD = true;
+  btn.textContent = '⏹️'; btn.style.background = '#27ae60';
+  evidenciaVozD.iniciar().catch(() => {});
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognitionD = new SR();
+  recognitionD.lang = 'es-ES';
+  recognitionD.continuous = false;
+  recognitionD.interimResults = true;
+  recognitionD.onresult = async (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    ultimaTranscripcionD = texto;
+    const normalizado = normalizarTexto(texto);
+    const objetivo = normalizarTexto(letraEsperada);
+    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+      validacionCorrectaD = true;
+      document.getElementById('fb-s1').textContent = mensajeOk;
+      document.getElementById('fb-s1').style.display = 'block';
+      document.getElementById('letra-d-display').textContent = '🐉 D d';
+      recognitionD.stop();
+      reconocimientoActivaD = false;
+      btn.textContent = '🎤'; btn.style.background = '#e63946';
+      const detalle = await evidenciaVozD.detener({ transcripcion: texto });
+      ultimaTranscripcionD = detalle.audioTranscripcion || texto;
+      return;
+    }
+    if (texto) {
+      document.getElementById('fb-s1').textContent = `Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraEsperada.toUpperCase()}".`;
+      document.getElementById('fb-s1').style.display = 'block';
+      document.getElementById('fb-s1').style.color = '#d32f2f';
+    }
+  };
+  recognitionD.onerror = () => {
+    document.getElementById('fb-s1').textContent = 'No se entendió bien, intenta de nuevo.';
+    document.getElementById('fb-s1').style.display = 'block';
+    document.getElementById('fb-s1').style.color = '#d32f2f';
+    reconocimientoActivaD = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+  };
+  recognitionD.onend = () => {
+    reconocimientoActivaD = false;
+    btn.textContent = '🎤'; btn.style.background = '#e63946';
+  };
+  recognitionD.start();
+}
+
 function goStep(n) {
   document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
   document.getElementById('s'+n).classList.add('active');
@@ -97,15 +199,25 @@ function goStep(n) {
 }
 
 document.getElementById('mic-s1').addEventListener('click', function(){
-  this.textContent='⏹️'; this.style.background='#27ae60';
-  setTimeout(()=>{
-    this.textContent='🎤'; this.style.background='#e63946';
-    document.getElementById('fb-s1').style.display='block';
-    document.getElementById('letra-d-display').textContent='🐉 D d';
-  },1800);
+  iniciarValidacionLetraD('d', '¡Bravo! Es la letra D 🎉');
 });
 
-// Simple maze: 6x5 grid, some cells have 'd', some are walls, path leads through d's
+async function finalizarLetraD() {
+  if (!validacionCorrectaD || !ultimaTranscripcionD) {
+    document.getElementById('fb-s1').textContent = 'Debes decir la letra D correctamente con el micrófono para continuar.';
+    document.getElementById('fb-s1').style.display = 'block';
+    return;
+  }
+  await guardarResultadoConAudioD('articulacion', 'letra_d', 5, 5, true, 60, 1);
+  reproducirSonidoExito();
+  goStep(5);
+}
+
+const btnFinishD = document.querySelector('#s4 .btn-next');
+if (btnFinishD) {
+  btnFinishD.setAttribute('onclick', 'finalizarLetraD()');
+}
+
 const mazeData = [
   ['d','.','.','w','d','.'],
   ['.','w','d','.','w','.'],
@@ -137,7 +249,6 @@ mazeData.forEach(row => {
   });
 });
 
-// Complete the word items
 const words=[
   {emoji:'👆',word:'de__o',answer:'d'},
   {emoji:'🚿',word:'__ucha',answer:'d'},
