@@ -25,6 +25,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.config import settings
+from app.security import EMAIL_UNIQUE_INDEX_OPTIONS
 
 
 async def create_indexes():
@@ -39,10 +40,10 @@ async def create_indexes():
         print("📋 Colección: usuarios")
         usuarios = db["usuarios"]
         
-        # Email: UNIQUE e INDEXED (crítico para login)
+        # Email: UNIQUE sin distinguir mayúsculas/minúsculas.
         try:
-            await usuarios.create_index("email", unique=True)
-            print("  ✅ Creado índice único en 'email'")
+            await usuarios.create_index("email", **EMAIL_UNIQUE_INDEX_OPTIONS)
+            print("  ✅ Creado índice único sin distinción de mayúsculas en 'email'")
         except Exception as e:
             print(f"  ⚠️  'email': {str(e)}")
         

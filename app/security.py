@@ -13,6 +13,13 @@ import re
 import bcrypt
 from fastapi import Request, HTTPException, status
 
+EMAIL_UNIQUE_INDEX_NAME = "email_unique_case_insensitive"
+EMAIL_UNIQUE_INDEX_OPTIONS = {
+    "name": EMAIL_UNIQUE_INDEX_NAME,
+    "unique": True,
+    "collation": {"locale": "en", "strength": 2},
+}
+
 
 def normalize_email(email: str | None) -> str:
     """Normaliza un correo para que el sistema sea insensible a mayúsculas."""
