@@ -10,7 +10,7 @@ from html import escape
 import re
 
 from ..database import get_db
-from ..security import get_current_user, require_role
+from ..security import email_match_filter, get_current_user, require_role
 
 router = APIRouter(
     prefix="/doctor",
@@ -78,7 +78,7 @@ async def _obtener_doctor_actual(request: Request, db: AsyncIOMotorDatabase):
     email_doctor = _doctor_email_desde_request(request)
     if not email_doctor:
         return None
-    return await db["usuarios"].find_one({"email": email_doctor, "rol": "medico"})
+    return await db["usuarios"].find_one({**email_match_filter(email_doctor), "rol": "medico"})
 
 
 async def _emails_pacientes_asignados(

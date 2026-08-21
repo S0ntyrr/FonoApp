@@ -60,7 +60,7 @@ import re
 from ..config import settings
 from ..database import get_db
 from ..models import ContenidoAdmin, HistorialActividad
-from ..security import hash_password, require_role
+from ..security import email_match_filter, hash_password, normalize_email, require_role
 from ..upload_utils import save_upload_safely
 
 router = APIRouter(
@@ -342,13 +342,14 @@ async def crear_paciente_admin(
     email: str = Form(...),
     password: str = Form(...),
 ):
-    existente = await db["usuarios"].find_one({"email": email})
+    email_normalizado = normalize_email(email)
+    existente = await db["usuarios"].find_one(email_match_filter(email_normalizado))
     if existente:
         return RedirectResponse(url="/admin/pacientes?error=email_existe", status_code=status.HTTP_303_SEE_OTHER)
 
     nuevo_paciente = {
         "nombre": nombre,
-        "email": email,
+        "email": email_normalizado,
         "password": hash_password(password),
         "rol": "paciente",
         "nivel": 1,
@@ -423,13 +424,14 @@ async def crear_medico_admin(
     email: str = Form(...),
     password: str = Form(...),
 ):
-    existente = await db["usuarios"].find_one({"email": email})
+    email_normalizado = normalize_email(email)
+    existente = await db["usuarios"].find_one(email_match_filter(email_normalizado))
     if existente:
         return RedirectResponse(url="/admin/medicos?error=email_existe", status_code=status.HTTP_303_SEE_OTHER)
 
     nuevo_medico = {
         "nombre": nombre,
-        "email": email,
+        "email": email_normalizado,
         "password": hash_password(password),
         "rol": "medico",
         "nivel": 1,

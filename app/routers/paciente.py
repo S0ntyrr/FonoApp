@@ -122,7 +122,7 @@ async def vista_perfil_paciente(
     email = user["email"]
     
     # ── Cargar usuario/perfil del paciente ─────────────────────────────────────
-    usuario_doc = await db["usuarios"].find_one({"email": email, "rol": "paciente"})
+    usuario_doc = await db["usuarios"].find_one({**email_match_filter(email), "rol": "paciente"})
     nombre_paciente = ""
     if usuario_doc:
         nombre_paciente = usuario_doc.get("nombre", "")

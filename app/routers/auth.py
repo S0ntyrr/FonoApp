@@ -52,7 +52,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..config import settings
 from ..database import get_db
-from ..security import hash_password, verify_password
+from ..security import email_match_filter, hash_password, normalize_email, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
@@ -155,8 +155,10 @@ async def procesar_registro(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
+    email_normalizado = normalize_email(email)
+
     # Verificar si el email ya está registrado
-    existente = await db["usuarios"].find_one({"email": email})
+    existente = await db["usuarios"].find_one(email_match_filter(email_normalizado))
     if existente:
         return templates.TemplateResponse(
             request,
@@ -174,7 +176,7 @@ async def procesar_registro(
     # Crear el nuevo paciente en la BD con contraseña hasheada
     nuevo_usuario = {
         "nombre": nombre,
-        "email": email,
+        "email": email_normalizado,
         "password": hash_password(password),  # Hash seguro con bcrypt
         "rol": "paciente",
         "nivel": 1,
@@ -206,8 +208,10 @@ async def procesar_login(
        - paciente → /paciente/perfil?email=...
        - emisor  → /emisor/home
     """
-    # Buscar usuario en la BD (indexed por email para búsquedas rápidas)
-    usuario = await db["usuarios"].find_one({"email": email})
+    email_normalizado = normalize_email(email)
+
+    # Buscar usuario en la BD sin depender de mayúsculas/minúsculas
+    usuario = await db["usuarios"].find_one(email_match_filter(email_normalizado))
 
     # Verificar que exista el usuario
     if not usuario:
@@ -240,7 +244,7 @@ async def procesar_login(
     
     # Determinar destino según el rol
     rol = usuario.get("rol", "paciente")
-    email_usuario = usuario.get("email", email)
+    email_usuario = normalize_email(usuario.get("email") or email)
 
     if rol == "admin":
         destino = "/admin/dashboard"

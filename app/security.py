@@ -8,8 +8,25 @@ Módulo centralizado para manejo de seguridad:
 - Protección de rutas por rol
 """
 
+import re
+
 import bcrypt
 from fastapi import Request, HTTPException, status
+
+
+def normalize_email(email: str | None) -> str:
+    """Normaliza un correo para que el sistema sea insensible a mayúsculas."""
+    if not email:
+        return ""
+    return str(email).strip().lower()
+
+
+def email_match_filter(email: str | None) -> dict:
+    """Genera un filtro MongoDB para buscar emails sin importar mayúsculas/minúsculas."""
+    normalized = normalize_email(email)
+    if not normalized:
+        return {}
+    return {"email": {"$regex": rf"^{re.escape(normalized)}$", "$options": "i"}}
 
 
 def hash_password(password: str) -> str:
