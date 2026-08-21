@@ -136,7 +136,9 @@ async function guardarResultadoConAudioPalabra() {
   fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionPalabra || '');
   fd.append('audio_url', detalle.audioUrl || '');
   fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
-  fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
+  fetch('/juegos/resultado', { method: 'POST', body: fd }).then(r => {
+    if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; }
+  }).catch((e) => console.warn(e));
 }
 
 async function activarMicPalabra() {

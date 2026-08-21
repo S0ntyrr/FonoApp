@@ -15,8 +15,11 @@
     fd.append('audio_transcripcion', detalles.audioTranscripcion || '');
     fd.append('audio_url', detalles.audioUrl || '');
     fd.append('requiere_revision_audio', detalles.requiereRevisionAudio ? 'true' : 'false');
-    fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
-    if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
+    fetch('/juegos/resultado',{method:'POST',body:fd}).then(r => {
+      if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; throw new Error('sesion expirada'); }
+      if (!r.ok) throw new Error('error ' + r.status);
+      if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
+    }).catch(e=>console.warn(e));
   }
   </script>
   <style>

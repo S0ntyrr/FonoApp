@@ -12,8 +12,11 @@
     const fd=new FormData();fd.append('paciente_email',email);fd.append('categoria',cat);
     fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
     fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
-    fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
-    if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
+    fetch('/juegos/resultado',{method:'POST',body:fd}).then(r => {
+      if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; throw new Error('sesion expirada'); }
+      if (!r.ok) throw new Error('error ' + r.status);
+      if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
+    }).catch(e=>console.warn(e));
   }
   </script>
   <style>
@@ -154,7 +157,9 @@ async function guardarResultadoConAudioF(cat, juego, paso, total, completado, pu
   fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionF || '');
   fd.append('audio_url', detalle.audioUrl || '');
   fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
-  fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
+  fetch('/juegos/resultado', { method: 'POST', body: fd }).then(r => {
+    if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; }
+  }).catch((e) => console.warn(e));
 }
 
 async function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {

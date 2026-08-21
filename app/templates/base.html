@@ -283,7 +283,16 @@
         formData.append('audio_url', detalles.audioUrl || '');
         formData.append('requiere_revision_audio', detalles.requiereRevisionAudio ? 'true' : 'false');
         return fetch('/juegos/resultado', { method: 'POST', body: formData })
-            .then(r => r.json())
+            .then(r => {
+                if (r.status === 401 || r.status === 403) {
+                    // Sesión vencida o inválida: el guardado NO se realizó, avisar y reenviar a login.
+                    alert('Tu sesión expiró. Vuelve a iniciar sesión para que tu progreso se guarde.');
+                    window.location.href = '/auth/login';
+                    throw new Error('Sesión expirada, resultado no guardado');
+                }
+                if (!r.ok) throw new Error('El servidor respondió con error ' + r.status);
+                return r.json();
+            })
             .then(data => {
                 if (completado) {
                     reproducirSonidoExito();
