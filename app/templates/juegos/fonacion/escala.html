@@ -250,6 +250,13 @@ let notasCompletadas = 0;
 let timerInhala = null;
 let timerAvance = null;
 let audioCtxSonido = null;
+const evidenciaVozEscala = (typeof crearCapturaActividad === 'function')
+    ? crearCapturaActividad({ categoria: 'fonacion', juego: 'escala' })
+    : {
+        iniciar: async () => ({}),
+        detener: async () => ({ audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: true }),
+    };
+let detalleVozEscalaPromise = Promise.resolve({});
 
 const canvas = document.getElementById('partitura-canvas');
 const ctx = canvas.getContext('2d');
@@ -373,6 +380,7 @@ async function iniciarMicEscala() {
         analyserE = audioCtxE.createAnalyser();
         analyserE.fftSize = 2048;
         source.connect(analyserE);
+        detalleVozEscalaPromise = evidenciaVozEscala.iniciar().then(() => ({})).catch(() => ({}));
         micActivoE = true;
         document.getElementById('btn-mic-escala').classList.add('activo');
         document.getElementById('mic-estado-escala').textContent = '🔴 Activo - ¡Canta!';
@@ -385,6 +393,7 @@ async function iniciarMicEscala() {
 
 function detenerMicEscala() {
     micActivoE = false;
+    detalleVozEscalaPromise = evidenciaVozEscala.detener({ transcripcion: '' });
     if (micStreamE) { micStreamE.getTracks().forEach(t => t.stop()); micStreamE = null; }
     if (audioCtxE) { audioCtxE.close(); audioCtxE = null; }
     if (animFrameE) { cancelAnimationFrame(animFrameE); animFrameE = null; }
@@ -445,11 +454,20 @@ function completarEscala() {
     detenerMicEscala();
     document.getElementById('escala-completada').classList.remove('oculto');
     document.getElementById('fase-texto-escala').textContent = '🎉 ¡Escala completada!';
-    guardarResultadoJuego('fonacion', 'escala', nivelActual + 1, NIVELES.length, true, 80 + (nivelActual * 10), 1);
+    registrarResultadoEscala();
     // Marcar todos como completados
     NOTAS.forEach((_, i) => {
         const dot = document.getElementById(`dot-${i}`);
         if (dot) dot.className = 'nota-dot completada';
+    });
+}
+
+async function registrarResultadoEscala() {
+    const detalleVoz = await detalleVozEscalaPromise;
+    guardarResultadoJuego('fonacion', 'escala', nivelActual + 1, NIVELES.length, true, 80 + (nivelActual * 10), 1, {
+        notas: 'Actividad realizada con micrófono.',
+        requiereRevisionAudio: true,
+        ...detalleVoz,
     });
 }
 

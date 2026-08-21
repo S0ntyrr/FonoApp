@@ -96,6 +96,23 @@ function normalizarTexto(texto) {
   return (texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function coincideConLetra(texto, letraEsperada) {
+  const letra = (letraEsperada || '').toLowerCase();
+  const variantes = {
+    b: ['b', 'be', 'bee', 'la letra b', 'letra b'],
+    d: ['d', 'de', 'dee', 'la letra d', 'letra d'],
+    f: ['f', 'efe', 'efe', 'la letra f', 'letra f'],
+    r: ['r', 'erre', 'ere', 'la letra r', 'letra r'],
+  };
+  const normalizado = normalizarTexto(texto);
+  const opciones = variantes[letra] || [letra];
+  return opciones.some((valor) => {
+    const clave = normalizarTexto(valor);
+    if (!clave) return false;
+    return normalizado === clave || normalizado.includes(clave) || normalizado.includes(`letra ${clave}`) || normalizado.includes(`la letra ${clave}`);
+  });
+}
+
 function reproducirSonidoExito() {
   try {
     const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
@@ -120,7 +137,7 @@ async function guardarResultadoConAudioPalabra() {
   fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
 }
 
-function activarMicPalabra() {
+async function activarMicPalabra() {
   const p = PALABRAS[indiceActual];
   const letraCorrecta = p.palabra[p.falta];
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -132,6 +149,7 @@ function activarMicPalabra() {
   micActivaPalabra = true;
   document.getElementById('resultado-incorrecto').textContent = `Escuchando: "${letraCorrecta}"...`;
   document.getElementById('resultado-incorrecto').style.display = 'block';
+  try { if (typeof evidenciaVozPalabra.iniciar === 'function') await evidenciaVozPalabra.iniciar(); } catch (e) {}
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognitionPalabra = new SR();
   recognitionPalabra.lang = 'es-ES';
@@ -140,18 +158,18 @@ function activarMicPalabra() {
   recognitionPalabra.onresult = async (event) => {
     const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
     ultimaTranscripcionPalabra = texto;
-    const normalizado = normalizarTexto(texto);
-    const objetivo = normalizarTexto(letraCorrecta);
-    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+    if (coincideConLetra(texto, letraCorrecta)) {
       validacionPalabra = true;
       document.getElementById('resultado-correcto').style.display = 'block';
-      document.getElementById('resultado-correcto').querySelector('p').textContent = `🎉 ¡Correcto! La respuesta era ${letraCorrecta}`;
+      document.getElementById('resultado-correcto').querySelector('p').textContent = `✅ Correcto. Dijiste: "${texto || letraCorrecta}".`;
+      document.getElementById('respuesta-input').value = letraCorrecta;
       recognitionPalabra.stop();
       micActivaPalabra = false;
       try {
         const detalle = await evidenciaVozPalabra.detener({ transcripcion: texto });
         ultimaTranscripcionPalabra = detalle.audioTranscripcion || texto;
       } catch (e) {}
+      setTimeout(() => { verificar(); }, 500);
       return;
     }
     if (texto) {

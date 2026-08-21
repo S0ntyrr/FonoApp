@@ -88,6 +88,13 @@ let micActivo = false;
 let animFrame = null;
 let posicion = 0; // 0 a 100
 const META = 100;
+const evidenciaVozMoto = (typeof crearCapturaActividad === 'function')
+    ? crearCapturaActividad({ categoria: 'articulacion', juego: 'moto_voz' })
+    : {
+        iniciar: async () => ({}),
+        detener: async () => ({ audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: true }),
+    };
+let detalleVozMotoPromise = Promise.resolve({});
 
 function toggleMic() {
     if (micActivo) { detenerMic(); } else { iniciarMic(); }
@@ -101,6 +108,7 @@ async function iniciarMic() {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
         source.connect(analyser);
+        detalleVozMotoPromise = evidenciaVozMoto.iniciar().then(() => ({})).catch(() => ({}));
         micActivo = true;
         document.getElementById('btn-mic').classList.add('activo');
         document.getElementById('mic-estado').textContent = '🔴 ¡Habla fuerte!';
@@ -112,6 +120,7 @@ async function iniciarMic() {
 
 function detenerMic() {
     micActivo = false;
+    detalleVozMotoPromise = evidenciaVozMoto.detener({ transcripcion: '' });
     if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
     if (audioCtx) { audioCtx.close(); audioCtx = null; }
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
@@ -145,7 +154,7 @@ function medir() {
     if (posicion >= META) {
         detenerMic();
         document.getElementById('resultado-ganaste').style.display = 'block';
-        guardarResultadoJuego('articulacion', 'moto_voz', 1, 1, true, 40, 1);
+        registrarResultadoMoto();
         return;
     }
 
@@ -158,6 +167,15 @@ function actualizarMoto() {
     moto.style.left = (pct * 85) + '%';
     document.getElementById('progreso-moto').style.width = posicion + '%';
     document.getElementById('progreso-pct').textContent = Math.round(posicion) + '%';
+}
+
+async function registrarResultadoMoto() {
+    const detalleVoz = await detalleVozMotoPromise;
+    guardarResultadoJuego('articulacion', 'moto_voz', 1, 1, true, 40, 1, {
+        notas: 'Actividad realizada con micrófono.',
+        requiereRevisionAudio: true,
+        ...detalleVoz,
+    });
 }
 
 function reiniciar() {

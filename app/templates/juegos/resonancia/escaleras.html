@@ -155,6 +155,13 @@ let puntosRes = 0;
 let audioCtxR = null, analyserR = null, micStreamR = null, micActivoR = false, animFrameR = null;
 let pitchActual = 0;
 let animResFrame = null;
+const evidenciaVozEscaleras = (typeof crearCapturaActividad === 'function')
+    ? crearCapturaActividad({ categoria: 'resonancia', juego: 'escaleras' })
+    : {
+        iniciar: async () => ({}),
+        detener: async () => ({ audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: true }),
+    };
+let detalleVozEscalerasPromise = Promise.resolve({});
 
 // Escalones
 const ESCALONES = 7;
@@ -235,6 +242,7 @@ async function iniciarMicRes() {
         analyserR = audioCtxR.createAnalyser();
         analyserR.fftSize = 2048;
         source.connect(analyserR);
+        detalleVozEscalerasPromise = evidenciaVozEscaleras.iniciar().then(() => ({})).catch(() => ({}));
         micActivoR = true;
         document.getElementById('btn-mic-res').classList.add('activo');
         document.getElementById('mic-estado-res').textContent = '🔴 Activo - ¡Canta!';
@@ -246,6 +254,7 @@ async function iniciarMicRes() {
 
 function detenerMicRes() {
     micActivoR = false;
+    detalleVozEscalerasPromise = evidenciaVozEscaleras.detener({ transcripcion: '' });
     if (micStreamR) { micStreamR.getTracks().forEach(t => t.stop()); micStreamR = null; }
     if (audioCtxR) { audioCtxR.close(); audioCtxR = null; }
     if (animFrameR) { cancelAnimationFrame(animFrameR); animFrameR = null; }
@@ -307,7 +316,16 @@ function medirPitchRes() {
 function completarRes() {
     detenerMicRes();
     document.getElementById('res-completado').classList.remove('oculto');
-    guardarResultadoJuego('resonancia', 'escaleras', 2, 2, true, puntosRes, 1);
+    registrarResultadoResonanciaEscaleras();
+}
+
+async function registrarResultadoResonanciaEscaleras() {
+    const detalleVoz = await detalleVozEscalerasPromise;
+    guardarResultadoJuego('resonancia', 'escaleras', 2, 2, true, puntosRes, 1, {
+        notas: 'Actividad realizada con micrófono.',
+        requiereRevisionAudio: true,
+        ...detalleVoz,
+    });
 }
 
 function reiniciarRes() {

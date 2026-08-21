@@ -74,7 +74,7 @@
     <p>Para evitar que a la foca se le rompa el hielo y caiga al agua. Resuelve la sopa de letras 🦭🧊</p>
     <div class="wordsearch" id="ws"></div>
     <div class="words-to-find" id="wtf"></div>
-    <button class="btn-next" id="btn-finalizar-f" onclick="goStep(5); guardarResultadoJuego('articulacion','letra_f',5,5,true,60,1);" disabled style="opacity:0.6;cursor:not-allowed;">Finalizar ✓</button>
+    <button class="btn-next" id="btn-finalizar-f" onclick="finalizarLetraF();" disabled style="opacity:0.6;cursor:not-allowed;">Finalizar ✓</button>
   </div>
 
   <!-- STEP 5 -->
@@ -108,6 +108,23 @@ function normalizarTexto(texto) {
     .trim();
 }
 
+function coincideConLetra(texto, letraEsperada) {
+  const letra = (letraEsperada || '').toLowerCase();
+  const variantes = {
+    b: ['b', 'be', 'bee', 'la letra b', 'letra b'],
+    d: ['d', 'de', 'dee', 'la letra d', 'letra d'],
+    f: ['f', 'efe', 'efe', 'la letra f', 'letra f'],
+    r: ['r', 'erre', 'ere', 'la letra r', 'letra r'],
+  };
+  const normalizado = normalizarTexto(texto);
+  const opciones = variantes[letra] || [letra];
+  return opciones.some((valor) => {
+    const clave = normalizarTexto(valor);
+    if (!clave) return false;
+    return normalizado === clave || normalizado.includes(clave) || normalizado.includes(`letra ${clave}`) || normalizado.includes(`la letra ${clave}`);
+  });
+}
+
 function reproducirSonidoExito() {
   try {
     const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
@@ -138,7 +155,7 @@ async function guardarResultadoConAudioF(cat, juego, paso, total, completado, pu
   fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
 }
 
-function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {
+async function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {
   const btn = document.getElementById(btnId);
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     document.getElementById('fb-s1').textContent = 'Tu navegador no soporta reconocimiento de voz.';
@@ -150,6 +167,7 @@ function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {
   document.getElementById('fb-s1').textContent = `Escuchando la letra ${letraEsperada.toUpperCase()}...`;
   document.getElementById('fb-s1').style.display = 'block';
   document.getElementById('fb-s1').style.color = '#333';
+  try { if (typeof evidenciaVozF.iniciar === 'function') await evidenciaVozF.iniciar(); } catch (e) {}
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognitionF = new SR();
@@ -159,11 +177,9 @@ function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {
   recognitionF.onresult = async (event) => {
     const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
     ultimaTranscripcionF = texto;
-    const normalizado = normalizarTexto(texto);
-    const objetivo = normalizarTexto(letraEsperada);
-    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+    if (coincideConLetra(texto, letraEsperada)) {
       validacionCorrectaF = true;
-      document.getElementById('fb-s1').textContent = mensajeOk;
+      document.getElementById('fb-s1').textContent = `✅ Correcto. Dijiste: "${texto || letraEsperada.toUpperCase()}".`;
       document.getElementById('fb-s1').style.display = 'block';
       document.getElementById('letra-f-display').textContent = '🧒 F';
       recognitionF.stop();
@@ -171,6 +187,7 @@ function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {
       btn.textContent = '🎤'; btn.style.background = '#e63946';
       const detalle = await evidenciaVozF.detener({ transcripcion: texto });
       ultimaTranscripcionF = detalle.audioTranscripcion || texto;
+      setTimeout(() => { if (typeof finalizarLetraF === 'function') finalizarLetraF(); }, 500);
       return;
     }
     if (texto) {

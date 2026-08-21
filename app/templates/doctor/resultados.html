@@ -33,6 +33,9 @@
                     <p class="res-meta">{{ r.categoria }} · {{ r.paso_completado }}/{{ r.total_pasos }} pasos · {{ r.avance_pct }}%</p>
                     <p class="res-meta">🏆 Puntaje sistema: {{ r.puntaje_actividad or r.puntos or 0 }} · Nivel {{ r.nivel or 1 }}</p>
                     <p class="res-meta">📅 {{ r.fecha.strftime('%d/%m/%Y %H:%M') if r.fecha else '-' }}</p>
+                    {% if r.requiere_revision_audio %}
+                        <p class="audio-revision-pill">🎙️ Requiere revisión de audio</p>
+                    {% endif %}
                     {% if r.notas %}
                         <p class="res-evidencia">📝 {{ r.notas }}</p>
                     {% endif %}
@@ -71,6 +74,7 @@
 .res-top { margin:0; font-size:0.74rem; color:#888; }
 .res-title { margin:0.15rem 0; font-size:0.92rem; font-weight:700; color:#1a1a1a; }
 .res-meta { margin:0.1rem 0; font-size:0.74rem; color:#666; }
+.audio-revision-pill { margin:0.3rem 0 0; display:inline-flex; align-items:center; gap:0.25rem; padding:0.2rem 0.5rem; border-radius:999px; font-size:0.7rem; font-weight:700; background:#fff3e0; color:#a65a00; }
 .res-evidencia { margin:0.25rem 0 0; background:#f7f7f7; border-radius:7px; padding:0.35rem 0.5rem; font-size:0.74rem; color:#444; }
 .audio-texto { background:#fff8e1; color:#5d4037; }
 .res-audio-wrap { margin-top:0.45rem; }

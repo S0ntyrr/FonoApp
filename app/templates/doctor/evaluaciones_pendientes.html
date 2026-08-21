@@ -33,6 +33,9 @@
                             <p class="evaluacion-paciente">{{ ev.paciente_email }}</p>
                             <p class="evaluacion-meta">{{ ev.categoria | title }} · {{ ev.actividad }}</p>
                             <p class="evaluacion-meta">📅 {{ ev.fecha.strftime('%d/%m/%Y %H:%M') if ev.fecha else '-' }} · 🧭 {{ ev.pasos_label }} · 🏆 {{ ev.puntaje_sistema or ev.puntos_obtenidos }} pts · Nivel {{ ev.nivel }}</p>
+                            {% if ev.requiere_revision_audio %}
+                                <p class="audio-revision-pill">🎙️ Requiere revisión de audio</p>
+                            {% endif %}
                             <p class="evaluacion-evidencia">{{ ev.detalle_actividad }}</p>
                             {% if ev.tiene_evidencia_audio %}
                                <div class="evaluacion-audio">
@@ -108,6 +111,7 @@
 .evaluacion-info { flex:1; }
 .evaluacion-paciente { margin:0; font-size:0.88rem; font-weight:700; color:#1a1a1a; }
 .evaluacion-meta { margin:0.1rem 0 0; font-size:0.75rem; color:#888; }
+.audio-revision-pill { margin:0.25rem 0 0; display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.55rem; border-radius:999px; font-size:0.72rem; font-weight:700; background:#fff3e0; color:#a65a00; }
 .evaluacion-evidencia { margin:0.25rem 0 0; font-size:0.76rem; color:#444; background:#f7f7f7; border-radius:7px; padding:0.35rem 0.5rem; }
 .evaluacion-audio { margin-top:0.45rem; display:flex; flex-direction:column; gap:0.35rem; }
 .evaluacion-transcripcion { margin:0; font-size:0.76rem; color:#5d4037; background:#fff8e1; border-radius:7px; padding:0.35rem 0.5rem; }

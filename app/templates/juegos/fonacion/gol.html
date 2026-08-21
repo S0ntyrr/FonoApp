@@ -128,6 +128,13 @@ let porteroX = 300, porteroY = 130, porteroDir = 1;
 
 // Micrófono
 let audioCtxG = null, analyserG = null, micStreamG = null, micActivoG = false, animFrameG = null;
+const evidenciaVozGol = (typeof crearCapturaActividad === 'function')
+    ? crearCapturaActividad({ categoria: 'fonacion', juego: 'gol' })
+    : {
+        iniciar: async () => ({}),
+        detener: async () => ({ audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: true }),
+    };
+let detalleVozGolPromise = Promise.resolve({});
 
 // ─── Dibujo del campo ─────────────────────────────────────────────────────────
 function dibujarCampo() {
@@ -237,7 +244,7 @@ function render() {
                 document.getElementById('marcador-voz').style.display = 'flex';
                 if (!resultadoGolGuardado) {
                     resultadoGolGuardado = true;
-                    guardarResultadoJuego('fonacion', 'gol', 1, 1, true, score, 1);
+                    registrarResultadoGol();
                 }
                 setTimeout(() => {
                     document.getElementById('mensaje-gol').classList.add('oculto');
@@ -331,6 +338,7 @@ async function iniciarMicGol() {
         analyserG = audioCtxG.createAnalyser();
         analyserG.fftSize = 256;
         source.connect(analyserG);
+        detalleVozGolPromise = evidenciaVozGol.iniciar().then(() => ({})).catch(() => ({}));
         micActivoG = true;
         document.getElementById('btn-mic-gol').classList.add('activo');
         document.getElementById('mic-estado-gol').textContent = '🔴 Activo - ¡Canta!';
@@ -342,6 +350,7 @@ async function iniciarMicGol() {
 
 function detenerMicGol() {
     micActivoG = false;
+    detalleVozGolPromise = evidenciaVozGol.detener({ transcripcion: '' });
     if (micStreamG) { micStreamG.getTracks().forEach(t => t.stop()); micStreamG = null; }
     if (audioCtxG) { audioCtxG.close(); audioCtxG = null; }
     if (animFrameG) { cancelAnimationFrame(animFrameG); animFrameG = null; }
@@ -364,6 +373,16 @@ function medirVozGol() {
     }
 
     animFrameG = requestAnimationFrame(medirVozGol);
+}
+
+async function registrarResultadoGol() {
+    detenerMicGol();
+    const detalleVoz = await detalleVozGolPromise;
+    guardarResultadoJuego('fonacion', 'gol', 1, 1, true, score, 1, {
+        notas: 'Actividad realizada con micrófono.',
+        requiereRevisionAudio: true,
+        ...detalleVoz,
+    });
 }
 
 // Iniciar

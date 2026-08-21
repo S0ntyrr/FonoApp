@@ -144,6 +144,13 @@ let velocidadAspas = 0;
 let puntosM = 0, mejorM = 0;
 let puntosInterval = null;
 let resultadoMolinoGuardado = false;
+const evidenciaVozMolino = (typeof crearCapturaActividad === 'function')
+    ? crearCapturaActividad({ categoria: 'respiracion', juego: 'molino' })
+    : {
+        iniciar: async () => ({}),
+        detener: async () => ({ audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: true }),
+    };
+let detalleVozMolinoPromise = Promise.resolve({});
 
 function toggleMicMolino() {
     if (micActivoM) detenerMicMolino();
@@ -158,6 +165,7 @@ async function iniciarMicMolino() {
         analyserM = audioCtxM.createAnalyser();
         analyserM.fftSize = 256;
         source.connect(analyserM);
+        detalleVozMolinoPromise = evidenciaVozMolino.iniciar().then(() => ({})).catch(() => ({}));
         micActivoM = true;
         document.getElementById('btn-mic-molino').classList.add('activo');
         document.getElementById('mic-estado-molino').textContent = '🔴 Activo - ¡Sopla!';
@@ -170,6 +178,7 @@ async function iniciarMicMolino() {
 
 function detenerMicMolino() {
     micActivoM = false;
+    detalleVozMolinoPromise = evidenciaVozMolino.detener({ transcripcion: '' });
     if (micStreamM) { micStreamM.getTracks().forEach(t => t.stop()); micStreamM = null; }
     if (audioCtxM) { audioCtxM.close(); audioCtxM = null; }
     if (animFrameM) { cancelAnimationFrame(animFrameM); animFrameM = null; }
@@ -203,7 +212,7 @@ function animarMolino() {
     animFrameM = requestAnimationFrame(animarMolino);
 }
 
-function sumarPuntos() {
+async function sumarPuntos() {
     if (velocidadAspas > 2) {
         puntosM += Math.round(velocidadAspas);
         if (puntosM > mejorM) mejorM = puntosM;
@@ -211,7 +220,13 @@ function sumarPuntos() {
         document.getElementById('mejor-molino').textContent = mejorM;
         if (!resultadoMolinoGuardado && puntosM >= 80) {
             resultadoMolinoGuardado = true;
-            guardarResultadoJuego('respiracion', 'molino', 1, 1, true, puntosM, 1);
+            detenerMicMolino();
+            const detalleVoz = await detalleVozMolinoPromise;
+            guardarResultadoJuego('respiracion', 'molino', 1, 1, true, puntosM, 1, {
+                notas: 'Actividad realizada con micrófono.',
+                requiereRevisionAudio: true,
+                ...detalleVoz,
+            });
         }
     }
 }

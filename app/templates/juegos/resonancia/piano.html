@@ -194,6 +194,13 @@ let notaMelodiaActual = 0;
 let faseCantar = false;
 let resultadoPianoGuardado = false;
 let micActivoP = false, micStreamP = null, analyserP = null, animFrameP = null;
+const evidenciaVozPiano = (typeof crearCapturaActividad === 'function')
+    ? crearCapturaActividad({ categoria: 'resonancia', juego: 'piano' })
+    : {
+        iniciar: async () => ({}),
+        detener: async () => ({ audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: true }),
+    };
+let detalleVozPianoPromise = Promise.resolve({});
 
 // Canvas de notas cayendo
 const notasCanvas = document.getElementById('notas-canvas');
@@ -357,6 +364,7 @@ async function iniciarMicPiano() {
         analyserP = audioCtxMicP.createAnalyser();
         analyserP.fftSize = 256;
         source.connect(analyserP);
+        detalleVozPianoPromise = evidenciaVozPiano.iniciar().then(() => ({})).catch(() => ({}));
         micActivoP = true;
         document.getElementById('btn-mic-piano').classList.add('activo');
         document.getElementById('mic-estado-piano').textContent = '🔴 Activo - ¡Canta!';
@@ -368,6 +376,7 @@ async function iniciarMicPiano() {
 
 function detenerMicPiano() {
     micActivoP = false;
+    detalleVozPianoPromise = evidenciaVozPiano.detener({ transcripcion: '' });
     if (micStreamP) { micStreamP.getTracks().forEach(t => t.stop()); micStreamP = null; }
     if (audioCtxMicP) { audioCtxMicP.close(); audioCtxMicP = null; }
     if (animFrameP) { cancelAnimationFrame(animFrameP); animFrameP = null; }
@@ -395,7 +404,7 @@ function medirVozPiano() {
             detenerMicPiano();
             if (!resultadoPianoGuardado) {
                 resultadoPianoGuardado = true;
-                guardarResultadoJuego('resonancia', 'piano', 2, 2, true, puntosP, 1);
+                registrarResultadoPiano();
             }
             return;
         }
@@ -405,5 +414,14 @@ function medirVozPiano() {
 }
 
 window.addEventListener('DOMContentLoaded', iniciarPiano);
+
+async function registrarResultadoPiano() {
+    const detalleVoz = await detalleVozPianoPromise;
+    guardarResultadoJuego('resonancia', 'piano', 2, 2, true, puntosP, 1, {
+        notas: 'Actividad realizada con micrófono.',
+        requiereRevisionAudio: true,
+        ...detalleVoz,
+    });
+}
 </script>
 {% endblock %}

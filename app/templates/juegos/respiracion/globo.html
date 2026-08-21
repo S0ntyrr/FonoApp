@@ -176,6 +176,13 @@ let micActivo = false;
 let animFrame = null;
 let nivelGlobo = 0; // 0 a 100
 const MAX_NIVEL = 100;
+const evidenciaVozGlobo = (typeof crearCapturaActividad === 'function')
+    ? crearCapturaActividad({ categoria: 'respiracion', juego: 'globo' })
+    : {
+        iniciar: async () => ({}),
+        detener: async () => ({ audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: true }),
+    };
+let detalleVozGloboPromise = Promise.resolve({});
 
 function toggleMic() {
     if (micActivo) {
@@ -193,6 +200,7 @@ async function iniciarMic() {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
         source.connect(analyser);
+        detalleVozGloboPromise = evidenciaVozGlobo.iniciar().then(() => ({})).catch(() => ({}));
 
         micActivo = true;
         document.getElementById('btn-mic').classList.add('activo');
@@ -207,6 +215,7 @@ async function iniciarMic() {
 
 function detenerMic() {
     micActivo = false;
+    detalleVozGloboPromise = evidenciaVozGlobo.detener({ transcripcion: '' });
     if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
     if (audioCtx) { audioCtx.close(); audioCtx = null; }
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
@@ -258,8 +267,16 @@ function explotarGlobo() {
     document.getElementById('globo-svg').style.display = 'none';
     document.getElementById('globo-explotado').classList.remove('oculto');
     document.getElementById('instruccion-texto').textContent = '¡Increíble! ¡Inflaste el globo!';
-    // Guardar resultado en la base de datos
-    guardarResultadoJuego('respiracion', 'globo', 1, 1, true, 50, 1);
+    registrarResultadoGlobo();
+}
+
+async function registrarResultadoGlobo() {
+    const detalleVoz = await detalleVozGloboPromise;
+    guardarResultadoJuego('respiracion', 'globo', 1, 1, true, 50, 1, {
+        notas: 'Actividad realizada con micrófono.',
+        requiereRevisionAudio: true,
+        ...detalleVoz,
+    });
 }
 
 function reiniciar() {

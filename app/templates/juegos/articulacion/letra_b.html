@@ -95,7 +95,7 @@
     <div class="words-grid" id="words-grid"></div>
     <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%;"></div></div>
     <p id="prog-text" style="text-align:center;color:#555;">0 / 7 palabras encontradas</p>
-    <button class="btn-next" id="btn-finish" onclick="goStep(5); guardarResultadoJuego('articulacion','letra_b',5,5,true,60,1);" style="display:none;">Finalizar ✓</button>
+    <button class="btn-next" id="btn-finish" onclick="finalizarLetraB();" style="display:none;">Finalizar ✓</button>
   </div>
 
   <!-- STEP 5: Completion -->
@@ -127,6 +127,23 @@ function normalizarTexto(texto) {
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function coincideConLetra(texto, letraEsperada) {
+  const letra = (letraEsperada || '').toLowerCase();
+  const variantes = {
+    b: ['b', 'be', 'bee', 'la letra b', 'letra b'],
+    d: ['d', 'de', 'dee', 'la letra d', 'letra d'],
+    f: ['f', 'efe', 'efe', 'la letra f', 'letra f'],
+    r: ['r', 'erre', 'ere', 'la letra r', 'letra r'],
+  };
+  const normalizado = normalizarTexto(texto);
+  const opciones = variantes[letra] || [letra];
+  return opciones.some((valor) => {
+    const clave = normalizarTexto(valor);
+    if (!clave) return false;
+    return normalizado === clave || normalizado.includes(clave) || normalizado.includes(`letra ${clave}`) || normalizado.includes(`la letra ${clave}`);
+  });
 }
 
 function reproducirSonidoExito() {
@@ -167,9 +184,8 @@ async function guardarResultadoConAudio(cat, juego, paso, total, completado, pun
   fetch('/juegos/resultado', { method: 'POST', body: fd }).catch((e) => console.warn(e));
 }
 
-function iniciarValidacionLetra(letraEsperada, mensajeOk) {
+async function iniciarValidacionLetra(letraEsperada, mensajeOk) {
   const btn = document.getElementById('mic-s1');
-  const info = document.getElementById('fb-s1');
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     mostrarEstadoMic('Tu navegador no soporta reconocimiento de voz.', false);
     return;
@@ -178,6 +194,7 @@ function iniciarValidacionLetra(letraEsperada, mensajeOk) {
   reconocimientoActiva = true;
   if (btn) { btn.textContent = '⏹️'; btn.style.background = '#27ae60'; }
   mostrarEstadoMic(`Escuchando la letra ${letraEsperada.toUpperCase()}...`, false);
+  try { if (typeof evidenciaVozB.iniciar === 'function') await evidenciaVozB.iniciar(); } catch (e) {}
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
@@ -187,11 +204,10 @@ function iniciarValidacionLetra(letraEsperada, mensajeOk) {
   recognition.onresult = async (event) => {
     const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
     ultimaTranscripcion = texto;
-    const normalizado = normalizarTexto(texto);
-    const objetivo = normalizarTexto(letraEsperada);
-    if (normalizado.includes(objetivo) || normalizado.includes('letra ' + objetivo)) {
+    if (coincideConLetra(texto, letraEsperada)) {
       validacionCorrecta = true;
-      mostrarEstadoMic(mensajeOk, true);
+      const mensaje = `✅ Correcto. Dijiste: "${texto || letraEsperada.toUpperCase()}".`;
+      mostrarEstadoMic(mensaje, true);
       document.getElementById('letra-b-display').textContent = '🐝 B';
       if (recognition) recognition.stop();
       reconocimientoActiva = false;
@@ -200,6 +216,7 @@ function iniciarValidacionLetra(letraEsperada, mensajeOk) {
         const detalle = await evidenciaVozB.detener({ transcripcion: texto });
         ultimaTranscripcion = detalle.audioTranscripcion || texto;
       } catch (e) {}
+      setTimeout(() => { if (typeof finalizarLetraB === 'function') finalizarLetraB(); }, 500);
       return;
     }
     if (texto) {

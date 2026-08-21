@@ -216,7 +216,7 @@ async def _adjuntar_evidencia_historial(
         doc["audio_transcripcion"] = audio_transcripcion
         doc["audio_url"] = audio_url
         doc["requiere_revision_audio"] = requiere_revision_audio
-        doc["tiene_evidencia_audio"] = bool(audio_url or audio_transcripcion)
+        doc["tiene_evidencia_audio"] = bool(audio_url or audio_transcripcion or requiere_revision_audio)
     return historial_docs
 
 
@@ -694,6 +694,11 @@ async def vista_resultados_doctor(
             total_pasos = max(1, int(doc.get("total_pasos", 1)))
             paso = max(0, int(doc.get("paso_completado", 0)))
             doc["avance_pct"] = int((paso / total_pasos) * 100)
+            doc["tiene_evidencia_audio"] = bool(
+                (doc.get("audio_transcripcion") or "").strip()
+                or (doc.get("audio_url") or "").strip()
+                or bool(doc.get("requiere_revision_audio"))
+            )
             resultados.append(doc)
 
     categorias = sorted({r.get("categoria", "") for r in resultados if r.get("categoria")})
