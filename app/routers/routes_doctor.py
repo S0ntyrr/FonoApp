@@ -115,6 +115,45 @@ def _parse_fecha_param(fecha_texto: str) -> datetime | None:
         return None
 
 
+def _resumen_desempeno_evaluacion(doc: dict) -> dict:
+    pasos_label = doc.get("pasos_label") or "-"
+    total_pasos = int(doc.get("total_pasos") or 0)
+    paso_actual = int(doc.get("paso_completado") or 0)
+    progreso = pasos_label
+    if pasos_label == "-" and total_pasos:
+        progreso = f"{paso_actual}/{total_pasos}"
+
+    puntaje = int(doc.get("puntaje_sistema", doc.get("puntos_obtenidos", 0)) or 0)
+    progreso_pct = int(doc.get("progreso_pct") or 0)
+    if not progreso_pct and total_pasos and paso_actual:
+        progreso_pct = int(round((paso_actual / max(1, total_pasos)) * 100))
+
+    completado = bool(doc.get("completado")) or (
+        total_pasos and paso_actual >= total_pasos
+    )
+    estado = "Completado" if completado else "En progreso"
+
+    evidencia = []
+    detalle = (doc.get("detalle_actividad") or "").strip()
+    if detalle:
+        evidencia.append(detalle)
+    audio_texto = (doc.get("audio_transcripcion") or "").strip()
+    if audio_texto:
+        evidencia.append(f"Lo que dijo: {audio_texto}")
+    if not evidencia and doc.get("ruta_juego"):
+        evidencia.append(f"Ruta: {doc.get('ruta_juego')}")
+    elif doc.get("ruta_juego") and detalle:
+        evidencia.append(f"Ruta: {doc.get('ruta_juego')}")
+
+    return {
+        "estado": estado,
+        "progreso": progreso,
+        "puntaje": puntaje,
+        "progreso_pct": progreso_pct,
+        "evidencia": evidencia,
+    }
+
+
 async def _adjuntar_evidencia_historial(
     db: AsyncIOMotorDatabase,
     historial_docs: list[dict],
@@ -766,6 +805,8 @@ async def vista_evaluaciones_pendientes(
             doc["_id"] = str(doc["_id"])
             evaluaciones.append(doc)
         evaluaciones = await _adjuntar_evidencia_historial(db, evaluaciones)
+        for ev in evaluaciones:
+            ev["resumen"] = _resumen_desempeno_evaluacion(ev)
 
     categorias = sorted({e.get("categoria", "") for e in evaluaciones if e.get("categoria")})
 

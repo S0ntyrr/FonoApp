@@ -50,6 +50,26 @@
                             {% endif %}
                         </div>
                     </div>
+                    {% set resumen = ev.resumen if ev.resumen is defined else None %}
+                    <div class="resumen-evaluacion">
+                        <div class="resumen-header">
+                            <span class="badge-resumen {{ 'ok' if resumen.estado == 'Completado' else 'warn' }}">{{ resumen.estado }}</span>
+                            <span class="meta-pill">Progreso: {{ resumen.progreso }}</span>
+                            <span class="meta-pill">Puntaje: {{ resumen.puntaje }} pts</span>
+                        </div>
+                        {% if resumen.progreso_pct %}
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar" style="width: {{ resumen.progreso_pct }}%"></div>
+                            </div>
+                        {% endif %}
+                        {% if resumen.evidencia %}
+                            <ul class="evidencia-lista">
+                                {% for item in resumen.evidencia %}
+                                    <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
                     <form method="post" action="/doctor/evaluaciones/{{ ev._id }}/feedback" class="feedback-form">
                         <textarea name="feedback" class="campo-texto feedback-textarea" placeholder="Escribe tu evaluación aquí..." rows="2" required></textarea>
                         <select name="calificacion" class="campo-texto" required>
@@ -97,5 +117,15 @@
 .feedback-textarea { resize:vertical; min-height:60px; font-size:0.88rem; padding:0.6rem 0.8rem; }
 .btn-feedback { background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; border:none; border-radius:8px; padding:0.55rem 1rem; font-size:0.85rem; font-weight:700; cursor:pointer; align-self:flex-end; }
 .btn-feedback:hover { opacity:0.88; }
+.resumen-evaluacion { background:#fffaf5; border:1px solid #f7d7b1; border-radius:10px; padding:0.7rem 0.75rem; margin:0.65rem 0 0.8rem; }
+.resumen-header { display:flex; flex-wrap:wrap; gap:0.45rem; align-items:center; margin-bottom:0.45rem; }
+.badge-resumen { display:inline-flex; align-items:center; padding:0.2rem 0.55rem; border-radius:999px; font-size:0.72rem; font-weight:700; }
+.badge-resumen.ok { background:#e8f5e9; color:#2e7d32; }
+.badge-resumen.warn { background:#fff3cd; color:#b26a00; }
+.meta-pill { display:inline-flex; align-items:center; padding:0.2rem 0.5rem; border-radius:999px; background:#f2f2f2; color:#4c4c4c; font-size:0.72rem; }
+.progress-bar-wrap { height:8px; background:#f0f0f0; border-radius:999px; overflow:hidden; margin:0.35rem 0 0.65rem; }
+.progress-bar { height:100%; background:linear-gradient(90deg,#ef6c00,#fbbf24); border-radius:999px; }
+.evidencia-lista { margin:0; padding-left:1.1rem; color:#444; font-size:0.76rem; line-height:1.5; }
+.evidencia-lista li + li { margin-top:0.2rem; }
 </style>
 {% endblock %}
