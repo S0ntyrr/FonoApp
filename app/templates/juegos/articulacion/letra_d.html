@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <script src="/static/js/juego-audio-utils.js"></script>
   <script>
   function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1){
     const email=sessionStorage.getItem("paciente_email")||localStorage.getItem("paciente_email_actual")||"";
@@ -75,7 +76,8 @@
   <div class="step" id="s4">
     <p><strong>Completa la palabra.</strong><br><span style="color:#555;">Graba un audio con la sílaba correspondiente</span></p>
     <div class="complete-grid" id="complete-grid"></div>
-    <button class="btn-next" onclick="finalizarLetraD();">Finalizar ✓</button>
+    <p id="complete-grid-progreso" style="text-align:center;color:#555;font-size:0.85rem;">0 / 10 palabras completadas con tu voz</p>
+    <button class="btn-next" id="btn-finalizar-d" onclick="finalizarLetraD();" disabled style="opacity:0.6;cursor:not-allowed;">Finalizar ✓</button>
   </div>
 
   <!-- STEP 5: Done -->
@@ -235,14 +237,14 @@ async function finalizarLetraD() {
     document.getElementById('fb-s1').style.display = 'block';
     return;
   }
+  if (palabrasCompletadasD < words.length) {
+    document.getElementById('complete-grid-progreso').textContent = `Debes decir en voz alta las ${words.length} palabras para continuar.`;
+    document.getElementById('complete-grid-progreso').style.color = '#d32f2f';
+    return;
+  }
   await guardarResultadoConAudioD('articulacion', 'letra_d', 5, 5, true, 60, 1);
   reproducirSonidoExito();
   goStep(5);
-}
-
-const btnFinishD = document.querySelector('#s4 .btn-next');
-if (btnFinishD) {
-  btnFinishD.setAttribute('onclick', 'finalizarLetraD()');
 }
 
 const mazeData = [
@@ -288,17 +290,66 @@ const words=[
   {emoji:'🍊',word:'__razno',answer:'d'},
   {emoji:'🎭',word:'__ctor',answer:'d'},
 ];
+let palabrasCompletadasD = 0;
+const transcripcionesPalabrasD = [];
 const cgrid=document.getElementById('complete-grid');
 words.forEach(item=>{
   const div=document.createElement('div');
   div.className='complete-item';
-  div.innerHTML=`<div class="emoji">${item.emoji}</div><div class="word">${item.word}</div><button class="mic-sm">🎤</button>`;
-  div.querySelector('.mic-sm').addEventListener('click',function(){
-    this.textContent='⏹️';
-    setTimeout(()=>{this.textContent='✓';div.classList.add('done');},1500);
-  });
+  div.innerHTML=`<div class="emoji">${item.emoji}</div><div class="word">${item.word}</div><button class="mic-sm">🎤</button><p class="mic-sm-estado" style="font-size:0.7rem;color:#888;margin:4px 0 0;min-height:1em;"></p>`;
+  const btn = div.querySelector('.mic-sm');
+  const estado = div.querySelector('.mic-sm-estado');
+  btn.addEventListener('click', () => grabarPalabraD(item, div, btn, estado));
   cgrid.appendChild(div);
 });
+
+function grabarPalabraD(item, div, btn, estado) {
+  if (div.classList.contains('done')) return;
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    estado.textContent = 'Tu navegador no soporta reconocimiento de voz.';
+    estado.style.color = '#d32f2f';
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'es-ES';
+  rec.continuous = false;
+  rec.interimResults = false;
+  btn.textContent = '⏹️';
+  estado.textContent = `Escuchando: "${item.word.replace('__', item.answer)}"...`;
+  estado.style.color = '#333';
+  rec.onresult = (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    if (coincideConLetra(texto, item.answer)) {
+      div.classList.add('done');
+      btn.textContent = '✓';
+      estado.textContent = `✅ Dijiste: "${texto}"`;
+      estado.style.color = '#27ae60';
+      transcripcionesPalabrasD.push(`${item.word}:${texto}`);
+      palabrasCompletadasD++;
+      document.getElementById('complete-grid-progreso').textContent = `${palabrasCompletadasD} / ${words.length} palabras completadas con tu voz`;
+      document.getElementById('complete-grid-progreso').style.color = '#555';
+      ultimaTranscripcionD = `${ultimaTranscripcionD} | ${transcripcionesPalabrasD.join(' | ')}`;
+      if (palabrasCompletadasD >= words.length) {
+        const btnFinalizar = document.getElementById('btn-finalizar-d');
+        btnFinalizar.disabled = false;
+        btnFinalizar.style.opacity = '1';
+        btnFinalizar.style.cursor = 'pointer';
+      }
+    } else {
+      btn.textContent = '🎤';
+      estado.textContent = `Se escuchó: "${texto}". Intenta de nuevo diciendo la letra "${item.answer.toUpperCase()}".`;
+      estado.style.color = '#d32f2f';
+    }
+  };
+  rec.onerror = () => {
+    btn.textContent = '🎤';
+    estado.textContent = 'No se entendió bien, intenta de nuevo.';
+    estado.style.color = '#d32f2f';
+  };
+  rec.onend = () => { if (!div.classList.contains('done')) btn.textContent = '🎤'; };
+  try { rec.start(); } catch (e) { btn.textContent = '🎤'; estado.textContent = 'El micrófono ya estaba en uso.'; }
+}
 
 const btnFlujo = document.getElementById('btn-flujo-letra-d');
 const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';

@@ -107,7 +107,10 @@ let recognition = null;
 let ultimaTranscripcion = '';
 let detalleVozPromise = Promise.resolve({});
 let transcripcionesCancion = [];
-const evidenciaVozCancion = crearCapturaActividad({ categoria: 'prosodia', juego: 'completa_cancion' });
+const evidenciaVozCancion = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'prosodia', juego: 'completa_cancion' }) : {
+    iniciar: async () => ({}),
+    detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
 
 function elegirCancion(idx) {
     cancionActual = CANCIONES[idx];

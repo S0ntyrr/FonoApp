@@ -129,7 +129,10 @@ let micStream = null;
 let recognition = null;
 let ultimaTranscripcion = '';
 let detalleVozPromise = Promise.resolve({});
-const evidenciaVozAnimal = crearCapturaActividad({ categoria: 'prosodia', juego: 'adivina_animal' });
+const evidenciaVozAnimal = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'prosodia', juego: 'adivina_animal' }) : {
+    iniciar: async () => ({}),
+    detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
 
 function normalizarTexto(valor) {
     return (valor || '')

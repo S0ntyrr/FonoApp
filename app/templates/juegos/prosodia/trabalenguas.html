@@ -91,7 +91,10 @@ let recognition = null;
 let ultimaTranscripcion = '';
 let detalleVozPromise = Promise.resolve({});
 let transcripcionesTrabalenguas = [];
-const evidenciaVozTrabalenguas = crearCapturaActividad({ categoria: 'prosodia', juego: 'trabalenguas' });
+const evidenciaVozTrabalenguas = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'prosodia', juego: 'trabalenguas' }) : {
+    iniciar: async () => ({}),
+    detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
 
 function comenzar() {
     document.getElementById('btn-comenzar').style.display = 'none';

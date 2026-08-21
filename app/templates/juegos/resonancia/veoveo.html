@@ -5,34 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <script src="/static/js/juego-audio-utils.js"></script>
   <script>
-  function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1){
+  function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1,detalles={}){
     const email=sessionStorage.getItem("paciente_email")||localStorage.getItem("paciente_email_actual")||"";
     const fd=new FormData();fd.append('paciente_email',email);fd.append('categoria',cat);
     fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
     fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);fd.append('ruta',window.location.pathname||'');
+    fd.append('audio_transcripcion', detalles.audioTranscripcion || '');
+    fd.append('audio_url', detalles.audioUrl || '');
+    fd.append('requiere_revision_audio', detalles.requiereRevisionAudio ? 'true' : 'false');
     fetch('/juegos/resultado',{method:'POST',body:fd}).catch(e=>console.warn(e));
     if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
-  }
-
-  function reproducirSonidoExito() {
-    try {
-      const ctx = window.AudioContext || window.webkitAudioContext ? new (window.AudioContext || window.webkitAudioContext)() : null;
-      if (!ctx) return;
-      [523, 659, 784, 1047].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const inicio = ctx.currentTime + i * 0.15;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = freq;
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.23, inicio);
-        gain.gain.exponentialRampToValueAtTime(0.001, inicio + 0.28);
-        osc.start(inicio);
-        osc.stop(inicio + 0.28);
-      });
-    } catch (e) {}
   }
   </script>
   <style>
@@ -77,10 +61,12 @@
     <h2 style="color:#e63946;">Muy bien</h2>
     <p>¿cómo se llama?</p>
     <button class="mic-btn" id="mic1" title="Grabar">🎤</button>
+    <p id="mic1-estado" style="text-align:center;font-size:0.8rem;color:#888;min-height:1.2em;"></p>
     <p>Vamos, repite conmigo.<br>Es una:</p>
     <div class="word-label">MUÑECA</div>
     <div style="font-size:4rem;">🪆</div>
     <button class="mic-btn" id="mic2" title="Grabar">🎤</button>
+    <p id="mic2-estado" style="text-align:center;font-size:0.8rem;color:#888;min-height:1.2em;"></p>
     <div class="feedback" id="feedback">¡Muy bien! 🎉</div>
     <a href="/juegos/articulacion/letra-b" id="btn-continuar-veoveo" style="display:none;background:#e63946;color:#fff;border-radius:12px;padding:12px 14px;text-decoration:none;text-align:center;margin:16px auto 0;max-width:260px;">Siguiente</a>
     <div style="margin-top:24px;">
@@ -115,29 +101,74 @@ items.forEach(em => {
   grid.appendChild(div);
 });
 
-// Mic buttons (simulate recording)
-let recording = false;
+// Mic buttons (grabación real + reconocimiento de voz)
+const evidenciaVozVeoVeo = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'resonancia', juego: 'veoveo' }) : {
+  iniciar: async () => ({}),
+  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+};
 let resultadoVeoVeoGuardado = false;
-function toggleMic(btn) {
-  if (!recording) {
-    recording = true;
-    btn.textContent = '⏹️';
-    btn.style.background = '#27ae60';
-    setTimeout(() => {
-      recording = false;
-      btn.textContent = '🎤';
-      btn.style.background = '#e63946';
+let ultimaTranscripcionVeoVeo = '';
+
+function normalizarTextoVeoVeo(texto) {
+  return (texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function toggleMic(btn, estadoEl) {
+  if (btn.dataset.done === 'true') return;
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    estadoEl.textContent = 'Tu navegador no soporta reconocimiento de voz.';
+    estadoEl.style.color = '#d32f2f';
+    return;
+  }
+  btn.textContent = '⏹️';
+  btn.style.background = '#27ae60';
+  estadoEl.textContent = 'Escuchando: "muñeca"...';
+  estadoEl.style.color = '#333';
+  try { if (typeof evidenciaVozVeoVeo.iniciar === 'function') await evidenciaVozVeoVeo.iniciar(); } catch (e) {}
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'es-ES';
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.onresult = async (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    ultimaTranscripcionVeoVeo = texto;
+    const normalizado = normalizarTextoVeoVeo(texto);
+    if (normalizado.includes('muneca') || normalizado.includes('munieca')) {
+      btn.dataset.done = 'true';
+      btn.textContent = '✓';
+      estadoEl.textContent = `✅ Dijiste: "${texto}"`;
+      estadoEl.style.color = '#27ae60';
+      let detalle = { audioUrl: '', audioTranscripcion: texto, requiereRevisionAudio: true };
+      try { detalle = await evidenciaVozVeoVeo.detener({ transcripcion: texto }); } catch (e) {}
       document.getElementById('feedback').style.display = 'block';
       if (!resultadoVeoVeoGuardado && btn.id === 'mic2') {
         resultadoVeoVeoGuardado = true;
-        guardarResultadoJuego('resonancia','veoveo',2,2,true,50,1);
+        guardarResultadoJuego('resonancia','veoveo',2,2,true,50,1, {
+          audioTranscripcion: detalle.audioTranscripcion || texto,
+          audioUrl: detalle.audioUrl || '',
+          requiereRevisionAudio: true,
+        });
         document.getElementById('btn-continuar-veoveo').style.display = 'block';
       }
-    }, 2000);
-  }
+    } else {
+      btn.textContent = '🎤';
+      btn.style.background = '#e63946';
+      estadoEl.textContent = `Se escuchó: "${texto}". Intenta de nuevo diciendo "muñeca".`;
+      estadoEl.style.color = '#d32f2f';
+    }
+  };
+  rec.onerror = () => {
+    btn.textContent = '🎤';
+    btn.style.background = '#e63946';
+    estadoEl.textContent = 'No se entendió bien, intenta de nuevo.';
+    estadoEl.style.color = '#d32f2f';
+  };
+  rec.onend = () => { if (btn.dataset.done !== 'true') { btn.textContent = '🎤'; btn.style.background = '#e63946'; } };
+  try { rec.start(); } catch (e) { btn.textContent = '🎤'; btn.style.background = '#e63946'; estadoEl.textContent = 'El micrófono ya estaba en uso.'; }
 }
-document.getElementById('mic1').addEventListener('click', () => toggleMic(document.getElementById('mic1')));
-document.getElementById('mic2').addEventListener('click', () => toggleMic(document.getElementById('mic2')));
+document.getElementById('mic1').addEventListener('click', () => toggleMic(document.getElementById('mic1'), document.getElementById('mic1-estado')));
+document.getElementById('mic2').addEventListener('click', () => toggleMic(document.getElementById('mic2'), document.getElementById('mic2-estado')));
 
 const btnContinuar = document.getElementById('btn-continuar-veoveo');
 const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';

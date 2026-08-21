@@ -26,6 +26,7 @@
                 <input type="text" id="respuesta-input" class="campo-texto" placeholder="Escribe la letra que falta..." maxlength="3" />
                 <button class="boton-rojo" onclick="verificar()">✓</button>
             </div>
+            <p id="prompt-mic-palabra" style="display:none;color:#e63946;font-weight:600;text-align:center;font-size:0.85rem;margin:0.4rem 0 0;">🎤 Ahora dilo en voz alta con el micrófono para confirmar</p>
         </div>
 
         <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
@@ -84,6 +85,7 @@ let indiceActual = 0;
 let aciertos = 0;
 let ultimaTranscripcionPalabra = '';
 let validacionPalabra = false;
+let letraEscritaCorrectaPalabra = false;
 let recognitionPalabra = null;
 let micActivaPalabra = false;
 
@@ -160,8 +162,10 @@ async function activarMicPalabra() {
     ultimaTranscripcionPalabra = texto;
     if (coincideConLetra(texto, letraCorrecta)) {
       validacionPalabra = true;
-      document.getElementById('resultado-correcto').style.display = 'block';
-      document.getElementById('resultado-correcto').querySelector('p').textContent = `✅ Correcto. Dijiste: "${texto || letraCorrecta}".`;
+      letraEscritaCorrectaPalabra = true;
+      const boxes = document.querySelectorAll('.letra-box');
+      boxes[p.falta].textContent = letraCorrecta;
+      boxes[p.falta].classList.remove('vacia');
       document.getElementById('respuesta-input').value = letraCorrecta;
       recognitionPalabra.stop();
       micActivaPalabra = false;
@@ -169,7 +173,7 @@ async function activarMicPalabra() {
         const detalle = await evidenciaVozPalabra.detener({ transcripcion: texto });
         ultimaTranscripcionPalabra = detalle.audioTranscripcion || texto;
       } catch (e) {}
-      setTimeout(() => { verificar(); }, 500);
+      confirmarPregunta(texto);
       return;
     }
     if (texto) {
@@ -207,7 +211,9 @@ function mostrarPregunta(idx) {
     document.getElementById('resultado-final').style.display = 'none';
     document.getElementById('pregunta-area').style.display = 'block';
     document.getElementById('respuesta-input').value = '';
+    document.getElementById('prompt-mic-palabra').style.display = 'none';
     validacionPalabra = false;
+    letraEscritaCorrectaPalabra = false;
     ultimaTranscripcionPalabra = '';
 
     const display = document.getElementById('palabra-display');
@@ -238,14 +244,28 @@ function verificar() {
         const boxes = document.querySelectorAll('.letra-box');
         boxes[p.falta].textContent = letraCorrecta;
         boxes[p.falta].classList.remove('vacia');
-        aciertos++;
-        document.getElementById('resultado-correcto').style.display = 'block';
-        validacionPalabra = true;
+        letraEscritaCorrectaPalabra = true;
+        if (validacionPalabra) {
+            confirmarPregunta(ultimaTranscripcionPalabra);
+        } else {
+            document.getElementById('prompt-mic-palabra').style.display = 'block';
+        }
     } else {
         document.getElementById('resultado-incorrecto').style.display = 'block';
         setTimeout(() => document.getElementById('resultado-incorrecto').style.display = 'none', 1000);
     }
     document.getElementById('respuesta-input').value = '';
+}
+
+function confirmarPregunta(texto) {
+    if (!letraEscritaCorrectaPalabra || !validacionPalabra) return;
+    const p = PALABRAS[indiceActual];
+    const letraCorrecta = p.palabra[p.falta];
+    document.getElementById('prompt-mic-palabra').style.display = 'none';
+    document.getElementById('resultado-incorrecto').style.display = 'none';
+    document.getElementById('resultado-correcto').style.display = 'block';
+    document.getElementById('resultado-correcto').querySelector('p').textContent = `✅ Correcto. Dijiste: "${texto || letraCorrecta}".`;
+    aciertos++;
 }
 
 async function siguientePregunta() {

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <script src="/static/js/juego-audio-utils.js"></script>
   <script>
   function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1){
     const email=sessionStorage.getItem("paciente_email")||localStorage.getItem("paciente_email_actual")||"";
@@ -66,7 +67,8 @@
     <h2 style="color:#e63946;">¡Bien!</h2>
     <p>Ahora practiquemos con las vocales. Activa el micrófono y responde</p>
     <div id="vowel-rows"></div>
-    <button class="btn-next" onclick="goStep(4)">Siguiente →</button>
+    <p id="vowel-progreso" style="text-align:center;color:#555;font-size:0.85rem;">0 / 5 combinaciones completadas con tu voz</p>
+    <button class="btn-next" id="btn-vowels-next" onclick="goStep(4)" disabled style="opacity:0.6;cursor:not-allowed;">Siguiente →</button>
   </div>
 
   <!-- STEP 4: Word search -->
@@ -247,16 +249,66 @@ if (btnFinishF) {
 }
 
 const vowels=[['a','🍎'],['e','🐘'],['i','🦎'],['o','🍊'],['u','🍇']];
+let vocalesCompletadasF = 0;
+const transcripcionesVocalesF = [];
 const vr=document.getElementById('vowel-rows');
 vowels.forEach(([v,em])=>{
   const row=document.createElement('div');
   row.className='vowel-row';
-  row.innerHTML=`<span style="color:#e63946;font-size:2rem;">F</span><span>+</span><span style="font-size:2rem;">${em}</span><span>=</span><button class="vowel-mic" onclick="recordVowel(this,'F${v}')">🎤</button>`;
+  row.innerHTML=`<span style="color:#e63946;font-size:2rem;">F</span><span>+</span><span style="font-size:2rem;">${em}</span><span>=</span><button class="vowel-mic">🎤</button><p class="vowel-mic-estado" style="font-size:0.7rem;color:#888;margin:2px 0 0;flex-basis:100%;"></p>`;
+  const btn = row.querySelector('.vowel-mic');
+  const estado = row.querySelector('.vowel-mic-estado');
+  btn.addEventListener('click', () => recordVowel(v, row, btn, estado));
   vr.appendChild(row);
 });
-function recordVowel(btn,syl){
+function recordVowel(vocal, row, btn, estado){
+  if (row.classList.contains('vowel-done')) return;
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    estado.textContent = 'Tu navegador no soporta reconocimiento de voz.';
+    estado.style.color = '#d32f2f';
+    return;
+  }
+  const silaba = 'f' + vocal;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'es-ES';
+  rec.continuous = false;
+  rec.interimResults = false;
   btn.textContent='⏹️';
-  setTimeout(()=>{btn.textContent='✓';btn.classList.add('done');},1500);
+  estado.textContent = `Escuchando: "${silaba}"...`;
+  estado.style.color = '#333';
+  rec.onresult = (event) => {
+    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
+    const normalizado = normalizarTexto(texto);
+    if (normalizado.includes(silaba) || (normalizado.includes('f') && normalizado.includes(vocal))) {
+      row.classList.add('vowel-done');
+      btn.textContent='✓'; btn.classList.add('done');
+      estado.textContent = `✅ Dijiste: "${texto}"`;
+      estado.style.color = '#27ae60';
+      transcripcionesVocalesF.push(`${silaba}:${texto}`);
+      vocalesCompletadasF++;
+      document.getElementById('vowel-progreso').textContent = `${vocalesCompletadasF} / ${vowels.length} combinaciones completadas con tu voz`;
+      document.getElementById('vowel-progreso').style.color = '#555';
+      ultimaTranscripcionF = `${ultimaTranscripcionF} | ${transcripcionesVocalesF.join(' | ')}`;
+      if (vocalesCompletadasF >= vowels.length) {
+        const btnNext = document.getElementById('btn-vowels-next');
+        btnNext.disabled = false;
+        btnNext.style.opacity = '1';
+        btnNext.style.cursor = 'pointer';
+      }
+    } else {
+      btn.textContent='🎤';
+      estado.textContent = `Se escuchó: "${texto}". Intenta de nuevo diciendo "${silaba}".`;
+      estado.style.color = '#d32f2f';
+    }
+  };
+  rec.onerror = () => {
+    btn.textContent='🎤';
+    estado.textContent = 'No se entendió bien, intenta de nuevo.';
+    estado.style.color = '#d32f2f';
+  };
+  rec.onend = () => { if (!row.classList.contains('vowel-done')) btn.textContent='🎤'; };
+  try { rec.start(); } catch (e) { btn.textContent='🎤'; estado.textContent = 'El micrófono ya estaba en uso.'; }
 }
 
 const wsLetters=[

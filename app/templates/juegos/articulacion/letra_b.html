@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <script src="/static/js/juego-audio-utils.js"></script>
   <script>
   function guardarResultadoJuego(cat, juego, paso, total, completado, puntos=0, nivel=1) {
     const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
