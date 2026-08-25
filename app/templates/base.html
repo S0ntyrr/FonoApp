@@ -497,7 +497,8 @@
 
         // Auto-agregar botón "Siguiente" en páginas de juegos
         const esPantallaJuego = rutaActual.startsWith('/juegos/') && rutaActual !== '/juegos/';
-        if (esPantallaJuego && !document.querySelector('.btn-continuar-global')) {
+        const esJuegoArticulacion = rutaActual.startsWith('/juegos/articulacion/');
+        if (esPantallaJuego && !esJuegoArticulacion && !document.querySelector('.btn-continuar-global')) {
             const btnContinuar = document.createElement('button');
             btnContinuar.className = 'btn-continuar-global boton-rojo';
             const esMovil = window.matchMedia('(max-width: 768px)').matches;

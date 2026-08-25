@@ -6,146 +6,848 @@
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
   <script src="/static/js/juego-audio-utils.js"></script>
-  <script>
-  function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1){
-    const email=sessionStorage.getItem("paciente_email")||localStorage.getItem("paciente_email_actual")||"";
-    const fd=new FormData();fd.append('paciente_email',email);fd.append('categoria',cat);
-    fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
-    fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
-    fetch('/juegos/resultado',{method:'POST',body:fd}).then(r => {
-      if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; throw new Error('sesion expirada'); }
-      if (!r.ok) throw new Error('error ' + r.status);
-      if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
-    }).catch(e=>console.warn(e));
-  }
-  </script>
+  <script src="/static/js/articulacion-voz.js"></script>
+
   <style>
-    body{margin:0;background:#fff;font-family:'Segoe UI',sans-serif;}
-    .screen{max-width:430px;margin:0 auto;min-height:100vh;padding:16px;box-sizing:border-box;}
-    h1.cat{color:#e63946;text-align:center;font-size:1.4rem;border-bottom:2px solid #e63946;padding-bottom:8px;margin-bottom:16px;}
-    .step{display:none;} .step.active{display:block;}
-    .btn-next{background:#e63946;color:#fff;border:none;border-radius:12px;padding:14px;font-size:1rem;cursor:pointer;display:block;margin:20px auto 0;width:100%;}
-    .mic-btn{background:#e63946;color:#fff;border:none;border-radius:50%;width:56px;height:56px;font-size:1.6rem;cursor:pointer;display:block;margin:12px auto;}
-    .feedback{color:#27ae60;font-weight:bold;text-align:center;display:none;margin:8px 0;}
-    .vowel-map{display:flex;flex-direction:column;gap:8px;margin:16px 0;}
-    .vowel-map-row{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid #eee;border-radius:8px;}
-    .vowel-map-row .r-letter{font-size:2rem;color:#e63946;font-weight:bold;width:30px;}
-    .vowel-map-row .arrow{font-size:1.2rem;color:#333;}
-    .vowel-map-row .vowel{font-size:1.5rem;font-weight:bold;color:#e63946;width:24px;}
-    .vowel-map-row .mouth{font-size:1.8rem;}
-    .moto-track{position:relative;height:120px;background:#f0f8ff;border-radius:12px;margin:16px 0;overflow:hidden;}
-    .moto{position:absolute;bottom:20px;left:10px;font-size:2.5rem;transition:left 1s ease;}
-    .finish-flags{position:absolute;right:10px;bottom:20px;font-size:2rem;}
-    .complete-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
-    .complete-item{border:1px solid #eee;border-radius:8px;padding:10px;text-align:center;}
+    :root{
+      --rojo:#e63946;
+      --rojo-oscuro:#c62828;
+      --verde:#2e7d32;
+      --verde-claro:#e8f5e9;
+      --azul:#1565c0;
+      --azul-claro:#e3f2fd;
+      --gris:#667085;
+      --borde:#e5e7eb;
+      --fondo:#f8fafc;
+    }
+
+    *{box-sizing:border-box;}
+    body{margin:0;background:#fff;font-family:'Segoe UI',Arial,sans-serif;color:#202124;}
+    .screen{max-width:460px;margin:0 auto;min-height:100vh;padding:16px 16px 28px;}
+    h1.cat{color:var(--rojo);text-align:center;font-size:1.45rem;border-bottom:2px solid var(--rojo);padding-bottom:9px;margin:0 0 16px;}
+    .step{display:none;}
+    .step.active{display:block;}
+
+    .card{
+      background:#fff;
+      border:1px solid var(--borde);
+      border-radius:16px;
+      padding:16px;
+      box-shadow:0 4px 16px rgba(15,23,42,.06);
+      margin-bottom:14px;
+    }
+
+    .card-soft{background:var(--fondo);}
+    .titulo-paso{font-size:1.15rem;font-weight:800;margin:0 0 8px;color:#202124;}
+    .texto-ayuda{font-size:.9rem;line-height:1.5;color:var(--gris);margin:6px 0;}
+    .alerta-revision{
+      background:#fff8e1;
+      border:1px solid #f4c95d;
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:.82rem;
+      line-height:1.45;
+      color:#6d4c00;
+      margin:10px 0;
+    }
+
+    .btn-next{
+      background:var(--rojo);
+      color:#fff;
+      border:none;
+      border-radius:12px;
+      padding:14px;
+      font-size:1rem;
+      font-weight:700;
+      cursor:pointer;
+      display:block;
+      width:100%;
+      margin-top:16px;
+    }
+    .btn-next:disabled{opacity:.5;cursor:not-allowed;}
+    .btn-secondary{
+      background:#fff;
+      color:var(--rojo);
+      border:1px solid var(--rojo);
+      border-radius:11px;
+      padding:10px 12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .instruction-list{padding-left:1.2rem;line-height:1.7;margin:10px 0 0;}
+    .instruction-list li{margin-bottom:8px;}
+
+    .vowel-map{display:flex;flex-direction:column;gap:9px;margin-top:14px;}
+    .vowel-map-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border:1px solid var(--borde);
+      border-radius:12px;
+      background:#fff;
+    }
+    .silaba{font-size:1.4rem;color:var(--rojo);font-weight:900;min-width:56px;}
+    .mouth{font-size:1.8rem;}
+    .btn-audio{
+      border:1px solid var(--rojo);
+      background:#fff;
+      color:var(--rojo);
+      border-radius:10px;
+      padding:8px 10px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .moto-track{
+      position:relative;
+      height:130px;
+      background:linear-gradient(#e3f2fd 0 58%, #d7ccc8 58% 100%);
+      border-radius:14px;
+      margin:16px 0;
+      overflow:hidden;
+      border:1px solid #cfd8dc;
+    }
+    .moto-road{position:absolute;left:0;right:0;bottom:0;height:54px;background:#616161;}
+    .moto-road::after{content:"";position:absolute;left:0;right:0;top:24px;border-top:3px dashed #fff;opacity:.85;}
+    .moto{position:absolute;bottom:28px;left:6%;font-size:2.6rem;transition:left .55s ease;z-index:2;}
+    .finish-flags{position:absolute;right:10px;bottom:30px;font-size:2rem;z-index:2;}
+    .reto-moto{text-align:center;background:#fff3f4;border:1px solid #f6c4c8;border-radius:12px;padding:12px;margin:10px 0;}
+    .reto-palabra{font-size:1.8rem;color:var(--rojo);font-weight:900;letter-spacing:.04em;}
+    .reto-contador{font-size:.8rem;color:var(--gris);font-weight:700;}
+
+    .mic-btn{
+      background:var(--rojo);
+      color:#fff;
+      border:none;
+      border-radius:50%;
+      width:66px;
+      height:66px;
+      font-size:1.8rem;
+      cursor:pointer;
+      display:block;
+      margin:12px auto 8px;
+      box-shadow:0 4px 12px rgba(230,57,70,.25);
+    }
+    .mic-btn.escuchando{background:var(--verde);animation:pulse 1s infinite;}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(46,125,50,.35)}50%{box-shadow:0 0 0 12px rgba(46,125,50,0)}}
+
+    .feedback{
+      display:none;
+      border-radius:10px;
+      padding:10px 12px;
+      margin:10px 0;
+      font-size:.86rem;
+      line-height:1.4;
+      text-align:center;
+      font-weight:700;
+    }
+    .feedback.ok{display:block;background:var(--verde-claro);color:var(--verde);border:1px solid #a5d6a7;}
+    .feedback.error{display:block;background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;}
+    .feedback.info{display:block;background:var(--azul-claro);color:var(--azul);border:1px solid #90caf9;}
+
+    .complete-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;}
+    .complete-item{
+      border:1px solid var(--borde);
+      border-radius:14px;
+      padding:12px 8px;
+      text-align:center;
+      background:#fff;
+      min-height:170px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+    }
     .complete-item .emoji{font-size:2rem;}
-    .complete-item .word{font-size:0.85rem;color:#555;margin-top:4px;}
-    .complete-item .mic-sm{background:#e63946;color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:0.9rem;cursor:pointer;margin-top:6px;}
-    .complete-item.done{background:#c8f7c5;border-color:#27ae60;}
+    .complete-item .word{font-size:1rem;color:#333;margin:4px 0;font-weight:800;}
+    .complete-item .objetivo{font-size:.72rem;color:var(--gris);margin:0 0 8px;}
+    .complete-item .acciones{display:flex;gap:7px;justify-content:center;margin-top:auto;}
+    .complete-item .mic-sm,
+    .complete-item .audio-sm{
+      border:none;
+      border-radius:50%;
+      width:38px;
+      height:38px;
+      font-size:1rem;
+      cursor:pointer;
+    }
+    .complete-item .mic-sm{background:var(--rojo);color:#fff;}
+    .complete-item .audio-sm{background:#fff;color:var(--rojo);border:1px solid var(--rojo);}
+    .complete-item.done{background:var(--verde-claro);border-color:#81c784;}
+    .complete-item.done .mic-sm{background:var(--verde);}
+    .mic-sm-estado{font-size:.72rem;color:#777;margin:7px 0 0;min-height:2.2em;line-height:1.35;}
+
+    .progreso-wrap{margin-top:10px;}
+    .progreso-label{font-size:.82rem;color:var(--gris);text-align:center;margin-bottom:6px;}
+    .progreso-barra{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;}
+    .progreso-fill{height:100%;width:0;background:var(--verde);transition:width .25s ease;}
+
+    .final-box{text-align:center;padding:28px 8px;}
+    .final-icon{font-size:4rem;}
+    .link-btn{display:block;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:10px;font-weight:700;}
+    .link-primary{background:var(--rojo);color:#fff;}
+    .link-secondary{background:#fff;color:var(--rojo);border:1px solid var(--rojo);}
+
+    @media(max-width:370px){
+      .complete-grid{grid-template-columns:1fr;}
+    }
   </style>
 </head>
 <body>
 <div class="screen">
-  <h1 class="cat">Articulación</h1>
+  <h1 class="cat">Articulación · Letra R</h1>
 
-  <!-- STEP 1: Pronunciation steps -->
   <div class="step active" id="s1">
-    <p>Es hora de aprender a pronunciar la letra <strong>R</strong>, sigue los pasos.</p>
-    <ol style="line-height:2;">
-      <li><strong>Sube tu lengua al paladar.</strong></li>
-      <li><strong>Suelta el aire por tu boca dejándola salir por los lados.</strong></li>
-      <li><strong>Con tu lengua en el paladar hazla vibrar.</strong></li>
-    </ol>
-    <div style="text-align:center;font-size:3rem;">👅</div>
-    <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
+    <div class="card">
+      <p class="titulo-paso">1. Prepara la posición de la lengua</p>
+      <p class="texto-ayuda">Hazlo despacio y, si puedes, mírate en un espejo.</p>
+      <ol class="instruction-list">
+        <li><strong>Coloca la punta de la lengua</strong> cerca de la zona detrás de los dientes superiores.</li>
+        <li><strong>Deja pasar el aire</strong> sin apretar demasiado la lengua.</li>
+        <li><strong>Intenta una vibración suave</strong> y evita forzar la garganta.</li>
+      </ol>
+      <div style="text-align:center;font-size:3.5rem;margin-top:12px;">👅</div>
+      <div class="alerta-revision">La app puede reconocer palabras, pero la calidad fonética de la R debe revisarla un profesional. Todos tus intentos de voz se guardarán juntos en una única evidencia de audio para el doctor.</div>
+      <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
+    </div>
   </div>
 
-  <!-- STEP 2: Vowel positions -->
   <div class="step" id="s2">
-    <p>Mira la imagen e imita, pide la ayuda de tu cuidador y mírate en un espejo</p>
-    <p style="color:#e63946;font-weight:bold;">Ten en cuenta los pasos anteriores.</p>
-    <div class="vowel-map">
-      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">a</span><span class="mouth">😮</span></div>
-      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">e</span><span class="mouth">😬</span></div>
-      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">i</span><span class="mouth">😁</span></div>
-      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">o</span><span class="mouth">😯</span></div>
-      <div class="vowel-map-row"><span class="r-letter">R</span><span class="arrow">→</span><span class="vowel">u</span><span class="mouth">😙</span></div>
+    <div class="card">
+      <p class="titulo-paso">2. Escucha e imita las sílabas</p>
+      <p class="texto-ayuda">Pulsa el altavoz y repite cada sílaba con calma.</p>
+      <div class="vowel-map">
+        <div class="vowel-map-row"><span class="silaba">RA</span><span class="mouth">😮</span><button class="btn-audio" onclick="hablarEjemplo('ra')">🔊 Escuchar</button></div>
+        <div class="vowel-map-row"><span class="silaba">RE</span><span class="mouth">😬</span><button class="btn-audio" onclick="hablarEjemplo('re')">🔊 Escuchar</button></div>
+        <div class="vowel-map-row"><span class="silaba">RI</span><span class="mouth">😁</span><button class="btn-audio" onclick="hablarEjemplo('ri')">🔊 Escuchar</button></div>
+        <div class="vowel-map-row"><span class="silaba">RO</span><span class="mouth">😯</span><button class="btn-audio" onclick="hablarEjemplo('ro')">🔊 Escuchar</button></div>
+        <div class="vowel-map-row"><span class="silaba">RU</span><span class="mouth">😙</span><button class="btn-audio" onclick="hablarEjemplo('ru')">🔊 Escuchar</button></div>
+      </div>
+      <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
     </div>
-    <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
   </div>
 
-  <!-- STEP 3: Motorcycle game -->
   <div class="step" id="s3">
-    <p>La moto se mueve cuando pronuncias.</p>
-    <p style="color:#e63946;font-weight:bold;text-align:center;font-size:1.3rem;">Run Run Run</p>
-    <p style="text-align:center;">Haz que la moto se mueva.</p>
-    <div style="text-align:center;font-size:1.5rem;">🏁🏁</div>
-    <div class="moto-track">
-      <div class="moto" id="moto">🏍️</div>
-      <div class="finish-flags">🏁</div>
+    <div class="card">
+      <p class="titulo-paso">3. Haz avanzar la moto</p>
+      <p class="texto-ayuda">Di la palabra completa que aparece en pantalla. La moto solo avanza cuando el reconocimiento devuelve esa palabra, no por detectar una R suelta.</p>
+
+      <div class="reto-moto">
+        <div class="reto-contador" id="moto-contador">Palabra 1 de 3</div>
+        <div class="reto-palabra" id="moto-objetivo">RANA</div>
+        <button class="btn-secondary" type="button" id="moto-audio" onclick="escucharObjetivoMoto()">🔊 Escuchar ejemplo</button>
+      </div>
+
+      <div class="moto-track">
+        <div class="moto-road"></div>
+        <div class="moto" id="moto">🏍️</div>
+        <div class="finish-flags">🏁</div>
+      </div>
+
+      <button class="mic-btn" id="mic-moto" type="button" onclick="grabarObjetivoMoto()">🎤</button>
+      <div class="feedback info" id="fb-moto">Pulsa el micrófono y di la palabra completa.</div>
+      <button class="btn-next" id="btn-ir-palabras" onclick="goStep(4)" disabled>Continuar →</button>
     </div>
-    <button class="mic-btn" id="mic-moto">🎤</button>
-    <div class="feedback" id="fb-moto">¡Muy bien! 🏆</div>
-    <button class="btn-next" onclick="goStep(4)">Siguiente →</button>
   </div>
 
-  <!-- STEP 4: Complete the word -->
   <div class="step" id="s4">
-    <p><strong>Completa la palabra.</strong><br><span style="color:#555;">Graba un audio con la sílaba correspondiente</span></p>
-    <div class="complete-grid" id="complete-grid"></div>
-    <p id="complete-grid-progreso" style="text-align:center;color:#555;font-size:0.85rem;">0 / 9 palabras completadas con tu voz</p>
-    <button class="btn-next" id="btn-finalizar-r" onclick="finalizarLetraR();" disabled style="opacity:0.6;cursor:not-allowed;">Finalizar ✓</button>
+    <div class="card">
+      <p class="titulo-paso">4. Completa y pronuncia cada palabra</p>
+      <p class="texto-ayuda">Mira la palabra incompleta, escucha el ejemplo si lo necesitas y después di la <strong>palabra completa</strong>.</p>
+      <div class="alerta-revision">Una coincidencia de texto significa que el navegador reconoció la palabra esperada. No significa que la R haya sido pronunciada perfectamente; todos los intentos se guardan juntos en un único audio para revisión del doctor.</div>
+
+      <div class="complete-grid" id="complete-grid"></div>
+
+      <div class="progreso-wrap">
+        <div class="progreso-label" id="complete-grid-progreso">0 / 9 palabras reconocidas</div>
+        <div class="progreso-barra"><div class="progreso-fill" id="progreso-fill-r"></div></div>
+      </div>
+
+      <button class="btn-next" id="btn-finalizar-r" onclick="finalizarLetraR()" disabled>Finalizar ✓</button>
+    </div>
   </div>
 
-  <!-- STEP 5 -->
   <div class="step" id="s5">
-    <div style="text-align:center;padding:40px 0;">
-      <div style="font-size:4rem;">🏆</div>
-      <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
-      <p>Has completado los ejercicios de la letra <strong>R</strong></p>
-      <a id="btn-flujo-letra-r" href="/juegos/articulacion/completa-palabra" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:12px;">Siguiente</a>
-      <a href="/juegos/articulacion" style="display:block;background:#fff;color:#e63946;border:1px solid #e63946;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:8px;">Volver a Articulación</a>
+    <div class="card final-box">
+      <div class="final-icon">🏆</div>
+      <h2 style="color:var(--rojo);margin-bottom:8px;">¡Actividad completada!</h2>
+      <p class="texto-ayuda">Las palabras fueron reconocidas y quedó guardado un único audio con los intentos realizados durante toda la actividad para revisión profesional.</p>
+      <a id="btn-flujo-letra-r" href="/juegos/articulacion/completa-palabra" class="link-btn link-primary">Siguiente</a>
+      <a href="/juegos/articulacion" class="link-btn link-secondary">Volver a Articulación</a>
     </div>
   </div>
 </div>
 
 <script>
-let reconocimientoActivaR = false;
+/* =========================================================
+   ESTADO GENERAL
+   ========================================================= */
+let reconocimientoEnCursoR = false;
 let recognitionR = null;
 let ultimaTranscripcionR = '';
-let validacionCorrectaR = false;
+let resultadoGuardadoR = false;
 
-const evidenciaVozR = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'letra_r' }) : {
-  iniciar: async () => ({}),
-  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
+/* =========================================================
+   GRABACIÓN ÚNICA DE TODA LA ACTIVIDAD
+
+   Se usa un solo MediaRecorder para que el doctor reciba una única
+   evidencia con todos los intentos de voz de la actividad (moto +
+   palabras finales). La grabación se pausa entre intentos y también
+   mientras suenan los ejemplos, para no guardar silencios largos ni
+   la voz sintética del navegador.
+   ========================================================= */
+let mediaRecorderR = null;
+let streamGrabacionR = null;
+let chunksGrabacionR = [];
+let grabacionRFinalizada = false;
+let detalleAudioR = {
+  audioUrl: '',
+  audioTranscripcion: '',
+  requiereRevisionAudio: false
 };
 
+async function iniciarOReanudarGrabacionR() {
+  if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return false;
+  }
+
+  if (mediaRecorderR) {
+    if (mediaRecorderR.state === 'paused') {
+      try { mediaRecorderR.resume(); } catch (_) {}
+    }
+    return mediaRecorderR.state === 'recording';
+  }
+
+  streamGrabacionR = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1
+    }
+  });
+
+  chunksGrabacionR = [];
+  mediaRecorderR = new MediaRecorder(streamGrabacionR);
+
+  mediaRecorderR.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      chunksGrabacionR.push(event.data);
+    }
+  };
+
+  mediaRecorderR.start();
+  return true;
+}
+
+function pausarGrabacionR() {
+  if (mediaRecorderR && mediaRecorderR.state === 'recording') {
+    try { mediaRecorderR.pause(); } catch (_) {}
+  }
+}
+
+async function subirAudioCompletoR(blob) {
+  if (!blob || !blob.size) return '';
+
+  const formData = new FormData();
+  const extension = (blob.type || '').includes('ogg') ? 'ogg' : 'webm';
+
+  formData.append('audio', blob, `letra_r_completo.${extension}`);
+  formData.append('categoria', 'articulacion');
+  formData.append('juego', 'letra_r');
+
+  const response = await fetch('/juegos/evidencia-audio', {
+    method: 'POST',
+    body: formData
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    window.location.href = '/auth/login';
+    throw new Error('sesion expirada');
+  }
+
+  if (!response.ok) {
+    throw new Error(`No se pudo subir el audio completo (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.audio_url || '';
+}
+
+async function detenerYSubirGrabacionR(transcripcionCompleta = '') {
+  if (grabacionRFinalizada) {
+    return {
+      ...detalleAudioR,
+      audioTranscripcion: transcripcionCompleta || detalleAudioR.audioTranscripcion || ''
+    };
+  }
+
+  grabacionRFinalizada = true;
+
+  if (!mediaRecorderR || mediaRecorderR.state === 'inactive') {
+    detalleAudioR = {
+      audioUrl: '',
+      audioTranscripcion: transcripcionCompleta || '',
+      requiereRevisionAudio: !!transcripcionCompleta
+    };
+    limpiarGrabacionR();
+    return detalleAudioR;
+  }
+
+  return await new Promise((resolve) => {
+    const recorder = mediaRecorderR;
+
+    recorder.onstop = async () => {
+      let audioUrl = '';
+
+      try {
+        const blob = new Blob(chunksGrabacionR, {
+          type: recorder.mimeType || 'audio/webm'
+        });
+        audioUrl = await subirAudioCompletoR(blob);
+      } catch (error) {
+        console.warn('No se pudo subir el audio completo de Letra R:', error);
+      }
+
+      detalleAudioR = {
+        audioUrl,
+        audioTranscripcion: transcripcionCompleta || '',
+        requiereRevisionAudio: !!(audioUrl || transcripcionCompleta)
+      };
+
+      limpiarGrabacionR();
+      resolve(detalleAudioR);
+    };
+
+    try {
+      recorder.stop();
+    } catch (_) {
+      limpiarGrabacionR();
+      resolve({
+        audioUrl: '',
+        audioTranscripcion: transcripcionCompleta || '',
+        requiereRevisionAudio: !!transcripcionCompleta
+      });
+    }
+  });
+}
+
+function limpiarGrabacionR() {
+  if (streamGrabacionR) {
+    streamGrabacionR.getTracks().forEach((track) => track.stop());
+    streamGrabacionR = null;
+  }
+
+  mediaRecorderR = null;
+  chunksGrabacionR = [];
+}
+
+function cancelarGrabacionR() {
+  if (mediaRecorderR && mediaRecorderR.state !== 'inactive') {
+    try {
+      mediaRecorderR.onstop = null;
+      mediaRecorderR.stop();
+    } catch (_) {}
+  }
+
+  limpiarGrabacionR();
+}
+
+/* =========================================================
+   DATOS DEL EJERCICIO
+   ========================================================= */
+const RETOS_MOTO = [
+  { palabra: 'rana' },
+  { palabra: 'remo' },
+  { palabra: 'roca' }
+];
+
+const PALABRAS_R = [
+  { emoji:'❤️', incompleta:'co__azón', palabra:'corazón' },
+  { emoji:'🏖️', incompleta:'a__ena', palabra:'arena' },
+  { emoji:'🤕', incompleta:'he__ida', palabra:'herida' },
+  { emoji:'🐂', incompleta:'to__o', palabra:'toro' },
+  { emoji:'🧒', incompleta:'cape__ucita', palabra:'caperucita' },
+  { emoji:'🐸', incompleta:'__ana', palabra:'rana' },
+  { emoji:'🚣', incompleta:'__emo', palabra:'remo' },
+  { emoji:'🏞️', incompleta:'__ío', palabra:'río' },
+  { emoji:'🪨', incompleta:'__oca', palabra:'roca' }
+];
+
+let retoMotoActual = 0;
+let palabrasCompletadasR = 0;
+const palabrasHechasR = new Set();
+const transcripcionesR = [];
+
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
 function normalizarTexto(texto) {
-  return (texto || '').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
+  return (texto || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zñ0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function coincideConLetra(texto, letraEsperada) {
-  const letra = (letraEsperada || '').toLowerCase();
-  const variantes = {
-    b: ['b', 'be', 'bee', 'la letra b', 'letra b'],
-    d: ['d', 'de', 'dee', 'la letra d', 'letra d'],
-    f: ['f', 'efe', 'efe', 'la letra f', 'letra f'],
-    r: ['r', 'erre', 'ere', 'la letra r', 'letra r'],
+function contienePalabraExacta(transcripcion, palabraEsperada) {
+  const texto = normalizarTexto(transcripcion);
+  const objetivo = normalizarTexto(palabraEsperada);
+  if (!texto || !objetivo) return false;
+  if (texto === objetivo) return true;
+  return texto.split(' ').includes(objetivo);
+}
+
+function obtenerAlternativasFinales(event) {
+  const alternativas = [];
+  if (!event || !event.results) return alternativas;
+
+  for (let i = event.resultIndex || 0; i < event.results.length; i++) {
+    const resultado = event.results[i];
+    if (!resultado.isFinal) continue;
+    for (let j = 0; j < resultado.length; j++) {
+      alternativas.push({
+        transcript: (resultado[j].transcript || '').trim(),
+        confidence: Number.isFinite(resultado[j].confidence) ? resultado[j].confidence : null
+      });
+    }
+  }
+
+  return alternativas;
+}
+
+function buscarCoincidencia(alternativas, palabraEsperada) {
+  return alternativas.find((alt) => contienePalabraExacta(alt.transcript, palabraEsperada)) || null;
+}
+
+function mostrarFeedback(elemento, tipo, texto) {
+  elemento.className = `feedback ${tipo}`;
+  elemento.textContent = texto;
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach((s) => s.classList.remove('active'));
+  const destino = document.getElementById('s' + n);
+  if (destino) destino.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* =========================================================
+   AUDIO DE EJEMPLO
+   ========================================================= */
+function hablarEjemplo(texto) {
+  if (reconocimientoEnCursoR) return;
+  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
+
+  // No queremos que la voz de ejemplo termine dentro de la evidencia
+  // que escuchará el doctor.
+  pausarGrabacionR();
+
+  if (window.FonoArticulacion && typeof FonoArticulacion.hablarEspanol === 'function') {
+    FonoArticulacion.hablarEspanol(texto, { rate: 0.78, lang: 'es-ES' });
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(texto);
+  utter.lang = 'es-ES';
+  utter.rate = 0.78;
+  utter.pitch = 1;
+  window.speechSynthesis.speak(utter);
+}
+
+/* =========================================================
+   RECONOCIMIENTO DE UNA PALABRA COMPLETA
+   ========================================================= */
+async function reconocerPalabraCompleta({ palabraEsperada, alEscuchar, alCorrecto, alIncorrecto, alFin }) {
+  if (reconocimientoEnCursoR) return;
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    alIncorrecto('Tu navegador no soporta reconocimiento de voz.');
+    return;
+  }
+
+  try {
+    await iniciarOReanudarGrabacionR();
+  } catch (e) {
+    console.warn('No se pudo iniciar la evidencia de audio de Letra R:', e);
+  }
+
+  reconocimientoEnCursoR = true;
+  const rec = new SR();
+  recognitionR = rec;
+  rec.lang = 'es-ES';
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.maxAlternatives = 5;
+
+  alEscuchar();
+
+  rec.onresult = (event) => {
+    const alternativas = obtenerAlternativasFinales(event);
+    const coincidencia = buscarCoincidencia(alternativas, palabraEsperada);
+    const principal = alternativas.length ? alternativas[0].transcript : '';
+
+    if (principal) {
+      transcripcionesR.push(`${palabraEsperada}:${principal}`);
+    }
+
+    if (coincidencia) {
+      ultimaTranscripcionR = coincidencia.transcript;
+      alCorrecto(coincidencia);
+    } else {
+      alIncorrecto(
+        principal
+          ? `Se escuchó: “${principal}”. Intenta otra vez diciendo la palabra completa “${palabraEsperada.toUpperCase()}”.`
+          : `No se reconoció la palabra. Intenta otra vez diciendo “${palabraEsperada.toUpperCase()}”.`
+      );
+    }
   };
-  const normalizado = normalizarTexto(texto);
-  const opciones = variantes[letra] || [letra];
-  return opciones.some((valor) => {
-    const clave = normalizarTexto(valor);
-    if (!clave) return false;
-    return normalizado === clave || normalizado.includes(clave) || normalizado.includes(`letra ${clave}`) || normalizado.includes(`la letra ${clave}`);
+
+  rec.onerror = (event) => {
+    const codigo = event && event.error ? event.error : 'error';
+    if (codigo === 'no-speech') {
+      alIncorrecto('No se detectó una palabra. Inténtalo de nuevo y habla cerca del micrófono.');
+    } else {
+      alIncorrecto('No se pudo reconocer la voz. Inténtalo de nuevo.');
+    }
+  };
+
+  rec.onend = () => {
+    // Conservamos este intento dentro del mismo archivo y pausamos
+    // hasta que el paciente vuelva a pulsar otro micrófono.
+    pausarGrabacionR();
+
+    reconocimientoEnCursoR = false;
+    recognitionR = null;
+    if (typeof alFin === 'function') alFin();
+  };
+
+  try {
+    rec.start();
+  } catch (e) {
+    pausarGrabacionR();
+    reconocimientoEnCursoR = false;
+    recognitionR = null;
+    alIncorrecto('El micrófono ya estaba ocupado. Espera un momento e inténtalo de nuevo.');
+    if (typeof alFin === 'function') alFin();
+  }
+}
+
+/* =========================================================
+   RETO DE LA MOTO
+   ========================================================= */
+function actualizarRetoMoto() {
+  const reto = RETOS_MOTO[retoMotoActual];
+  const objetivo = document.getElementById('moto-objetivo');
+  const contador = document.getElementById('moto-contador');
+  const btn = document.getElementById('btn-ir-palabras');
+
+  if (!reto) {
+    objetivo.textContent = '¡META!';
+    contador.textContent = '3 de 3 palabras reconocidas';
+    btn.disabled = false;
+    mostrarFeedback(document.getElementById('fb-moto'), 'ok', '✅ Llegaste a la meta. Ahora continúa con las palabras.');
+    return;
+  }
+
+  objetivo.textContent = reto.palabra.toUpperCase();
+  contador.textContent = `Palabra ${retoMotoActual + 1} de ${RETOS_MOTO.length}`;
+}
+
+function escucharObjetivoMoto() {
+  const reto = RETOS_MOTO[retoMotoActual];
+  if (reto) hablarEjemplo(reto.palabra);
+}
+
+function grabarObjetivoMoto() {
+  const reto = RETOS_MOTO[retoMotoActual];
+  if (!reto) return;
+
+  const btn = document.getElementById('mic-moto');
+  const fb = document.getElementById('fb-moto');
+
+  reconocerPalabraCompleta({
+    palabraEsperada: reto.palabra,
+    alEscuchar: () => {
+      btn.classList.add('escuchando');
+      btn.textContent = '⏹️';
+      mostrarFeedback(fb, 'info', `Escuchando… di “${reto.palabra.toUpperCase()}”.`);
+    },
+    alCorrecto: (coincidencia) => {
+      const posiciones = [31, 57, 82];
+      document.getElementById('moto').style.left = `${posiciones[retoMotoActual]}%`;
+      retoMotoActual++;
+      mostrarFeedback(fb, 'ok', `✅ Palabra reconocida: “${coincidencia.transcript}”. El audio quedará para revisión fonética.`);
+      setTimeout(actualizarRetoMoto, 500);
+    },
+    alIncorrecto: (mensaje) => {
+      mostrarFeedback(fb, 'error', mensaje);
+    },
+    alFin: () => {
+      btn.classList.remove('escuchando');
+      btn.textContent = '🎤';
+    }
   });
 }
 
-function reproducirSonidoExito() {
+/* =========================================================
+   TARJETAS DE PALABRAS
+   ========================================================= */
+const cgrid = document.getElementById('complete-grid');
+
+PALABRAS_R.forEach((item, indice) => {
+  const div = document.createElement('div');
+  div.className = 'complete-item';
+  div.dataset.indice = String(indice);
+  div.innerHTML = `
+    <div class="emoji">${item.emoji}</div>
+    <div class="word">${item.incompleta}</div>
+    <div class="objetivo">Di la palabra completa</div>
+    <div class="acciones">
+      <button type="button" class="audio-sm" aria-label="Escuchar ${item.palabra}">🔊</button>
+      <button type="button" class="mic-sm" aria-label="Pronunciar ${item.palabra}">🎤</button>
+    </div>
+    <p class="mic-sm-estado">Escucha el ejemplo si lo necesitas.</p>
+  `;
+
+  const btnAudio = div.querySelector('.audio-sm');
+  const btnMic = div.querySelector('.mic-sm');
+  const estado = div.querySelector('.mic-sm-estado');
+
+  btnAudio.addEventListener('click', () => hablarEjemplo(item.palabra));
+  btnMic.addEventListener('click', () => grabarPalabraR(item, indice, div, btnMic, estado));
+  cgrid.appendChild(div);
+});
+
+function grabarPalabraR(item, indice, div, btn, estado) {
+  if (palabrasHechasR.has(indice) || reconocimientoEnCursoR) return;
+
+  reconocerPalabraCompleta({
+    palabraEsperada: item.palabra,
+    alEscuchar: () => {
+      btn.textContent = '⏹️';
+      btn.style.background = '#2e7d32';
+      estado.textContent = `Escuchando… di “${item.palabra.toUpperCase()}”.`;
+      estado.style.color = '#333';
+    },
+    alCorrecto: (coincidencia) => {
+      palabrasHechasR.add(indice);
+      palabrasCompletadasR = palabrasHechasR.size;
+      div.classList.add('done');
+      btn.textContent = '✓';
+      btn.style.background = '#2e7d32';
+      estado.textContent = `✅ Reconocida: “${coincidencia.transcript}”`;
+      estado.style.color = '#2e7d32';
+      actualizarProgresoPalabrasR();
+    },
+    alIncorrecto: (mensaje) => {
+      btn.textContent = '🎤';
+      btn.style.background = '#e63946';
+      estado.textContent = mensaje;
+      estado.style.color = '#b71c1c';
+    },
+    alFin: () => {
+      if (!palabrasHechasR.has(indice)) {
+        btn.textContent = '🎤';
+        btn.style.background = '#e63946';
+      }
+    }
+  });
+}
+
+function actualizarProgresoPalabrasR() {
+  const total = PALABRAS_R.length;
+  const porcentaje = Math.round((palabrasCompletadasR / total) * 100);
+  document.getElementById('complete-grid-progreso').textContent = `${palabrasCompletadasR} / ${total} palabras reconocidas`;
+  document.getElementById('progreso-fill-r').style.width = `${porcentaje}%`;
+
+  const btn = document.getElementById('btn-finalizar-r');
+  const terminado = palabrasCompletadasR >= total && retoMotoActual >= RETOS_MOTO.length;
+  btn.disabled = !terminado;
+}
+
+/* =========================================================
+   GUARDADO FINAL
+   ========================================================= */
+async function finalizarLetraR() {
+  if (resultadoGuardadoR) return;
+
+  if (retoMotoActual < RETOS_MOTO.length) {
+    goStep(3);
+    mostrarFeedback(document.getElementById('fb-moto'), 'error', 'Completa primero las tres palabras de la moto.');
+    return;
+  }
+
+  if (palabrasCompletadasR < PALABRAS_R.length) {
+    document.getElementById('complete-grid-progreso').textContent = `Faltan ${PALABRAS_R.length - palabrasCompletadasR} palabra(s) por reconocer.`;
+    return;
+  }
+
+  const btn = document.getElementById('btn-finalizar-r');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  const transcripcionCompleta = transcripcionesR.join(' | ');
+  let detalle = {
+    audioUrl: '',
+    audioTranscripcion: transcripcionCompleta,
+    requiereRevisionAudio: true
+  };
+
+  try {
+    detalle = await detenerYSubirGrabacionR(transcripcionCompleta);
+  } catch (e) {
+    console.warn('No se pudo cerrar la evidencia de audio completa:', e);
+  }
+
+  const fd = new FormData();
+  fd.append('paciente_email', sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '');
+  fd.append('categoria', 'articulacion');
+  fd.append('juego', 'letra_r');
+  fd.append('paso_completado', '5');
+  fd.append('total_pasos', '5');
+  fd.append('completado', 'true');
+  fd.append('puntos', '60');
+  fd.append('nivel', '1');
+  fd.append('ruta', window.location.pathname || '');
+  fd.append('audio_transcripcion', detalle.audioTranscripcion || transcripcionCompleta);
+  fd.append('audio_url', detalle.audioUrl || '');
+  fd.append('requiere_revision_audio', 'true');
+  fd.append('notas', 'Palabras completas reconocidas por Web Speech API. La pronunciación fonética de la R requiere revisión profesional del audio.');
+
+  try {
+    const response = await fetch('/juegos/resultado', { method:'POST', body:fd });
+
+    if (response.status === 401 || response.status === 403) {
+      window.location.href = '/auth/login';
+      return;
+    }
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    resultadoGuardadoR = true;
+    if (window.FonoArticulacion && typeof FonoArticulacion.marcarActividadCompletada === 'function') {
+      FonoArticulacion.marcarActividadCompletada();
+    }
+    btn.textContent = '✓ Actividad guardada';
+    reproducirSonidoExitoR();
+    goStep(5);
+  } catch (e) {
+    console.error('No se pudo guardar letra R:', e);
+    btn.disabled = false;
+    btn.textContent = 'Reintentar guardado';
+    document.getElementById('complete-grid-progreso').textContent = 'No se pudo guardar el resultado. Intenta nuevamente.';
+  }
+}
+
+function reproducirSonidoExitoR() {
   try {
     const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
     if (!ctx) return;
@@ -153,218 +855,41 @@ function reproducirSonidoExito() {
       crearTonoFono(ctx, {
         frequency: freq,
         startTime: ctx.currentTime + i * 0.15,
-        duration: 0.28,
-        volumeBase: 0.23,
+        duration: 0.26,
+        volumeBase: 0.22,
         type: 'sine'
       });
     });
   } catch (e) {}
 }
 
-async function guardarResultadoConAudioR(cat, juego, paso, total, completado, puntos = 0, nivel = 1) {
-  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
-  const detalle = await evidenciaVozR.detener({ transcripcion: ultimaTranscripcionR || '' });
-  const fd = new FormData();
-  fd.append('paciente_email', email); fd.append('categoria', cat); fd.append('juego', juego);
-  fd.append('paso_completado', paso); fd.append('total_pasos', total);
-  fd.append('completado', completado); fd.append('puntos', puntos); fd.append('nivel', nivel);
-  fd.append('ruta', window.location.pathname || '');
-  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionR || '');
-  fd.append('audio_url', detalle.audioUrl || '');
-  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
-  fetch('/juegos/resultado', { method: 'POST', body: fd }).then(r => {
-    if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; }
-  }).catch((e) => console.warn(e));
-}
-
-async function iniciarValidacionLetraR(letraEsperada, mensajeOk) {
-  const btn = document.getElementById('mic-moto');
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    document.getElementById('fb-moto').textContent = 'Tu navegador no soporta reconocimiento de voz.';
-    document.getElementById('fb-moto').style.display = 'block';
-    return;
-  }
-  if (reconocimientoActivaR) return;
-  reconocimientoActivaR = true;
-  btn.textContent = '⏹️'; btn.style.background = '#27ae60';
-  document.getElementById('fb-moto').textContent = `Escuchando la letra ${letraEsperada.toUpperCase()}...`;
-  document.getElementById('fb-moto').style.display = 'block';
-  document.getElementById('fb-moto').style.color = '#333';
-  try { if (typeof evidenciaVozR.iniciar === 'function') await evidenciaVozR.iniciar(); } catch (e) {}
-
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognitionR = new SR();
-  recognitionR.lang = 'es-ES';
-  recognitionR.continuous = false;
-  recognitionR.interimResults = true;
-  recognitionR.onresult = async (event) => {
-    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
-    ultimaTranscripcionR = texto;
-    if (coincideConLetra(texto, letraEsperada)) {
-      validacionCorrectaR = true;
-      document.getElementById('fb-moto').textContent = `✅ Correcto. Dijiste: "${texto || letraEsperada.toUpperCase()}".`;
-      document.getElementById('fb-moto').style.display = 'block';
-      recognitionR.stop();
-      reconocimientoActivaR = false;
-      btn.textContent = '🎤'; btn.style.background = '#e63946';
-      const detalle = await evidenciaVozR.detener({ transcripcion: texto });
-      ultimaTranscripcionR = detalle.audioTranscripcion || texto;
-      setTimeout(() => { if (typeof finalizarLetraR === 'function') finalizarLetraR(); }, 500);
-      return;
-    }
-    if (texto) {
-      document.getElementById('fb-moto').textContent = `Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraEsperada.toUpperCase()}".`;
-      document.getElementById('fb-moto').style.display = 'block';
-      document.getElementById('fb-moto').style.color = '#d32f2f';
-    }
-  };
-  recognitionR.onerror = () => {
-    document.getElementById('fb-moto').textContent = 'No se entendió bien, intenta de nuevo.';
-    document.getElementById('fb-moto').style.display = 'block';
-    document.getElementById('fb-moto').style.color = '#d32f2f';
-    reconocimientoActivaR = false;
-    btn.textContent = '🎤'; btn.style.background = '#e63946';
-  };
-  recognitionR.onend = () => {
-    reconocimientoActivaR = false;
-    btn.textContent = '🎤'; btn.style.background = '#e63946';
-  };
-  try {
-    recognitionR.start();
-  } catch (error) {
-    reconocimientoActivaR = false;
-    btn.textContent = '🎤'; btn.style.background = '#e63946';
-    document.getElementById('fb-moto').textContent = 'El micrófono ya estaba en uso. Intenta de nuevo.';
-    document.getElementById('fb-moto').style.display = 'block';
-  }
-}
-
-function goStep(n){
-  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
-  document.getElementById('s'+n).classList.add('active');
-  window.scrollTo(0,0);
-}
-
-let motoPos=10;
-document.getElementById('mic-moto').addEventListener('click',function(){
-  iniciarValidacionLetraR('r', '¡Muy bien! 🏆');
-  this.textContent='⏹️';this.style.background='#27ae60';
-  const interval=setInterval(()=>{
-    motoPos=Math.min(motoPos+15,80);
-    document.getElementById('moto').style.left=motoPos+'%';
-  },300);
-  setTimeout(()=>{
-    clearInterval(interval);
-    this.textContent='🎤';this.style.background='#e63946';
-    if(motoPos>=80)document.getElementById('fb-moto').style.display='block';
-  },2000);
-});
-
-async function finalizarLetraR() {
-  if (!validacionCorrectaR || !ultimaTranscripcionR) {
-    document.getElementById('fb-moto').textContent = 'Debes decir la letra R correctamente con el micrófono para continuar.';
-    document.getElementById('fb-moto').style.display = 'block';
-    return;
-  }
-  if (palabrasCompletadasR < words.length) {
-    document.getElementById('complete-grid-progreso').textContent = `Debes decir en voz alta las ${words.length} palabras para continuar.`;
-    document.getElementById('complete-grid-progreso').style.color = '#d32f2f';
-    return;
-  }
-  await guardarResultadoConAudioR('articulacion', 'letra_r', 5, 5, true, 60, 1);
-  reproducirSonidoExito();
-  goStep(5);
-}
-
-const words=[
-  {emoji:'❤️',word:'co__azón'},
-  {emoji:'🏔️',word:'a__ena'},
-  {emoji:'🤕',word:'he__ida'},
-  {emoji:'🐂',word:'to__o'},
-  {emoji:'🧒',word:'cape__ucita'},
-  {emoji:'🐸',word:'__ana'},
-  {emoji:'🚣',word:'__emo'},
-  {emoji:'🏞️',word:'__ío'},
-  {emoji:'🪨',word:'__oca'},
-];
-let palabrasCompletadasR = 0;
-const transcripcionesPalabrasR = [];
-const cgrid=document.getElementById('complete-grid');
-words.forEach(item=>{
-  const div=document.createElement('div');
-  div.className='complete-item';
-  div.innerHTML=`<div class="emoji">${item.emoji}</div><div class="word">${item.word}</div><button class="mic-sm">🎤</button><p class="mic-sm-estado" style="font-size:0.7rem;color:#888;margin:4px 0 0;min-height:1em;"></p>`;
-  const btn = div.querySelector('.mic-sm');
-  const estado = div.querySelector('.mic-sm-estado');
-  btn.addEventListener('click', () => grabarPalabraR(item, div, btn, estado));
-  cgrid.appendChild(div);
-});
-
-function grabarPalabraR(item, div, btn, estado) {
-  if (div.classList.contains('done')) return;
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    estado.textContent = 'Tu navegador no soporta reconocimiento de voz.';
-    estado.style.color = '#d32f2f';
-    return;
-  }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SR();
-  rec.lang = 'es-ES';
-  rec.continuous = false;
-  rec.interimResults = false;
-  btn.textContent = '⏹️';
-  estado.textContent = `Escuchando: "${item.word.replace('__', 'r')}"...`;
-  estado.style.color = '#333';
-  rec.onresult = (event) => {
-    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
-    if (coincideConLetra(texto, 'r')) {
-      div.classList.add('done');
-      btn.textContent = '✓';
-      estado.textContent = `✅ Dijiste: "${texto}"`;
-      estado.style.color = '#27ae60';
-      transcripcionesPalabrasR.push(`${item.word}:${texto}`);
-      palabrasCompletadasR++;
-      document.getElementById('complete-grid-progreso').textContent = `${palabrasCompletadasR} / ${words.length} palabras completadas con tu voz`;
-      document.getElementById('complete-grid-progreso').style.color = '#555';
-      ultimaTranscripcionR = `${ultimaTranscripcionR} | ${transcripcionesPalabrasR.join(' | ')}`;
-      if (palabrasCompletadasR >= words.length) {
-        const btnFinalizar = document.getElementById('btn-finalizar-r');
-        btnFinalizar.disabled = false;
-        btnFinalizar.style.opacity = '1';
-        btnFinalizar.style.cursor = 'pointer';
-      }
-    } else {
-      btn.textContent = '🎤';
-      estado.textContent = `Se escuchó: "${texto}". Intenta de nuevo diciendo la letra "R".`;
-      estado.style.color = '#d32f2f';
-    }
-  };
-  rec.onerror = () => {
-    btn.textContent = '🎤';
-    estado.textContent = 'No se entendió bien, intenta de nuevo.';
-    estado.style.color = '#d32f2f';
-  };
-  rec.onend = () => { if (!div.classList.contains('done')) btn.textContent = '🎤'; };
-  try { rec.start(); } catch (e) { btn.textContent = '🎤'; estado.textContent = 'El micrófono ya estaba en uso.'; }
-}
-
+/* =========================================================
+   FLUJO DE ACTIVIDADES DEL DÍA
+   ========================================================= */
 const btnFlujo = document.getElementById('btn-flujo-letra-r');
-const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
-if (btnFlujo && modoFlujo === 'actividades_hoy') {
-  const normalizar = (u) => (u || '').replace(/\/+$/, '');
-  const actual = normalizar(window.location.pathname);
-  const lista = (JSON.parse(sessionStorage.getItem('actividades_hoy_urls') || '[]') || []).map(normalizar);
-  const completadas = new Set((JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]') || []).map(normalizar));
-  const pendientes = lista.filter((u) => !completadas.has(u) && u !== actual);
-  if (pendientes.length) {
-    btnFlujo.href = pendientes[0];
-    btnFlujo.textContent = 'Siguiente actividad';
-  } else {
-    sessionStorage.setItem('flujo_juegos_modo', 'hub');
-    btnFlujo.href = '/juegos/articulacion/completa-palabra';
-    btnFlujo.textContent = 'Seguir en juegos';
-  }
+if (window.FonoArticulacion && typeof FonoArticulacion.configurarSiguienteSeguro === 'function') {
+  FonoArticulacion.configurarSiguienteSeguro(btnFlujo, '/juegos/articulacion/completa-palabra');
 }
+
+/* =========================================================
+   LIMPIEZA
+   ========================================================= */
+window.addEventListener('beforeunload', () => {
+  try {
+    if (recognitionR) recognitionR.abort();
+  } catch (e) {}
+
+  try {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  } catch (e) {}
+
+  try {
+    cancelarGrabacionR();
+  } catch (e) {}
+});
+
+actualizarRetoMoto();
+actualizarProgresoPalabrasR();
 </script>
 </body>
 </html>
