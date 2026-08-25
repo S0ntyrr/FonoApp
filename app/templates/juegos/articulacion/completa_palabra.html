@@ -1,295 +1,219 @@
 {% extends "base.html" %}
 {% block contenido %}
-<section class="pantalla-movil">
-    <div class="juegos-header">
-        <a href="/juegos/articulacion" class="btn-volver-cat">← Articulación</a>
-        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🔤 Completa la palabra</h1>
-        <div style="width:70px;"></div>
+<link rel="stylesheet" href="/static/css/articulacion-juego.css">
+<script src="/static/js/articulacion-voz.js"></script>
+
+<section class="pantalla-movil" style="max-width:460px;margin:0 auto;">
+  <div class="juegos-header">
+    <a href="/juegos/articulacion" class="btn-volver-cat">← Articulación</a>
+    <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🔤 Completa y pronuncia</h1>
+    <div style="width:70px;"></div>
+  </div>
+
+  <div class="art-card">
+    <p class="art-titulo">Completa la letra y después di la palabra</p>
+    <p class="art-ayuda">Primero elige la letra que falta. Cuando esté correcta, escucha el ejemplo si lo necesitas y pronuncia la <strong>palabra completa</strong> con el micrófono.</p>
+    <div class="art-alerta">El micrófono ya no intenta reconocer una letra aislada. La confirmación se hace con la palabra completa para que el reconocimiento sea más estable y la pronunciación quede guardada en audio.</div>
+  </div>
+
+  <div class="art-card" id="juego-palabra">
+    <div style="text-align:center;">
+      <div id="palabra-contador" class="art-reto-contador">Palabra 1 de 8</div>
+      <div id="palabra-emoji" style="font-size:4rem;margin:8px 0;">👢</div>
+      <p id="palabra-pista" class="art-ayuda" style="margin-bottom:4px;"></p>
     </div>
 
-    <div class="juego-container">
-        <div class="instruccion-card">
-            <p>🖼️ Mira la imagen y completa la palabra que falta</p>
-        </div>
+    <div class="art-letter-boxes" id="palabra-cajas"></div>
+    <div class="art-options" id="palabra-opciones"></div>
 
-        <div id="pregunta-area">
-            <div class="imagen-display">
-                <div class="imagen-emoji" id="imagen-emoji">❓</div>
-                <p class="imagen-pista" id="imagen-pista">Toca "Comenzar"</p>
-            </div>
-
-            <div class="palabra-display" id="palabra-display"></div>
-
-            <div class="letras-opciones" id="letras-opciones"></div>
-
-            <div class="respuesta-area">
-                <input type="text" id="respuesta-input" class="campo-texto" placeholder="Escribe la letra que falta..." maxlength="3" />
-                <button class="boton-rojo" onclick="verificar()">✓</button>
-            </div>
-            <p id="prompt-mic-palabra" style="display:none;color:#e63946;font-weight:600;text-align:center;font-size:0.85rem;margin:0.4rem 0 0;">🎤 Ahora dilo en voz alta con el micrófono para confirmar</p>
-        </div>
-
-        <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
-            <p>🎉 ¡Correcto!</p>
-            <button class="boton-rojo ancho-completo" onclick="siguientePregunta()">Siguiente →</button>
-        </div>
-        <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
-            <p>❌ Intenta de nuevo</p>
-        </div>
-        <div id="resultado-final" class="resultado-card correcto" style="display:none;">
-            <p>🏆 ¡Completaste el juego!</p>
-            <p id="puntaje-final" style="font-size:0.9rem;color:#555;"></p>
-            <button class="boton-rojo ancho-completo" onclick="reiniciar()">🔄 Jugar de nuevo</button>
-        </div>
-
-        <button id="btn-comenzar" class="boton-rojo ancho-completo" onclick="comenzar()">▶ Comenzar</button>
+    <div id="zona-pronunciacion" style="display:none;margin-top:16px;text-align:center;">
+      <p class="art-ayuda" style="margin-bottom:8px;">Ahora pronuncia la palabra completa:</p>
+      <div id="palabra-objetivo" class="art-reto-palabra"></div>
+      <button id="btn-ejemplo" type="button" class="art-btn-sec" style="margin-top:8px;">🔊 Escuchar ejemplo</button>
+      <button id="btn-mic-palabra" type="button" class="art-mic">🎤</button>
+      <div id="fb-palabra" class="art-feedback info">Pulsa el micrófono y di la palabra completa.</div>
     </div>
+
+    <div class="art-progreso">
+      <div class="art-progreso-label" id="progreso-palabra">0 / 8 palabras pronunciadas</div>
+      <div class="art-barra"><div class="art-fill" id="fill-palabra"></div></div>
+    </div>
+  </div>
+
+  <div class="art-card art-final" id="final-palabra" style="display:none;">
+    <div class="art-final-icon">🏆</div>
+    <h2 style="color:var(--art-rojo);margin-bottom:8px;">¡Actividad completada!</h2>
+    <p class="art-ayuda">Completaste y pronunciaste todas las palabras. La evidencia de voz quedó guardada para revisión profesional.</p>
+    <a id="btn-siguiente-completa" href="/juegos/articulacion/moto-voz" class="art-link primary">Siguiente: Acelera la moto</a>
+    <button type="button" class="art-link secondary" style="width:100%;cursor:pointer;" onclick="window.location.reload()">Jugar de nuevo</button>
+    <a href="/juegos/articulacion" class="art-link secondary">Volver a Articulación</a>
+  </div>
 </section>
 
 <style>
-.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
-.btn-volver-cat { background:none; border:1px solid #e63946; color:#e63946; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
-.btn-volver-cat:hover { background:#fff0f8; }
-.juego-container { display:flex; flex-direction:column; gap:1rem; }
-.instruccion-card { background:#fff0f8; border-radius:12px; padding:0.8rem 1rem; border-left:4px solid #e63946; font-size:0.88rem; color:#880e4f; font-weight:600; }
-.instruccion-card p { margin:0; }
-.imagen-display { text-align:center; padding:1.5rem; background:#fff; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
-.imagen-emoji { font-size:5rem; margin-bottom:0.5rem; }
-.imagen-pista { margin:0; font-size:0.88rem; color:#888; }
-.palabra-display { display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; }
-.letra-box { width:40px; height:40px; border:2px solid #e63946; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:700; color:#1a1a1a; background:#fff; }
-.letra-box.vacia { background:#fff0f8; color:#e63946; }
-.letras-opciones { display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; }
-.letra-opcion { width:44px; height:44px; border:2px solid #e0e0e0; border-radius:8px; font-size:1.2rem; font-weight:700; cursor:pointer; background:#fff; transition:border-color 0.15s, background 0.15s; }
-.letra-opcion:hover { border-color:#e63946; background:#fff0f8; }
-.respuesta-area { display:flex; gap:0.5rem; }
-.respuesta-area .campo-texto { flex:1; text-align:center; font-size:1.2rem; font-weight:700; }
-.respuesta-area .boton-rojo { margin-top:0; padding:0.65rem 1rem; }
-.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
-.resultado-card p { margin:0 0 0.5rem; font-size:1rem; font-weight:700; }
-.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
-.resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
+.juegos-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid #f0f0f0}
+.btn-volver-cat{background:none;border:1px solid #e63946;color:#e63946;border-radius:20px;padding:.35rem .9rem;font-size:.85rem;font-weight:600;text-decoration:none;white-space:nowrap}
 </style>
 
 <script>
-const PALABRAS = [
-    { emoji: "🐱", pista: "Animal que maúlla", palabra: "GATO", falta: 2, opciones: ["T", "P", "L", "S"] },
-    { emoji: "🌳", pista: "Planta grande con ramas", palabra: "ARBOL", falta: 3, opciones: ["O", "A", "E", "I"] },
-    { emoji: "🏠", pista: "Lugar donde vivimos", palabra: "CASA", falta: 1, opciones: ["A", "O", "E", "U"] },
-    { emoji: "🌞", pista: "Brilla en el cielo de día", palabra: "SOL", falta: 1, opciones: ["O", "A", "E", "I"] },
-    { emoji: "🐟", pista: "Animal que vive en el agua", palabra: "PEZ", falta: 1, opciones: ["E", "A", "I", "O"] },
-    { emoji: "🍎", pista: "Fruta roja y redonda", palabra: "MANZANA", falta: 4, opciones: ["Z", "S", "C", "X"] },
+const PALABRAS_COMPLETA = [
+  { emoji:'👢', pista:'Prenda que se usa en el pie', palabra:'bota', falta:0, opciones:['B','D','F','R'] },
+  { emoji:'🎲', pista:'Objeto con puntos para jugar', palabra:'dado', falta:0, opciones:['D','B','R','F'] },
+  { emoji:'🦭', pista:'Animal que vive cerca del mar', palabra:'foca', falta:0, opciones:['F','R','B','D'] },
+  { emoji:'🐸', pista:'Animal que salta y vive cerca del agua', palabra:'rana', falta:0, opciones:['R','F','D','B'] },
+  { emoji:'☁️', pista:'Se ve en el cielo', palabra:'nube', falta:2, opciones:['B','D','F','R'] },
+  { emoji:'☝️', pista:'Parte de la mano', palabra:'dedo', falta:2, opciones:['D','R','B','F'] },
+  { emoji:'🛋️', pista:'Mueble para sentarse', palabra:'sofá', falta:2, opciones:['F','B','D','R'] },
+  { emoji:'🏖️', pista:'Suelo de la playa', palabra:'arena', falta:1, opciones:['R','B','F','D'] },
 ];
 
-let indiceActual = 0;
-let aciertos = 0;
-let ultimaTranscripcionPalabra = '';
-let validacionPalabra = false;
-let letraEscritaCorrectaPalabra = false;
-let recognitionPalabra = null;
-let micActivaPalabra = false;
+const sesionCompleta = FonoArticulacion.crearSesionVoz({
+  categoria:'articulacion',
+  juego:'completa_palabra',
+  idiomaReconocimiento:'es-ES'
+});
+let indiceCompleta = 0;
+let letraCorrectaCompleta = false;
+let guardandoCompleta = false;
 
-const evidenciaVozPalabra = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'completa_palabra' }) : {
-  iniciar: async () => ({}),
-  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
-};
-
-function normalizarTexto(texto) {
-  return (texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+function normalizarLetra(texto){
+  return FonoArticulacion.normalizarTexto(texto).slice(0,1);
 }
 
-function coincideConLetra(texto, letraEsperada) {
-  const letra = (letraEsperada || '').toLowerCase();
-  const variantes = {
-    b: ['b', 'be', 'bee', 'la letra b', 'letra b'],
-    d: ['d', 'de', 'dee', 'la letra d', 'letra d'],
-    f: ['f', 'efe', 'efe', 'la letra f', 'letra f'],
-    r: ['r', 'erre', 'ere', 'la letra r', 'letra r'],
-  };
-  const normalizado = normalizarTexto(texto);
-  const opciones = variantes[letra] || [letra];
-  return opciones.some((valor) => {
-    const clave = normalizarTexto(valor);
-    if (!clave) return false;
-    return normalizado === clave || normalizado.includes(clave) || normalizado.includes(`letra ${clave}`) || normalizado.includes(`la letra ${clave}`);
+function renderCompleta(){
+  const item = PALABRAS_COMPLETA[indiceCompleta];
+  if (!item) return finalizarCompleta();
+
+  letraCorrectaCompleta = false;
+  document.getElementById('palabra-contador').textContent = `Palabra ${indiceCompleta + 1} de ${PALABRAS_COMPLETA.length}`;
+  document.getElementById('palabra-emoji').textContent = item.emoji;
+  document.getElementById('palabra-pista').textContent = item.pista;
+  document.getElementById('palabra-objetivo').textContent = item.palabra.toUpperCase();
+  document.getElementById('zona-pronunciacion').style.display = 'none';
+  document.getElementById('fb-palabra').className = 'art-feedback info';
+  document.getElementById('fb-palabra').textContent = 'Pulsa el micrófono y di la palabra completa.';
+
+  const cajas = document.getElementById('palabra-cajas');
+  cajas.innerHTML = '';
+  [...item.palabra.toUpperCase()].forEach((letra, idx) => {
+    const box = document.createElement('div');
+    box.className = `art-letter-box${idx === item.falta ? ' vacia' : ''}`;
+    box.textContent = idx === item.falta ? '?' : letra;
+    box.dataset.idx = String(idx);
+    cajas.appendChild(box);
+  });
+
+  const opciones = document.getElementById('palabra-opciones');
+  opciones.innerHTML = '';
+  item.opciones.forEach((op) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'art-option';
+    btn.textContent = op;
+    btn.addEventListener('click', () => elegirLetraCompleta(op, btn));
+    opciones.appendChild(btn);
   });
 }
 
-function reproducirSonidoExito() {
-  try {
-    const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
-    if (!ctx) return;
-    [523, 659, 784, 1047].forEach((freq, i) => {
-      crearTonoFono(ctx, { frequency: freq, startTime: ctx.currentTime + i * 0.15, duration: 0.28, volumeBase: 0.23, type: 'sine' });
-    });
-  } catch (e) {}
-}
+function elegirLetraCompleta(letra, btn){
+  if (letraCorrectaCompleta) return;
+  const item = PALABRAS_COMPLETA[indiceCompleta];
+  const correcta = item.palabra[item.falta].toUpperCase();
+  document.querySelectorAll('#palabra-opciones .art-option').forEach((b) => b.classList.remove('seleccionada'));
+  btn.classList.add('seleccionada');
 
-async function guardarResultadoConAudioPalabra() {
-  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
-  const detalle = await evidenciaVozPalabra.detener({ transcripcion: ultimaTranscripcionPalabra || '' });
-  const fd = new FormData();
-  fd.append('paciente_email', email); fd.append('categoria', 'articulacion'); fd.append('juego', 'completa_palabra');
-  fd.append('paso_completado', PALABRAS.length); fd.append('total_pasos', PALABRAS.length);
-  fd.append('completado', true); fd.append('puntos', aciertos * 10); fd.append('nivel', 1);
-  fd.append('ruta', window.location.pathname || '');
-  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionPalabra || '');
-  fd.append('audio_url', detalle.audioUrl || '');
-  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
-  fetch('/juegos/resultado', { method: 'POST', body: fd }).then(r => {
-    if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; }
-  }).catch((e) => console.warn(e));
-}
-
-async function activarMicPalabra() {
-  const p = PALABRAS[indiceActual];
-  const letraCorrecta = p.palabra[p.falta];
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    document.getElementById('resultado-incorrecto').textContent = 'Tu navegador no soporta reconocimiento de voz.';
-    document.getElementById('resultado-incorrecto').style.display = 'block';
+  if (normalizarLetra(letra) !== normalizarLetra(correcta)) {
+    btn.style.borderColor = '#ef9a9a';
+    btn.style.background = '#ffebee';
     return;
   }
-  if (micActivaPalabra) return;
-  micActivaPalabra = true;
-  document.getElementById('resultado-incorrecto').textContent = `Escuchando: "${letraCorrecta}"...`;
-  document.getElementById('resultado-incorrecto').style.display = 'block';
-  try { if (typeof evidenciaVozPalabra.iniciar === 'function') await evidenciaVozPalabra.iniciar(); } catch (e) {}
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognitionPalabra = new SR();
-  recognitionPalabra.lang = 'es-ES';
-  recognitionPalabra.continuous = false;
-  recognitionPalabra.interimResults = true;
-  recognitionPalabra.onresult = async (event) => {
-    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
-    ultimaTranscripcionPalabra = texto;
-    if (coincideConLetra(texto, letraCorrecta)) {
-      validacionPalabra = true;
-      letraEscritaCorrectaPalabra = true;
-      const boxes = document.querySelectorAll('.letra-box');
-      boxes[p.falta].textContent = letraCorrecta;
-      boxes[p.falta].classList.remove('vacia');
-      document.getElementById('respuesta-input').value = letraCorrecta;
-      recognitionPalabra.stop();
-      micActivaPalabra = false;
-      try {
-        const detalle = await evidenciaVozPalabra.detener({ transcripcion: texto });
-        ultimaTranscripcionPalabra = detalle.audioTranscripcion || texto;
-      } catch (e) {}
-      confirmarPregunta(texto);
-      return;
+
+  letraCorrectaCompleta = true;
+  const box = document.querySelector(`#palabra-cajas [data-idx="${item.falta}"]`);
+  box.textContent = correcta;
+  box.classList.remove('vacia');
+  box.style.background = '#e8f5e9';
+  box.style.borderColor = '#81c784';
+  document.getElementById('zona-pronunciacion').style.display = 'block';
+}
+
+function mostrarFbCompleta(tipo, texto){
+  const fb = document.getElementById('fb-palabra');
+  fb.className = `art-feedback ${tipo}`;
+  fb.textContent = texto;
+}
+
+function reconocerCompleta(){
+  if (!letraCorrectaCompleta || sesionCompleta.estaReconociendo()) return;
+  const item = PALABRAS_COMPLETA[indiceCompleta];
+  const btn = document.getElementById('btn-mic-palabra');
+
+  sesionCompleta.reconocerPalabra({
+    palabraEsperada:item.palabra,
+    alEscuchar:() => {
+      btn.classList.add('escuchando');
+      btn.textContent = '⏹️';
+      mostrarFbCompleta('info', `Escuchando… di “${item.palabra.toUpperCase()}”.`);
+    },
+    alCorrecto:(coincidencia) => {
+      mostrarFbCompleta('ok', `✅ Palabra reconocida: “${coincidencia.transcript}”.`);
+      indiceCompleta += 1;
+      actualizarProgresoCompleta();
+      setTimeout(() => {
+        if (indiceCompleta < PALABRAS_COMPLETA.length) renderCompleta();
+        else finalizarCompleta();
+      }, 650);
+    },
+    alIncorrecto:(mensaje) => mostrarFbCompleta('error', mensaje),
+    alFin:() => {
+      btn.classList.remove('escuchando');
+      btn.textContent = '🎤';
     }
-    if (texto) {
-      document.getElementById('resultado-incorrecto').textContent = `Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraCorrecta}".`;
-      document.getElementById('resultado-incorrecto').style.display = 'block';
-    }
-  };
-  recognitionPalabra.onerror = () => {
-    document.getElementById('resultado-incorrecto').textContent = 'No se entendió bien, intenta de nuevo.';
-    document.getElementById('resultado-incorrecto').style.display = 'block';
-    micActivaPalabra = false;
-  };
-  recognitionPalabra.onend = () => { micActivaPalabra = false; };
+  });
+}
+
+function actualizarProgresoCompleta(){
+  const total = PALABRAS_COMPLETA.length;
+  const pct = Math.round((indiceCompleta / total) * 100);
+  document.getElementById('progreso-palabra').textContent = `${indiceCompleta} / ${total} palabras pronunciadas`;
+  document.getElementById('fill-palabra').style.width = `${pct}%`;
+}
+
+async function finalizarCompleta(){
+  if (guardandoCompleta) return;
+  guardandoCompleta = true;
+  document.getElementById('juego-palabra').style.opacity = '.65';
+  document.getElementById('progreso-palabra').textContent = 'Guardando actividad…';
+
+  let detalle = { audioUrl:'', audioTranscripcion:sesionCompleta.obtenerTranscripcion(), requiereRevisionAudio:true };
+  try { detalle = await sesionCompleta.finalizar(); } catch (e) { console.warn(e); }
+
   try {
-    recognitionPalabra.start();
-  } catch (error) {
-    micActivaPalabra = false;
-    document.getElementById('resultado-incorrecto').textContent = 'El micrófono ya estaba en uso. Intenta de nuevo.';
-    document.getElementById('resultado-incorrecto').style.display = 'block';
+    await FonoArticulacion.guardarResultado({
+      categoria:'articulacion', juego:'completa_palabra', pasoCompletado:1, totalPasos:1,
+      completado:true, puntos:60, nivel:1,
+      notas:'El paciente completó la letra faltante y pronunció cada palabra completa. La calidad fonética requiere revisión del audio.',
+      requiereRevisionAudio:true,
+      ...detalle
+    });
+    document.getElementById('juego-palabra').style.display = 'none';
+    document.getElementById('final-palabra').style.display = 'block';
+    window.scrollTo({top:0,behavior:'smooth'});
+  } catch (e) {
+    guardandoCompleta = false;
+    document.getElementById('juego-palabra').style.opacity = '1';
+    document.getElementById('progreso-palabra').textContent = 'No se pudo guardar. Reintenta la última palabra.';
   }
 }
 
-function comenzar() {
-    document.getElementById('btn-comenzar').style.display = 'none';
-    mostrarPregunta(0);
-}
-
-function mostrarPregunta(idx) {
-    indiceActual = idx;
-    const p = PALABRAS[idx];
-    document.getElementById('imagen-emoji').textContent = p.emoji;
-    document.getElementById('imagen-pista').textContent = p.pista;
-    document.getElementById('resultado-correcto').style.display = 'none';
-    document.getElementById('resultado-incorrecto').style.display = 'none';
-    document.getElementById('resultado-final').style.display = 'none';
-    document.getElementById('pregunta-area').style.display = 'block';
-    document.getElementById('respuesta-input').value = '';
-    document.getElementById('prompt-mic-palabra').style.display = 'none';
-    validacionPalabra = false;
-    letraEscritaCorrectaPalabra = false;
-    ultimaTranscripcionPalabra = '';
-
-    const display = document.getElementById('palabra-display');
-    display.innerHTML = '';
-    p.palabra.split('').forEach((letra, i) => {
-        const box = document.createElement('div');
-        box.className = 'letra-box' + (i === p.falta ? ' vacia' : '');
-        box.textContent = i === p.falta ? '_' : letra;
-        display.appendChild(box);
-    });
-
-    const opciones = document.getElementById('letras-opciones');
-    opciones.innerHTML = '';
-    p.opciones.forEach(letra => {
-        const btn = document.createElement('button');
-        btn.className = 'letra-opcion';
-        btn.textContent = letra;
-        btn.onclick = () => { document.getElementById('respuesta-input').value = letra; verificar(); };
-        opciones.appendChild(btn);
-    });
-}
-
-function verificar() {
-    const p = PALABRAS[indiceActual];
-    const respuesta = document.getElementById('respuesta-input').value.toUpperCase().trim();
-    const letraCorrecta = p.palabra[p.falta];
-    if (respuesta === letraCorrecta) {
-        const boxes = document.querySelectorAll('.letra-box');
-        boxes[p.falta].textContent = letraCorrecta;
-        boxes[p.falta].classList.remove('vacia');
-        letraEscritaCorrectaPalabra = true;
-        if (validacionPalabra) {
-            confirmarPregunta(ultimaTranscripcionPalabra);
-        } else {
-            document.getElementById('prompt-mic-palabra').style.display = 'block';
-        }
-    } else {
-        document.getElementById('resultado-incorrecto').style.display = 'block';
-        setTimeout(() => document.getElementById('resultado-incorrecto').style.display = 'none', 1000);
-    }
-    document.getElementById('respuesta-input').value = '';
-}
-
-function confirmarPregunta(texto) {
-    if (!letraEscritaCorrectaPalabra || !validacionPalabra) return;
-    const p = PALABRAS[indiceActual];
-    const letraCorrecta = p.palabra[p.falta];
-    document.getElementById('prompt-mic-palabra').style.display = 'none';
-    document.getElementById('resultado-incorrecto').style.display = 'none';
-    document.getElementById('resultado-correcto').style.display = 'block';
-    document.getElementById('resultado-correcto').querySelector('p').textContent = `✅ Correcto. Dijiste: "${texto || letraCorrecta}".`;
-    aciertos++;
-}
-
-async function siguientePregunta() {
-    if (indiceActual < PALABRAS.length - 1) { mostrarPregunta(indiceActual + 1); }
-    else {
-        document.getElementById('pregunta-area').style.display = 'none';
-        document.getElementById('resultado-correcto').style.display = 'none';
-        document.getElementById('puntaje-final').textContent = `Completaste ${aciertos} de ${PALABRAS.length} palabras`;
-        document.getElementById('resultado-final').style.display = 'block';
-        await guardarResultadoConAudioPalabra();
-        reproducirSonidoExito();
-    }
-}
-
-function reiniciar() { aciertos = 0; mostrarPregunta(0); }
-
-document.getElementById('respuesta-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificar(); });
-const micBtn = document.createElement('button');
-micBtn.type = 'button';
-micBtn.className = 'boton-rojo';
-micBtn.textContent = '🎤 Escuchar';
-micBtn.onclick = activarMicPalabra;
-document.querySelector('.respuesta-area').appendChild(micBtn);
+document.getElementById('btn-ejemplo').addEventListener('click', () => {
+  const item = PALABRAS_COMPLETA[indiceCompleta];
+  if (item) sesionCompleta.hablar(item.palabra, {rate:.8});
+});
+document.getElementById('btn-mic-palabra').addEventListener('click', reconocerCompleta);
+window.addEventListener('beforeunload', () => sesionCompleta.cancelar());
+renderCompleta();
+actualizarProgresoCompleta();
+FonoArticulacion.configurarSiguienteSeguro(document.getElementById('btn-siguiente-completa'), '/juegos/articulacion/moto-voz');
 </script>
 {% endblock %}

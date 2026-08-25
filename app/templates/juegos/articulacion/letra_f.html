@@ -5,425 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <link rel="stylesheet" href="/static/css/articulacion-juego.css">
   <script src="/static/js/juego-audio-utils.js"></script>
-  <script>
-  function guardarResultadoJuego(cat,juego,paso,total,completado,puntos=0,nivel=1){
-    const email=sessionStorage.getItem("paciente_email")||localStorage.getItem("paciente_email_actual")||"";
-    const fd=new FormData();fd.append('paciente_email',email);fd.append('categoria',cat);
-    fd.append('juego',juego);fd.append('paso_completado',paso);fd.append('total_pasos',total);
-    fd.append('completado',completado);fd.append('puntos',puntos);fd.append('nivel',nivel);
-    fetch('/juegos/resultado',{method:'POST',body:fd}).then(r => {
-      if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; throw new Error('sesion expirada'); }
-      if (!r.ok) throw new Error('error ' + r.status);
-      if (completado && typeof reproducirSonidoExito === 'function') reproducirSonidoExito();
-    }).catch(e=>console.warn(e));
-  }
-  </script>
-  <style>
-    body{margin:0;background:#fff;font-family:'Segoe UI',sans-serif;}
-    .screen{max-width:430px;margin:0 auto;min-height:100vh;padding:16px;box-sizing:border-box;}
-    h1.cat{color:#e63946;text-align:center;font-size:1.4rem;border-bottom:2px solid #e63946;padding-bottom:8px;margin-bottom:16px;}
-    .step{display:none;} .step.active{display:block;}
-    .btn-next{background:#e63946;color:#fff;border:none;border-radius:12px;padding:14px;font-size:1rem;cursor:pointer;display:block;margin:20px auto 0;width:100%;}
-    .mic-btn{background:#e63946;color:#fff;border:none;border-radius:50%;width:56px;height:56px;font-size:1.6rem;cursor:pointer;display:block;margin:12px auto;}
-    .feedback{color:#27ae60;font-weight:bold;text-align:center;display:none;margin:8px 0;}
-    .big-letter{font-size:5rem;text-align:center;color:#e63946;font-weight:900;}
-    .vowel-row{display:flex;align-items:center;justify-content:space-around;margin:12px 0;font-size:1.5rem;font-weight:bold;}
-    .vowel-mic{background:#e63946;color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:1.2rem;cursor:pointer;}
-    .vowel-mic.done{background:#27ae60;}
-    .wordsearch{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin:12px 0;font-size:0.85rem;}
-    .ws-cell{height:32px;display:flex;align-items:center;justify-content:center;border:1px solid #eee;border-radius:3px;cursor:pointer;font-weight:bold;transition:background .2s;}
-    .ws-cell.selected{background:#ffeaea;color:#e63946;}
-    .ws-cell.found{background:#c8f7c5;color:#27ae60;}
-    .words-to-find{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
-    .wtf-chip{padding:6px 12px;border:2px solid #e63946;border-radius:16px;font-size:0.85rem;}
-    .wtf-chip.found{background:#c8f7c5;border-color:#27ae60;text-decoration:line-through;color:#27ae60;}
-  </style>
+  <script src="/static/js/articulacion-voz.js"></script>
+  <script src="/static/js/articulacion-letra.js"></script>
 </head>
 <body>
-<div class="screen">
-  <h1 class="cat">Articulación</h1>
+<div class="art-screen">
+  <h1 class="art-cat">Articulación · Letra F</h1>
 
-  <!-- STEP 1 -->
-  <div class="step active" id="s1">
-    <div class="big-letter" id="letra-f-display">🧒 ?</div>
-    <div style="text-align:center;font-size:3rem;margin:12px 0;">😁</div>
-    <p style="text-align:center;">¿Qué letra estás viendo?</p>
-    <button class="mic-btn" id="mic-s1">🎤</button>
-    <div class="feedback" id="fb-s1">¡Muy bien! Es la letra F 🎉</div>
-    <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
-  </div>
-
-  <!-- STEP 2 -->
-  <div class="step" id="s2">
-    <h2>Ahora hagamos la pronunciación juntos</h2>
-    <p>Colocaremos los dientes superiores sobre el labio inferior y dejaremos salir aire entre los dientes y el labio.</p>
-    <div style="text-align:center;font-size:3rem;">😬💨</div>
-    <p style="text-align:center;font-weight:bold;">¿Lo hiciste bien?</p>
-    <button class="mic-btn" id="mic-s2">🎤</button>
-    <div class="feedback" id="fb-s2">¡Excelente! 🎉</div>
-    <button class="btn-next" onclick="goStep(3)">Siguiente →</button>
-  </div>
-
-  <!-- STEP 3: Vowel combos -->
-  <div class="step" id="s3">
-    <h2 style="color:#e63946;">¡Bien!</h2>
-    <p>Ahora practiquemos con las vocales. Activa el micrófono y responde</p>
-    <div id="vowel-rows"></div>
-    <p id="vowel-progreso" style="text-align:center;color:#555;font-size:0.85rem;">0 / 5 combinaciones completadas con tu voz</p>
-    <button class="btn-next" id="btn-vowels-next" onclick="goStep(4)" disabled style="opacity:0.6;cursor:not-allowed;">Siguiente →</button>
-  </div>
-
-  <!-- STEP 4: Word search -->
-  <div class="step" id="s4">
-    <p>Para evitar que a la foca se le rompa el hielo y caiga al agua. Resuelve la sopa de letras 🦭🧊</p>
-    <div class="wordsearch" id="ws"></div>
-    <div class="words-to-find" id="wtf"></div>
-    <button class="btn-next" id="btn-finalizar-f" onclick="finalizarLetraF();" disabled style="opacity:0.6;cursor:not-allowed;">Finalizar ✓</button>
-  </div>
-
-  <!-- STEP 5 -->
-  <div class="step" id="s5">
-    <div style="text-align:center;padding:40px 0;">
-      <div style="font-size:4rem;">🏆</div>
-      <h2 style="color:#e63946;">¡Excelente trabajo!</h2>
-      <p>Has completado los ejercicios de la letra <strong>F</strong></p>
-      <a id="btn-flujo-letra-f" href="/juegos/articulacion/letra-r" style="display:block;background:#e63946;color:#fff;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:12px;">Siguiente</a>
-      <a href="/juegos/articulacion" style="display:block;background:#fff;color:#e63946;border:1px solid #e63946;border-radius:12px;padding:14px;text-decoration:none;text-align:center;margin-top:8px;">Volver a Articulación</a>
+  <section class="art-step active" id="s1">
+    <div class="art-card">
+      <p class="art-titulo">1. Prepara la articulación</p>
+      <p class="art-ayuda">Prepara dientes, labio y aire para producir un sonido F continuo y suave.</p>
+      <ol class="art-list">
+        <li><strong>Apoya suavemente los dientes superiores</strong> sobre el labio inferior.</li>
+        <li><strong>Deja un pequeño paso para el aire</strong> entre dientes y labio.</li>
+        <li><strong>Suelta el aire de forma continua</strong> y evita hacer fuerza con la garganta.</li>
+      </ol>
+      <div style="text-align:center;font-size:3.5rem;margin-top:12px;">😬</div>
+      <div class="art-alerta">La app puede reconocer palabras completas, pero no puede determinar por sí sola si el sonido de la F fue producido de manera fonéticamente correcta. Los intentos de voz se guardan en una sola evidencia de audio para revisión profesional.</div>
+      <button class="art-btn" type="button" onclick="artGoStep(2)">Siguiente →</button>
     </div>
-  </div>
+  </section>
+
+  <section class="art-step" id="s2">
+    <div class="art-card">
+      <p class="art-titulo">2. Escucha e imita las sílabas</p>
+      <p class="art-ayuda">Pulsa “Escuchar” y repite cada sílaba con calma. En este paso no tienes que usar el micrófono.</p>
+      <div class="art-silabas" id="silabas"></div>
+      <button class="art-btn" type="button" onclick="artGoStep(3)">Siguiente →</button>
+    </div>
+  </section>
+
+  <section class="art-step" id="s3">
+    <div class="art-card">
+      <p class="art-titulo">3. Haz avanzar la moto</p>
+      <p class="art-ayuda">Di la <strong>palabra completa</strong> que aparece. La moto avanza únicamente cuando el navegador reconoce esa palabra.</p>
+      <div class="art-reto">
+        <div class="art-reto-contador" id="moto-contador"></div>
+        <div class="art-reto-palabra" id="moto-objetivo"></div>
+        <button class="art-btn-sec" type="button" onclick="artHablar(document.getElementById('moto-objetivo').textContent.toLowerCase())">🔊 Escuchar ejemplo</button>
+      </div>
+      <div class="art-track">
+        <div class="art-road"></div>
+        <div class="art-moto" id="moto">🏍️</div>
+        <div class="art-meta">🏁</div>
+      </div>
+      <button class="art-mic" id="mic-moto" type="button" onclick="artGrabarMoto()">🎤</button>
+      <div class="art-feedback info" id="fb-moto">Pulsa el micrófono y di la palabra completa.</div>
+      <button class="art-btn" id="btn-ir-palabras" type="button" onclick="artGoStep(4)" disabled>Continuar →</button>
+    </div>
+  </section>
+
+  <section class="art-step" id="s4">
+    <div class="art-card">
+      <p class="art-titulo">4. Completa y pronuncia las palabras</p>
+      <p class="art-ayuda">Mira la palabra incompleta, escucha el ejemplo si lo necesitas y después pronuncia la <strong>palabra completa</strong>.</p>
+      <div class="art-alerta">Que el texto coincida significa que el reconocimiento detectó la palabra esperada. La calidad del sonido de la F queda guardada en audio para revisión del profesional.</div>
+      <div class="art-grid" id="palabras-grid"></div>
+      <div class="art-progreso">
+        <div class="art-progreso-label" id="palabras-progreso"></div>
+        <div class="art-barra"><div class="art-fill" id="palabras-fill"></div></div>
+      </div>
+      <button class="art-btn" id="btn-finalizar" type="button" onclick="artFinalizar()" disabled>Finalizar ✓</button>
+    </div>
+  </section>
+
+  <section class="art-step" id="s5">
+    <div class="art-card art-final">
+      <div class="art-final-icon">🏆</div>
+      <h2 style="color:var(--art-rojo);margin-bottom:8px;">¡Actividad completada!</h2>
+      <p class="art-ayuda">Terminaste la práctica de la letra F. La evidencia de voz quedó guardada para revisión profesional.</p>
+      <a id="btn-siguiente-final" href="/juegos/articulacion/letra-r" class="art-link primary">Siguiente</a>
+      <a href="/juegos/articulacion" class="art-link secondary">Volver a Articulación</a>
+    </div>
+  </section>
 </div>
 
 <script>
-let reconocimientoActivaF = false;
-let recognitionF = null;
-let ultimaTranscripcionF = '';
-let validacionCorrectaF = false;
-
-const evidenciaVozF = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'articulacion', juego: 'letra_f' }) : {
-  iniciar: async () => ({}),
-  detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
-};
-
-function normalizarTexto(texto) {
-  return (texto || '').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function coincideConLetra(texto, letraEsperada) {
-  const letra = (letraEsperada || '').toLowerCase();
-  const variantes = {
-    b: ['b', 'be', 'bee', 'la letra b', 'letra b'],
-    d: ['d', 'de', 'dee', 'la letra d', 'letra d'],
-    f: ['f', 'efe', 'efe', 'la letra f', 'letra f'],
-    r: ['r', 'erre', 'ere', 'la letra r', 'letra r'],
-  };
-  const normalizado = normalizarTexto(texto);
-  const opciones = variantes[letra] || [letra];
-  return opciones.some((valor) => {
-    const clave = normalizarTexto(valor);
-    if (!clave) return false;
-    return normalizado === clave || normalizado.includes(clave) || normalizado.includes(`letra ${clave}`) || normalizado.includes(`la letra ${clave}`);
-  });
-}
-
-function reproducirSonidoExito() {
-  try {
-    const ctx = (typeof crearContextoAudioFono === 'function') ? crearContextoAudioFono() : null;
-    if (!ctx) return;
-    [523, 659, 784, 1047].forEach((freq, i) => {
-      crearTonoFono(ctx, {
-        frequency: freq,
-        startTime: ctx.currentTime + i * 0.15,
-        duration: 0.28,
-        volumeBase: 0.23,
-        type: 'sine'
-      });
-    });
-  } catch (e) {}
-}
-
-async function guardarResultadoConAudioF(cat, juego, paso, total, completado, puntos = 0, nivel = 1) {
-  const email = sessionStorage.getItem('paciente_email') || localStorage.getItem('paciente_email_actual') || '';
-  const detalle = await evidenciaVozF.detener({ transcripcion: ultimaTranscripcionF || '' });
-  const fd = new FormData();
-  fd.append('paciente_email', email); fd.append('categoria', cat); fd.append('juego', juego);
-  fd.append('paso_completado', paso); fd.append('total_pasos', total);
-  fd.append('completado', completado); fd.append('puntos', puntos); fd.append('nivel', nivel);
-  fd.append('ruta', window.location.pathname || '');
-  fd.append('audio_transcripcion', detalle.audioTranscripcion || ultimaTranscripcionF || '');
-  fd.append('audio_url', detalle.audioUrl || '');
-  fd.append('requiere_revision_audio', !!(detalle.audioUrl || detalle.audioTranscripcion));
-  fetch('/juegos/resultado', { method: 'POST', body: fd }).then(r => {
-    if (r.status === 401 || r.status === 403) { window.location.href = '/auth/login'; }
-  }).catch((e) => console.warn(e));
-}
-
-async function iniciarValidacionLetraF(letraEsperada, mensajeOk, btnId) {
-  const btn = document.getElementById(btnId);
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    document.getElementById('fb-s1').textContent = 'Tu navegador no soporta reconocimiento de voz.';
-    return;
-  }
-  if (reconocimientoActivaF) return;
-  reconocimientoActivaF = true;
-  btn.textContent = '⏹️'; btn.style.background = '#27ae60';
-  document.getElementById('fb-s1').textContent = `Escuchando la letra ${letraEsperada.toUpperCase()}...`;
-  document.getElementById('fb-s1').style.display = 'block';
-  document.getElementById('fb-s1').style.color = '#333';
-  try { if (typeof evidenciaVozF.iniciar === 'function') await evidenciaVozF.iniciar(); } catch (e) {}
-
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognitionF = new SR();
-  recognitionF.lang = 'es-ES';
-  recognitionF.continuous = false;
-  recognitionF.interimResults = true;
-  recognitionF.onresult = async (event) => {
-    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
-    ultimaTranscripcionF = texto;
-    if (coincideConLetra(texto, letraEsperada)) {
-      validacionCorrectaF = true;
-      document.getElementById('fb-s1').textContent = `✅ Correcto. Dijiste: "${texto || letraEsperada.toUpperCase()}".`;
-      document.getElementById('fb-s1').style.display = 'block';
-      document.getElementById('letra-f-display').textContent = '🧒 F';
-      recognitionF.stop();
-      reconocimientoActivaF = false;
-      btn.textContent = '🎤'; btn.style.background = '#e63946';
-      const detalle = await evidenciaVozF.detener({ transcripcion: texto });
-      ultimaTranscripcionF = detalle.audioTranscripcion || texto;
-      setTimeout(() => { if (typeof finalizarLetraF === 'function') finalizarLetraF(); }, 500);
-      return;
-    }
-    if (texto) {
-      document.getElementById('fb-s1').textContent = `Se escuchó: "${texto}". Inténtalo otra vez diciendo "${letraEsperada.toUpperCase()}".`;
-      document.getElementById('fb-s1').style.display = 'block';
-      document.getElementById('fb-s1').style.color = '#d32f2f';
-    }
-  };
-  recognitionF.onerror = () => {
-    document.getElementById('fb-s1').textContent = 'No se entendió bien, intenta de nuevo.';
-    document.getElementById('fb-s1').style.display = 'block';
-    document.getElementById('fb-s1').style.color = '#d32f2f';
-    reconocimientoActivaF = false;
-    btn.textContent = '🎤'; btn.style.background = '#e63946';
-  };
-  recognitionF.onend = () => {
-    reconocimientoActivaF = false;
-    btn.textContent = '🎤'; btn.style.background = '#e63946';
-  };
-  try {
-    recognitionF.start();
-  } catch (error) {
-    reconocimientoActivaF = false;
-    btn.textContent = '🎤'; btn.style.background = '#e63946';
-    document.getElementById('fb-s1').textContent = 'El micrófono ya estaba en uso. Intenta de nuevo.';
-    document.getElementById('fb-s1').style.display = 'block';
-  }
-}
-
-function goStep(n){
-  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
-  document.getElementById('s'+n).classList.add('active');
-  window.scrollTo(0,0);
-}
-
-document.getElementById('mic-s1').addEventListener('click',function(){
-  iniciarValidacionLetraF('f', '¡Muy bien! Es la letra F 🎉', 'mic-s1');
-});
-document.getElementById('mic-s2').addEventListener('click',function(){
-  iniciarValidacionLetraF('f', '¡Excelente! 🎉', 'mic-s2');
-});
-
-async function finalizarLetraF() {
-  if (!validacionCorrectaF || !ultimaTranscripcionF) {
-    document.getElementById('fb-s1').textContent = 'Debes decir la letra F correctamente con el micrófono para continuar.';
-    document.getElementById('fb-s1').style.display = 'block';
-    return;
-  }
-  await guardarResultadoConAudioF('articulacion', 'letra_f', 5, 5, true, 60, 1);
-  reproducirSonidoExito();
-  goStep(5);
-}
-
-const btnFinishF = document.getElementById('btn-finalizar-f');
-if (btnFinishF) {
-  btnFinishF.setAttribute('onclick', 'if (foundWords.size === wsWords.length) { finalizarLetraF(); } else { alert("Completa primero la sopa de letras."); }');
-}
-
-const vowels=[['a','🍎'],['e','🐘'],['i','🦎'],['o','🍊'],['u','🍇']];
-let vocalesCompletadasF = 0;
-const transcripcionesVocalesF = [];
-const vr=document.getElementById('vowel-rows');
-vowels.forEach(([v,em])=>{
-  const row=document.createElement('div');
-  row.className='vowel-row';
-  row.innerHTML=`<span style="color:#e63946;font-size:2rem;">F</span><span>+</span><span style="font-size:2rem;">${em}</span><span>=</span><button class="vowel-mic">🎤</button><p class="vowel-mic-estado" style="font-size:0.7rem;color:#888;margin:2px 0 0;flex-basis:100%;"></p>`;
-  const btn = row.querySelector('.vowel-mic');
-  const estado = row.querySelector('.vowel-mic-estado');
-  btn.addEventListener('click', () => recordVowel(v, row, btn, estado));
-  vr.appendChild(row);
-});
-function recordVowel(vocal, row, btn, estado){
-  if (row.classList.contains('vowel-done')) return;
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    estado.textContent = 'Tu navegador no soporta reconocimiento de voz.';
-    estado.style.color = '#d32f2f';
-    return;
-  }
-  const silaba = 'f' + vocal;
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SR();
-  rec.lang = 'es-ES';
-  rec.continuous = false;
-  rec.interimResults = false;
-  btn.textContent='⏹️';
-  estado.textContent = `Escuchando: "${silaba}"...`;
-  estado.style.color = '#333';
-  rec.onresult = (event) => {
-    const texto = Array.from(event.results).map((r) => r[0].transcript).join(' ').trim();
-    const normalizado = normalizarTexto(texto);
-    if (normalizado.includes(silaba) || (normalizado.includes('f') && normalizado.includes(vocal))) {
-      row.classList.add('vowel-done');
-      btn.textContent='✓'; btn.classList.add('done');
-      estado.textContent = `✅ Dijiste: "${texto}"`;
-      estado.style.color = '#27ae60';
-      transcripcionesVocalesF.push(`${silaba}:${texto}`);
-      vocalesCompletadasF++;
-      document.getElementById('vowel-progreso').textContent = `${vocalesCompletadasF} / ${vowels.length} combinaciones completadas con tu voz`;
-      document.getElementById('vowel-progreso').style.color = '#555';
-      ultimaTranscripcionF = `${ultimaTranscripcionF} | ${transcripcionesVocalesF.join(' | ')}`;
-      if (vocalesCompletadasF >= vowels.length) {
-        const btnNext = document.getElementById('btn-vowels-next');
-        btnNext.disabled = false;
-        btnNext.style.opacity = '1';
-        btnNext.style.cursor = 'pointer';
-      }
-    } else {
-      btn.textContent='🎤';
-      estado.textContent = `Se escuchó: "${texto}". Intenta de nuevo diciendo "${silaba}".`;
-      estado.style.color = '#d32f2f';
-    }
-  };
-  rec.onerror = () => {
-    btn.textContent='🎤';
-    estado.textContent = 'No se entendió bien, intenta de nuevo.';
-    estado.style.color = '#d32f2f';
-  };
-  rec.onend = () => { if (!row.classList.contains('vowel-done')) btn.textContent='🎤'; };
-  try { rec.start(); } catch (e) { btn.textContent='🎤'; estado.textContent = 'El micrófono ya estaba en uso.'; }
-}
-
-const wsLetters=[
-  ['F','R','E','S','A','P','Q','Z'],
-  ['U','A','B','C','D','E','F','G'],
-  ['E','F','U','E','G','O','H','I'],
-  ['N','J','K','L','M','N','O','P'],
-  ['T','F','L','A','U','T','A','Q'],
-  ['E','R','S','T','U','V','W','X'],
-  ['Y','Z','F','O','C','A','A','B'],
-  ['F','A','L','D','A','C','D','E'],
-];
-const wsWords=['FRESA','FUEGO','FLAUTA','FOCA','FALDA'];
-const wsEl=document.getElementById('ws');
-wsLetters.forEach((row,ri)=>{
-  row.forEach((letter,ci)=>{
-    const cell=document.createElement('div');
-    cell.className='ws-cell';
-    cell.textContent=letter;
-    cell.dataset.r=ri; cell.dataset.c=ci;
-    wsEl.appendChild(cell);
-  });
-});
-
-const wtfEl=document.getElementById('wtf');
-wsWords.forEach(w=>{
-  const chip=document.createElement('div');
-  chip.className='wtf-chip';
-  chip.textContent=w;
-  chip.id='wtf-'+w;
-  wtfEl.appendChild(chip);
-});
-
-const foundWords = new Set();
-const selectedCells = [];
-const maxWordLen = wsWords.reduce((m, w) => Math.max(m, w.length), 0);
-
-function actualizarEstadoFinalizar() {
-  const btn = document.getElementById('btn-finalizar-f');
-  const listo = foundWords.size === wsWords.length;
-  btn.disabled = !listo;
-  btn.style.opacity = listo ? '1' : '0.6';
-  btn.style.cursor = listo ? 'pointer' : 'not-allowed';
-}
-
-function limpiarSeleccionActual() {
-  selectedCells.forEach(cell => cell.classList.remove('selected'));
-  selectedCells.length = 0;
-}
-
-function marcarPalabraEncontrada(word) {
-  if (foundWords.has(word)) return;
-  foundWords.add(word);
-  const chip = document.getElementById('wtf-' + word);
-  if (chip) chip.classList.add('found');
-  selectedCells.forEach(cell => {
-    cell.classList.remove('selected');
-    cell.classList.add('found');
-  });
-  selectedCells.length = 0;
-  actualizarEstadoFinalizar();
-}
-
-function evaluarSeleccion() {
-  if (selectedCells.length < 3) return;
-  const texto = selectedCells.map(cell => cell.textContent).join('');
-  const textoInvertido = texto.split('').reverse().join('');
-  const match = wsWords.find(w => !foundWords.has(w) && (w === texto || w === textoInvertido));
-  if (match) {
-    marcarPalabraEncontrada(match);
-    return;
-  }
-  if (selectedCells.length >= maxWordLen) {
-    limpiarSeleccionActual();
-  }
-}
-
-wsEl.addEventListener('click',e=>{
-  const cell=e.target;
-  if(!cell.classList.contains('ws-cell') || cell.classList.contains('found'))return;
-  if (cell.classList.contains('selected')) {
-    cell.classList.remove('selected');
-    const idx = selectedCells.indexOf(cell);
-    if (idx >= 0) selectedCells.splice(idx, 1);
-    return;
-  }
-  cell.classList.add('selected');
-  selectedCells.push(cell);
-  evaluarSeleccion();
-});
-
-actualizarEstadoFinalizar();
-
-const btnFlujo = document.getElementById('btn-flujo-letra-f');
-const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
-if (btnFlujo && modoFlujo === 'actividades_hoy') {
-  const normalizar = (u) => (u || '').replace(/\/+$/, '');
-  const actual = normalizar(window.location.pathname);
-  const lista = (JSON.parse(sessionStorage.getItem('actividades_hoy_urls') || '[]') || []).map(normalizar);
-  const completadas = new Set((JSON.parse(sessionStorage.getItem('actividades_hoy_completadas') || '[]') || []).map(normalizar));
-  const pendientes = lista.filter((u) => !completadas.has(u) && u !== actual);
-  if (pendientes.length) {
-    btnFlujo.href = pendientes[0];
-    btnFlujo.textContent = 'Siguiente actividad';
-  } else {
-    sessionStorage.setItem('flujo_juegos_modo', 'hub');
-    btnFlujo.href = '/juegos/articulacion/letra-r';
-    btnFlujo.textContent = 'Seguir en juegos';
-  }
-}
+const CONFIG_LETRA = {"letra": "F", "juego": "letra_f", "silabas": ["fa", "fe", "fi", "fo", "fu"], "retosMoto": [{"palabra": "foca"}, {"palabra": "foto"}, {"palabra": "fuego"}], "palabras": [{"emoji": "🦭", "incompleta": "__oca", "palabra": "foca"}, {"emoji": "📷", "incompleta": "__oto", "palabra": "foto"}, {"emoji": "🔥", "incompleta": "__uego", "palabra": "fuego"}, {"emoji": "👨‍👩‍👧", "incompleta": "__amilia", "palabra": "familia"}, {"emoji": "☕", "incompleta": "ca__é", "palabra": "café"}, {"emoji": "🛋️", "incompleta": "so__á", "palabra": "sofá"}, {"emoji": "🐘", "incompleta": "ele__ante", "palabra": "elefante"}, {"emoji": "📞", "incompleta": "telé__ono", "palabra": "teléfono"}, {"emoji": "🦒", "incompleta": "jira__a", "palabra": "jirafa"}], "siguiente": "/juegos/articulacion/letra-r", "puntos": 60, "idiomaReconocimiento": "es-ES"};
+document.addEventListener('DOMContentLoaded', () => iniciarJuegoLetraArticulacion(CONFIG_LETRA));
 </script>
 </body>
 </html>
