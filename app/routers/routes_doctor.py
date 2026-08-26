@@ -10,7 +10,13 @@ from html import escape
 import re
 
 from ..database import get_db
-from ..security import email_match_filter, get_current_user, require_role
+from ..security import (
+    email_match_filter,
+    get_current_user,
+    require_role,
+    hash_password,
+    normalize_email,
+)
 from ..time_utils import app_now, day_bounds
 
 router = APIRouter(
@@ -371,7 +377,27 @@ async def home_doctor(request: Request, db: AsyncIOMotorDatabase = Depends(get_d
             "$or": [{"feedback": None}, {"feedback": ""}],
         })
 
+    total_pacientes = len(pacientes_asignados)
+
+    ahora = app_now()
+    inicio_hoy, fin_hoy = day_bounds(ahora)
+
+    actividades_hoy = 0
+
+    if pacientes_asignados:
+        actividades_hoy = await db["historial_actividades"].count_documents({
+            "paciente_email": {
+                "$in": list(pacientes_asignados)
+            },
+            "fecha": {
+                "$gte": inicio_hoy,
+                "$lt": fin_hoy,
+            },
+        })
+
     return templates.TemplateResponse(request, "doctor/home.html", {
+        "total_pacientes": total_pacientes,
+        "actividades_hoy": actividades_hoy,
         "request": request,
         "titulo_pagina": "Panel del doctor",
         "estado_actual": doctor_doc.get("estado", "activo"),
@@ -397,10 +423,49 @@ async def vista_pacientes_doctor(request: Request, db: AsyncIOMotorDatabase = De
         cursor = db["usuarios"].find({"rol": "paciente", "email": {"$in": list(pacientes_asignados)}})
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
-            total_j = await db["resultados_juegos"].count_documents({"paciente_email": doc["email"]})
-            completados_j = await db["resultados_juegos"].count_documents({"paciente_email": doc["email"], "completado": True})
+            cursor_resultados = db["resultados_juegos"].find({
+                "paciente_email": doc["email"]
+            })
+
+            total_j = 0
+            completados_j = 0
+            avance_acumulado = 0
+
+            async for resultado in cursor_resultados:
+                total_j += 1
+
+                total_pasos = max(
+                    1,
+                    int(resultado.get("total_pasos", 1) or 1)
+                )
+
+                paso_completado = max(
+                    0,
+                    int(resultado.get("paso_completado", 0) or 0)
+                )
+
+                if resultado.get("completado"):
+                    completados_j += 1
+                    avance = 100
+                else:
+                    avance = min(
+                        100,
+                        int(
+                            (paso_completado / total_pasos) * 100
+                        )
+                    )
+
+                avance_acumulado += avance
+
+            progreso_promedio = (
+                int(avance_acumulado / total_j)
+                if total_j > 0
+                else 0
+            )
+
             doc["total_juegos"] = total_j
             doc["juegos_completados"] = completados_j
+            doc["progreso_promedio"] = progreso_promedio
             pacientes.append(doc)
 
     return templates.TemplateResponse(request, "doctor/pacientes.html", {
@@ -409,6 +474,148 @@ async def vista_pacientes_doctor(request: Request, db: AsyncIOMotorDatabase = De
         "pacientes": pacientes,
     })
 
+@router.get("/pacientes/nuevo", response_class=HTMLResponse)
+async def nuevo_paciente_doctor(
+    request: Request,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    Muestra el formulario para que el doctor cree un nuevo paciente.
+    """
+
+    user = get_current_user(request)
+
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(
+            url="/auth/login",
+            status_code=303,
+        )
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+
+    if not doctor_doc:
+        return RedirectResponse(
+            url="/auth/login",
+            status_code=303,
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "doctor/nuevo_paciente.html",
+        {
+            "request": request,
+            "titulo_pagina": "Nuevo paciente",
+            "error": request.query_params.get("error"),
+        },
+    )
+
+
+@router.post("/pacientes/nuevo")
+async def crear_paciente_doctor(
+    request: Request,
+    nombre: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    Crea un paciente y lo asigna automáticamente
+    al doctor que actualmente inició sesión.
+    """
+
+    # 1. Verificar que haya un doctor autenticado
+
+    user = get_current_user(request)
+
+    if not user or user.get("rol") not in ("medico", "doctor"):
+        return RedirectResponse(
+            url="/auth/login",
+            status_code=303,
+        )
+
+    doctor_doc = await _obtener_doctor_actual(request, db)
+
+    if not doctor_doc:
+        return RedirectResponse(
+            url="/auth/login",
+            status_code=303,
+        )
+
+    # 2. Limpiar y validar los datos
+
+    nombre = nombre.strip()
+    email_normalizado = normalize_email(email)
+
+    if len(nombre) < 2:
+        return RedirectResponse(
+            url="/doctor/pacientes/nuevo?error=nombre_invalido",
+            status_code=303,
+        )
+
+    if not email_normalizado:
+        return RedirectResponse(
+            url="/doctor/pacientes/nuevo?error=email_invalido",
+            status_code=303,
+        )
+
+    if len(password) < 6:
+        return RedirectResponse(
+            url="/doctor/pacientes/nuevo?error=password_corta",
+            status_code=303,
+        )
+
+    # 3. Verificar que el correo no exista
+
+    paciente_existente = await db["usuarios"].find_one(
+        email_match_filter(email_normalizado)
+    )
+
+    if paciente_existente:
+        return RedirectResponse(
+            url="/doctor/pacientes/nuevo?error=email_existe",
+            status_code=303,
+        )
+
+    # 4. Crear el paciente
+
+    nuevo_paciente = {
+        "nombre": nombre,
+        "email": email_normalizado,
+        "password": hash_password(password),
+        "rol": "paciente",
+        "nivel": 1,
+        "puntos": 0,
+        "estado": "activo",
+    }
+
+    resultado = await db["usuarios"].insert_one(
+        nuevo_paciente
+    )
+
+    # 5. Asignar automáticamente el paciente
+    #    al doctor que lo creó
+
+    nueva_asignacion = {
+        "paciente_email": email_normalizado,
+        "medico_email": doctor_doc["email"],
+        "actividades_asignadas": [],
+        "dificultad": "facil",
+        "fecha_asignacion": datetime.utcnow(),
+        "estado": "aceptada",
+        "tipo": "manual",
+    }
+
+    await db["asignaciones"].insert_one(
+        nueva_asignacion
+    )
+
+    # 6. Redirigir directamente al perfil
+    #    del nuevo paciente
+
+    return RedirectResponse(
+        url=f"/doctor/pacientes/{resultado.inserted_id}",
+        status_code=303,
+    )
 
 @router.get("/pacientes/{paciente_id}", response_class=HTMLResponse)
 async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
@@ -479,6 +686,76 @@ async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIO
         doc["_id"] = str(doc["_id"])
         historial.append(doc)
 
+# ── Resumen de uso de la aplicación ─────────────────────────────────────
+
+    ahora = app_now()
+
+    inicio_hoy, fin_hoy = day_bounds(ahora)
+
+    inicio_mes = datetime(
+        ahora.year,
+        ahora.month,
+        1
+    )
+
+    segundos_hoy = 0
+    segundos_mes = 0
+    dias_activos_mes = 0
+
+    cursor_uso = db["sesiones_app"].find({
+        "paciente_email": paciente["email"],
+        "fecha": {
+            "$gte": inicio_mes
+        }
+    })
+
+    async for sesion in cursor_uso:
+        fecha_sesion = sesion.get("fecha")
+
+        if not isinstance(fecha_sesion, datetime):
+            continue
+
+        if "segundos_conectado" in sesion:
+            segundos_dia = int(
+                sesion.get("segundos_conectado", 0) or 0
+            )
+        else:
+            segundos_dia = int(
+                sesion.get("minutos_conectado", 0) or 0
+            ) * 60
+
+        segundos_dia = max(0, segundos_dia)
+
+        segundos_mes += segundos_dia
+
+        if segundos_dia > 0:
+            dias_activos_mes += 1
+
+        if inicio_hoy <= fecha_sesion < fin_hoy:
+            segundos_hoy += segundos_dia
+
+    def formatear_tiempo_uso(segundos: int) -> str:
+        segundos = max(0, int(segundos))
+
+        horas = segundos // 3600
+        minutos = (segundos % 3600) // 60
+
+        if horas > 0:
+            if minutos > 0:
+                return f"{horas} h {minutos} min"
+            return f"{horas} h"
+
+        if minutos > 0:
+            return f"{minutos} min"
+
+        if segundos > 0:
+            return f"{segundos} s"
+
+        return "0 min"
+
+    tiempo_hoy_texto = formatear_tiempo_uso(segundos_hoy)
+    tiempo_mes_texto = formatear_tiempo_uso(segundos_mes)
+
     return templates.TemplateResponse(request, "doctor/perfil_paciente.html", {
         "request": request,
         "titulo_pagina": f"Perfil de {paciente.get('nombre', paciente['email'])}",
@@ -487,6 +764,9 @@ async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIO
         "resultados": resultados_raw[:10],
         "stats_por_categoria": stats_por_categoria,
         "historial": historial,
+        "tiempo_hoy_texto": tiempo_hoy_texto,
+        "tiempo_mes_texto": tiempo_mes_texto,
+        "dias_activos_mes": dias_activos_mes
     })
 
 
@@ -498,41 +778,296 @@ async def editar_paciente_doctor(
     email: str = Form(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
+    """
+    Edita los datos básicos de un paciente.
+
+    Si el correo cambia, también actualiza todas las
+    colecciones relacionadas con el paciente.
+    """
+
+    # ----------------------------------------------
+    # 1. Verificar sesión
+    # ----------------------------------------------
+
     user = get_current_user(request)
-    if not user or user.get("rol") not in ("medico", "doctor"):
-        return RedirectResponse(url="/auth/login", status_code=303)
 
-    doctor_doc = await _obtener_doctor_actual(request, db)
+    if not user or user.get("rol") not in (
+        "medico",
+        "doctor",
+    ):
+        return RedirectResponse(
+            url="/auth/login",
+            status_code=303,
+        )
+
+
+    # ----------------------------------------------
+    # 2. Obtener doctor
+    # ----------------------------------------------
+
+    doctor_doc = await _obtener_doctor_actual(
+        request,
+        db,
+    )
+
     if not doctor_doc:
-        return RedirectResponse(url="/auth/login", status_code=303)
 
-    object_id = _parse_object_id(paciente_id)
+        return RedirectResponse(
+            url="/auth/login",
+            status_code=303,
+        )
+
+
+    # ----------------------------------------------
+    # 3. Validar ID
+    # ----------------------------------------------
+
+    object_id = _parse_object_id(
+        paciente_id
+    )
+
     if not object_id:
-        return RedirectResponse(url="/doctor/pacientes", status_code=303)
 
-    paciente_actual = await db["usuarios"].find_one({"_id": object_id, "rol": "paciente"})
+        return RedirectResponse(
+            url="/doctor/pacientes",
+            status_code=303,
+        )
+
+
+    # ----------------------------------------------
+    # 4. Buscar paciente
+    # ----------------------------------------------
+
+    paciente_actual = await db["usuarios"].find_one(
+        {
+            "_id": object_id,
+            "rol": "paciente",
+        }
+    )
+
     if not paciente_actual:
-        return RedirectResponse(url="/doctor/pacientes", status_code=303)
 
-    asignacion = await db["asignaciones"].find_one({
-        "paciente_email": paciente_actual["email"],
-        "medico_email": doctor_doc["email"],
-        "estado": "aceptada",
-    })
+        return RedirectResponse(
+            url="/doctor/pacientes",
+            status_code=303,
+        )
+
+
+    # ----------------------------------------------
+    # 5. Verificar que pertenece al doctor
+    # ----------------------------------------------
+
+    asignacion = await db["asignaciones"].find_one(
+        {
+            "paciente_email":
+                paciente_actual["email"],
+
+            "medico_email":
+                doctor_doc["email"],
+
+            "estado":
+                "aceptada",
+        }
+    )
+
     if not asignacion:
-        return RedirectResponse(url="/doctor/pacientes", status_code=303)
 
-    email_anterior = paciente_actual.get("email", "")
-    await db["usuarios"].update_one({"_id": object_id}, {"$set": {"nombre": nombre, "email": email}})
+        return RedirectResponse(
+            url="/doctor/pacientes",
+            status_code=303,
+        )
 
-    if email_anterior and email_anterior != email:
-        await db["perfiles_pacientes"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
-        await db["asignaciones"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
-        await db["resultados_juegos"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
-        await db["historial_actividades"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
-        await db["sesiones_app"].update_many({"paciente_email": email_anterior}, {"$set": {"paciente_email": email}})
-    return RedirectResponse(url=f"/doctor/pacientes/{paciente_id}", status_code=303)
 
+    # ----------------------------------------------
+    # 6. Limpiar datos
+    # ----------------------------------------------
+
+    nombre = nombre.strip()
+
+    email_normalizado = normalize_email(
+        email
+    )
+
+
+    if len(nombre) < 2:
+
+        return RedirectResponse(
+            url=(
+                f"/doctor/pacientes/"
+                f"{paciente_id}"
+                f"?error=nombre_invalido"
+            ),
+            status_code=303,
+        )
+
+
+    if not email_normalizado:
+
+        return RedirectResponse(
+            url=(
+                f"/doctor/pacientes/"
+                f"{paciente_id}"
+                f"?error=email_invalido"
+            ),
+            status_code=303,
+        )
+
+
+    email_anterior = paciente_actual.get(
+        "email",
+        ""
+    )
+
+
+    # ----------------------------------------------
+    # 7. Verificar correo duplicado
+    # ----------------------------------------------
+
+    if email_normalizado != normalize_email(
+        email_anterior
+    ):
+
+        existente = await db["usuarios"].find_one(
+            email_match_filter(
+                email_normalizado
+            )
+        )
+
+        if existente:
+
+            return RedirectResponse(
+                url=(
+                    f"/doctor/pacientes/"
+                    f"{paciente_id}"
+                    f"?error=email_existe"
+                ),
+                status_code=303,
+            )
+
+
+    # ----------------------------------------------
+    # 8. Actualizar usuario
+    # ----------------------------------------------
+
+    await db["usuarios"].update_one(
+        {
+            "_id": object_id,
+        },
+        {
+            "$set": {
+                "nombre": nombre,
+                "email": email_normalizado,
+            }
+        },
+    )
+
+
+    # ----------------------------------------------
+    # 9. Si cambió el correo, actualizar
+    #    TODAS las referencias
+    # ----------------------------------------------
+
+    if (
+        email_anterior
+        and email_anterior != email_normalizado
+    ):
+
+        await db[
+            "perfiles_pacientes"
+        ].update_many(
+            {
+                "paciente_email":
+                    email_anterior,
+            },
+            {
+                "$set": {
+                    "paciente_email":
+                        email_normalizado,
+                }
+            },
+        )
+
+
+        await db[
+            "asignaciones"
+        ].update_many(
+            {
+                "paciente_email":
+                    email_anterior,
+            },
+            {
+                "$set": {
+                    "paciente_email":
+                        email_normalizado,
+                }
+            },
+        )
+
+
+        await db[
+            "resultados_juegos"
+        ].update_many(
+            {
+                "paciente_email":
+                    email_anterior,
+            },
+            {
+                "$set": {
+                    "paciente_email":
+                        email_normalizado,
+                }
+            },
+        )
+
+
+        await db[
+            "historial_actividades"
+        ].update_many(
+            {
+                "paciente_email":
+                    email_anterior,
+            },
+            {
+                "$set": {
+                    "paciente_email":
+                        email_normalizado,
+                }
+            },
+        )
+
+
+        await db[
+            "sesiones_app"
+        ].update_many(
+            {
+                "paciente_email":
+                    email_anterior,
+            },
+            {
+                "$set": {
+                    "paciente_email":
+                        email_normalizado,
+                }
+            },
+        )
+
+        await db["actividades_diarias"].update_many(
+            {"paciente_email": email_anterior},
+            {"$set": {"paciente_email": email}}
+        )
+
+    # ----------------------------------------------
+    # 10. Regresar al perfil
+    # ----------------------------------------------
+
+    return RedirectResponse(
+        url=(
+            f"/doctor/pacientes/"
+            f"{paciente_id}"
+            f"?mensaje=actualizado"
+        ),
+        status_code=303,
+    )
 
 @router.get("/actividades", response_class=HTMLResponse)
 async def vista_actividades_doctor(request: Request):

@@ -1,27 +1,23 @@
 {% extends "base.html" %}
 {% block contenido %}
 
-<!-- Splash de bienvenida mejorado -->
+<!-- Splash -->
 <div id="splash" class="splash-full splash-doctor">
     <div class="splash-contenido">
-        <!-- Decoraciones -->
         <div class="splash-decoracion splash-deco-1">✨</div>
         <div class="splash-decoracion splash-deco-2">🌟</div>
         <div class="splash-decoracion splash-deco-3">💫</div>
-        
-        <!-- Logo con animación -->
+
         <div class="splash-logo-container">
             <img src="/static/img/splash.svg?v=2024" alt="FonoApp" class="splash-logo" />
             <div class="splash-brillo"></div>
         </div>
-        
-        <!-- Mensaje -->
+
         <div class="splash-mensaje-container">
             <p class="splash-subtitulo">¡Bienvenido/a Doctor!</p>
-            <p class="splash-subtitulo-secundario">Panel de atención terapéutica</p>
+            <p class="splash-subtitulo-secundario">Panel de atención especializada</p>
         </div>
-        
-        <!-- Loader -->
+
         <div class="splash-loader">
             <div class="loader-punto loader-punto-1"></div>
             <div class="loader-punto loader-punto-2"></div>
@@ -31,114 +27,546 @@
 </div>
 
 <section class="pantalla-movil" style="padding-top:1rem;">
-    <div class="panel-header">
-        <div class="panel-header-marca">
-            <span class="panel-header-icono">🩺</span>
-            <div>
-                <h1 class="panel-header-titulo">{{ nombre_doctor or 'Panel Doctor' }}</h1>
-                <p class="panel-header-sub">Atención Terapéutica</p>
+
+    <div class="doctor-top-card">
+        <div class="doctor-top-main">
+            <div class="doctor-avatar">🩺</div>
+
+            <div class="doctor-texto">
+                <span class="doctor-etiqueta">PANEL MEDICO</span>
+                <h1>{{ nombre_doctor or 'Doctor' }}</h1>
+                <p>Atención Especializada</p>
             </div>
+
+            <a href="/auth/logout" class="doctor-logout" title="Cerrar sesión">🚪</a>
         </div>
-        <a href="/auth/logout" class="btn-cerrar-sesion" title="Cerrar sesión">🚪</a>
+
+        <div class="doctor-estado-box">
+            <div class="doctor-estado-info">
+                <span class="doctor-estado-label">MI ESTADO</span>
+                <strong class="doctor-estado-valor estado-{{ estado_actual }}">
+                    {% if estado_actual == 'activo' %}
+                        ✓ Disponible
+                    {% elif estado_actual == 'ocupado' %}
+                        ⏳ Ocupado
+                    {% elif estado_actual == 'consulta' %}
+                        💬 En consulta
+                    {% else %}
+                        ● {{ estado_actual | title }}
+                    {% endif %}
+                </strong>
+            </div>
+
+            <form method="post" action="/doctor/estado" class="doctor-estado-form">
+                <input type="hidden" name="email" value="{{ email_doctor }}" />
+
+                <select name="estado" class="doctor-estado-select" onchange="this.form.submit()">
+                    <option value="activo" {% if estado_actual == 'activo' %}selected{% endif %}>✓ Disponible</option>
+                    <option value="ocupado" {% if estado_actual == 'ocupado' %}selected{% endif %}>⏳ Ocupado</option>
+                    <option value="consulta" {% if estado_actual == 'consulta' %}selected{% endif %}>💬 En consulta</option>
+                </select>
+            </form>
+        </div>
     </div>
 
-    <div class="estado-card">
-        <div class="estado-info">
-            <p class="estado-label">Mi estado</p>
-            <p class="estado-valor estado-{{ estado_actual }}">
-                {% if estado_actual == 'activo' %}✓ Disponible
-                {% elif estado_actual == 'ocupado' %}⏳ Ocupado
-                {% elif estado_actual == 'consulta' %}💬 En consulta
-                {% else %}{{ estado_actual | title }}{% endif %}
-            </p>
+    <div class="doctor-bloque">
+        <div class="doctor-bloque-header">
+            <div>
+                <span class="doctor-chip">HOY</span>
+                <h2>Resumen del día</h2>
+            </div>
+            <span class="doctor-header-icon">📊</span>
         </div>
-        <form method="post" action="/doctor/estado" class="estado-form">
-            <input type="hidden" name="email" value="{{ email_doctor }}" />
-            <select name="estado" class="campo-texto estado-select" onchange="this.form.submit()">
-                <option value="activo" {% if estado_actual == 'activo' %}selected{% endif %}>✓ Disponible</option>
-                <option value="ocupado" {% if estado_actual == 'ocupado' %}selected{% endif %}>⏳ Ocupado</option>
-                <option value="consulta" {% if estado_actual == 'consulta' %}selected{% endif %}>💬 En consulta</option>
-            </select>
-        </form>
+
+        <div class="doctor-stats-grid">
+            <a href="/doctor/pacientes" class="doctor-stat-card">
+                <div class="doctor-stat-icon pacientes">👥</div>
+                <div class="doctor-stat-content">
+                    <span>Mis pacientes</span>
+                    <strong>{{ total_pacientes | default(0) }}</strong>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+
+            <a href="/doctor/evaluaciones-pendientes" class="doctor-stat-card doctor-stat-card-alert">
+                <div class="doctor-stat-icon pendientes">📋</div>
+                <div class="doctor-stat-content">
+                    <span>Pendientes</span>
+                    <strong>{{ evaluaciones_pendientes | default(0) }}</strong>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+
+            <a href="/doctor/historial" class="doctor-stat-card">
+                <div class="doctor-stat-icon actividades">✅</div>
+                <div class="doctor-stat-content">
+                    <span>Actividades hoy</span>
+                    <strong>{{ actividades_hoy | default(0) }}</strong>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+        </div>
     </div>
 
-    <div class="menu-acciones">
-        <a href="/doctor/pacientes" class="menu-item">
-            <span class="menu-item-icono">👥</span>
-            <span class="menu-item-texto">Mis pacientes</span>
-            <span class="menu-item-flecha">›</span>
-        </a>
-        <a href="/doctor/asignaciones" class="menu-item">
-            <span class="menu-item-icono">🔗</span>
-            <span class="menu-item-texto">Asignaciones</span>
-            <span class="menu-item-flecha">›</span>
-        </a>
-        <a href="/doctor/evaluaciones-pendientes" class="menu-item menu-item-alerta">
-            <span class="menu-item-icono">📋</span>
-            <span class="menu-item-texto">
-                Evaluaciones pendientes
-                {% if evaluaciones_pendientes and evaluaciones_pendientes > 0 %}
-                    <span class="badge-count">{{ evaluaciones_pendientes }}</span>
-                {% endif %}
-            </span>
-            <span class="menu-item-flecha">›</span>
-        </a>
-        <a href="/doctor/resultados" class="menu-item">
-            <span class="menu-item-icono">📊</span>
-            <span class="menu-item-texto">Resultados de juegos</span>
-            <span class="menu-item-flecha">›</span>
-        </a>
-        <a href="/doctor/historial" class="menu-item">
-            <span class="menu-item-icono">📅</span>
-            <span class="menu-item-texto">Historial de actividades</span>
-            <span class="menu-item-flecha">›</span>
-        </a>
-        <a href="/doctor/reportes-diarios" class="menu-item">
-            <span class="menu-item-icono">🧾</span>
-            <span class="menu-item-texto">Reportes diarios</span>
-            <span class="menu-item-flecha">›</span>
-        </a>
-        <a href="/doctor/actividades" class="menu-item">
-            <span class="menu-item-icono">📚</span>
-            <span class="menu-item-texto">Juegos disponibles</span>
-            <span class="menu-item-flecha">›</span>
-        </a>
-        <a href="/juegos/" class="menu-item menu-item-juegos" onclick="sessionStorage.setItem('juegos_origen','/doctor/home')">
-            <span class="menu-item-icono">🎮</span>
-            <span class="menu-item-texto">Juegos Fonoaudiológicos</span>
-            <span class="menu-item-flecha">›</span>
-        </a>
+<div class="doctor-bloque">
+        <div class="doctor-bloque-header">
+            <div>
+                <span class="doctor-chip">GESTIÓN</span>
+                <h2>Gestión clínica</h2>
+            </div>
+            <span class="doctor-header-icon">🩺</span>
+        </div>
+
+        <div class="doctor-menu">
+            <a href="/doctor/pacientes" class="doctor-menu-item">
+                <div class="doctor-menu-icon">👥</div>
+                <div class="doctor-menu-text">
+                    <strong>Mis pacientes</strong>
+                    <span>Consulta perfiles y progreso</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+
+            <a href="/doctor/asignaciones" class="doctor-menu-item">
+                <div class="doctor-menu-icon">🔗</div>
+                <div class="doctor-menu-text">
+                    <strong>Asignaciones</strong>
+                    <span>Administra tus pacientes asignados</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+        </div>
     </div>
+
+    <div class="doctor-bloque">
+        <div class="doctor-bloque-header">
+            <div>
+                <span class="doctor-chip">SEGUIMIENTO</span>
+                <h2>Seguimiento y análisis</h2>
+            </div>
+            <span class="doctor-header-icon">📈</span>
+        </div>
+
+        <div class="doctor-menu">
+            <a href="/doctor/evaluaciones-pendientes" class="doctor-menu-item">
+                <div class="doctor-menu-icon">📋</div>
+                <div class="doctor-menu-text">
+                    <strong>Evaluaciones pendientes</strong>
+                    <span>Revisa desempeño y evidencias</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+
+            <a href="/doctor/resultados" class="doctor-menu-item">
+                <div class="doctor-menu-icon">📊</div>
+                <div class="doctor-menu-text">
+                    <strong>Resultados de juegos</strong>
+                    <span>Puntajes, progreso y evidencia</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+
+            <a href="/doctor/historial" class="doctor-menu-item">
+                <div class="doctor-menu-icon">📅</div>
+                <div class="doctor-menu-text">
+                    <strong>Historial de actividades</strong>
+                    <span>Revisa actividades anteriores</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+
+            <a href="/doctor/reportes-diarios" class="doctor-menu-item">
+                <div class="doctor-menu-icon">🧾</div>
+                <div class="doctor-menu-text">
+                    <strong>Reportes diarios</strong>
+                    <span>Genera informes por paciente</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="doctor-bloque">
+        <div class="doctor-bloque-header">
+            <div>
+                <span class="doctor-chip">RECURSOS</span>
+                <h2>Recursos terapéuticos</h2>
+            </div>
+            <span class="doctor-header-icon">🎮</span>
+        </div>
+
+        <div class="doctor-menu">
+            <a href="/doctor/actividades" class="doctor-menu-item">
+                <div class="doctor-menu-icon">📚</div>
+                <div class="doctor-menu-text">
+                    <strong>Juegos disponibles</strong>
+                    <span>Consulta el catálogo terapéutico</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+
+            <a
+                href="/juegos/"
+                class="doctor-menu-item doctor-menu-item-soft"
+                onclick="sessionStorage.setItem('juegos_origen', '/doctor/home')"
+            >
+                <div class="doctor-menu-icon doctor-menu-icon-main">🎮</div>
+                <div class="doctor-menu-text">
+                    <strong>Juegos Fonoaudiológicos</strong>
+                    <span>Explora las actividades disponibles</span>
+                </div>
+                <span class="doctor-arrow">›</span>
+            </a>
+        </div>
+    </div>
+
 </section>
 
 <style>
-.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; padding-bottom:1rem; border-bottom:1px solid #f0f0f0; }
-.panel-header-marca { display:flex; align-items:center; gap:0.7rem; }
-.panel-header-icono { font-size:1.8rem; background:linear-gradient(135deg,#d32f2f,#b71c1c); border-radius:12px; width:48px; height:48px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(211,47,47,0.25); }
-.panel-header-titulo { margin:0; font-size:1.1rem; font-weight:800; color:#1a1a1a; }
-.panel-header-sub { margin:0; font-size:0.78rem; color:#999; }
-.btn-cerrar-sesion { font-size:1.4rem; text-decoration:none; background:#f5f5f5; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
-.btn-cerrar-sesion:hover { background:#ffebee; }
-.estado-card { display:flex; align-items:center; justify-content:space-between; gap:1rem; background:#fff; border-radius:12px; padding:0.9rem 1rem; margin-bottom:1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-left:4px solid #d32f2f; }
-.estado-info { flex:1; }
-.estado-label { margin:0; font-size:0.72rem; color:#999; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
-.estado-valor { margin:0.2rem 0 0; font-size:0.95rem; font-weight:700; }
-.estado-activo { color:#2e7d32; }
-.estado-ocupado { color:#e65100; }
-.estado-consulta { color:#1565c0; }
-.estado-form { flex-shrink:0; }
-.estado-select { font-size:0.82rem; padding:0.4rem 0.7rem; border-radius:8px; width:auto; cursor:pointer; }
-.menu-acciones { display:flex; flex-direction:column; gap:0.5rem; }
-.menu-item { display:flex; align-items:center; gap:0.9rem; padding:0.85rem 1rem; background:#fff; border-radius:12px; text-decoration:none; color:#1a1a1a; box-shadow:0 1px 4px rgba(0,0,0,0.05); border:1px solid #f0f0f0; transition:transform 0.1s, box-shadow 0.1s, background 0.1s; font-weight:500; font-size:0.92rem; }
-.menu-item:hover { transform:translateX(3px); box-shadow:0 3px 12px rgba(0,0,0,0.08); background:#fff9f9; border-color:#ffcdd2; }
-.menu-item-icono { font-size:1.3rem; min-width:1.8rem; text-align:center; }
-.menu-item-texto { flex:1; display:flex; align-items:center; gap:0.5rem; }
-.menu-item-flecha { color:#ccc; font-size:1.2rem; }
-.menu-item-alerta { border-color:#fff3e0; background:#fffdf8; }
-.menu-item-alerta:hover { border-color:#ffe0b2; background:#fff8f0; }
-.menu-item-juegos { background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff; border-color:transparent; }
-.menu-item-juegos:hover { background:linear-gradient(135deg,#16213e,#0f3460); border-color:transparent; }
-.menu-item-juegos .menu-item-flecha { color:rgba(255,255,255,0.4); }
-.badge-count { background:#d32f2f; color:#fff; font-size:0.7rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:10px; min-width:18px; text-align:center; }
+
+.doctor-bloque {
+    width: 100%;
+    margin-top: 1.1rem;
+}
+
+.doctor-top-card {
+    width: 100%;
+    border-radius: 22px;
+    padding: 1rem;
+    color: #ffffff;
+    background: linear-gradient(135deg, #b71c1c 0%, #d32f2f 55%, #ef5350 100%);
+    box-shadow: 0 12px 26px rgba(183, 28, 28, 0.18);
+    overflow: hidden;
+}
+
+.doctor-top-main {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.doctor-avatar {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.17);
+    font-size: 1.6rem;
+    border: 1px solid rgba(255,255,255,0.18);
+}
+
+.doctor-texto {
+    min-width: 0;
+    flex: 1;
+}
+
+.doctor-etiqueta {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 0.25rem;
+}
+
+.doctor-texto h1 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    word-break: break-word;
+}
+
+.doctor-texto p {
+    margin: 0.15rem 0 0;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.86);
+}
+
+.doctor-logout {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.17);
+    color: #ffffff;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.18);
+    font-size: 1rem;
+}
+
+.doctor-estado-box {
+    margin-top: 0.9rem;
+    width: 100%;
+    border-radius: 16px;
+    padding: 0.8rem;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.doctor-estado-info {
+    min-width: 0;
+}
+
+.doctor-estado-label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.74);
+}
+
+.doctor-estado-valor {
+    display: block;
+    margin-top: 0.18rem;
+    font-size: 0.9rem;
+    color: #ffffff;
+}
+
+.doctor-estado-form {
+    flex-shrink: 0;
+}
+
+.doctor-estado-select {
+    width: 100%;
+    max-width: 180px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    background: #ffffff;
+    color: #333333;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.doctor-bloque-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.75rem;
+}
+
+.doctor-chip {
+    display: inline-block;
+    padding: 0.24rem 0.52rem;
+    border-radius: 999px;
+    background: #fff0f0;
+    color: #b71c1c;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.doctor-bloque-header h2 {
+    margin: 0.28rem 0 0;
+    color: #2f2f2f;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.doctor-header-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 12px;
+    border: 1px solid #f2e3e3;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.doctor-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.doctor-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    padding: 0.8rem;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #f2e2e2;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 5px 14px rgba(120, 20, 20, 0.05);
+}
+
+.doctor-stat-card-alert {
+    background: linear-gradient(145deg, #ffffff, #fff7f7);
+    border-color: #ebc2c2;
+}
+
+.doctor-stat-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.doctor-stat-icon.pacientes { background: #efecff; }
+.doctor-stat-icon.pendientes { background: #fff1eb; }
+.doctor-stat-icon.actividades { background: #eefaf2; }
+
+.doctor-stat-content {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.doctor-stat-content span {
+    font-size: 0.66rem;
+    color: #7b7b7b;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.doctor-stat-content strong {
+    font-size: 1.3rem;
+    color: #c62828;
+    line-height: 1.05;
+    margin-top: 0.08rem;
+}
+
+.doctor-arrow {
+    color: #cdbaba;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.doctor-menu-badge {
+    background: #f7e4e4;
+    color: #000000;
+}
+
+.doctor-menu {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #f2e2e2;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 5px 14px rgba(120, 20, 20, 0.05);
+}
+
+.doctor-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.85rem;
+    text-decoration: none;
+    color: #2b2b2b;
+    border-bottom: 1px solid #f7eeee;
+}
+
+.doctor-menu-item:last-child {
+    border-bottom: none;
+}
+
+.doctor-menu-item-soft {
+    background: linear-gradient(135deg, #fff8f8, #ffffff);
+}
+
+.doctor-menu-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 13px;
+    background: #fff1f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.doctor-menu-icon-main {
+    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+}
+
+.doctor-menu-text {
+    min-width: 0;
+    flex: 1;
+}
+
+.doctor-menu-text strong {
+    display: block;
+    font-size: 0.83rem;
+    color: #2d2d2d;
+}
+
+.doctor-menu-text span {
+    display: block;
+    margin-top: 0.14rem;
+    color: #8d8d8d;
+    font-size: 0.67rem;
+    line-height: 1.32;
+}
+
+
+@media (max-width: 560px) {
+
+    .doctor-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .doctor-top-main {
+        align-items: flex-start;
+    }
+
+    .doctor-estado-box {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .doctor-estado-select {
+        max-width: none;
+    }
+}
+
+@media (max-width: 400px) {
+    .doctor-top-card {
+        padding: 0.9rem;
+    }
+
+    .doctor-avatar {
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
+        font-size: 1.45rem;
+    }
+
+    .doctor-texto h1 {
+        font-size: 1rem;
+    }
+
+    .doctor-stat-card,
+    .doctor-menu-item {
+        padding: 0.78rem;
+    }
+}
+
 </style>
+
 {% endblock %}

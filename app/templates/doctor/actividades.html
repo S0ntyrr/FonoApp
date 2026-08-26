@@ -6,16 +6,19 @@
         <h1 class="titulo-rojo" style="margin:0;font-size:1.1rem;">🎮 Juegos disponibles</h1>
         <div style="width:70px;"></div>
     </div>
-    <p class="texto-pequeño centrado" style="margin-bottom:1rem;">Juegos fonoaudiológicos disponibles. Haz clic para probarlos.</p>
+    <p class="texto-pequeño centrado" style="margin-bottom:1rem;">Juegos fonoaudiológicos disponibles.</p>
     {% for categoria in juegos_disponibles %}
         <div class="categoria-juegos">
             <h3 class="categoria-titulo-juego">{{ categoria.categoria }}</h3>
             <div class="juegos-lista">
                 {% for juego in categoria.juegos %}
-                    <a href="{{ juego.url }}" class="juego-item-link" target="_blank">
-                        <span class="juego-item-nombre">{{ juego.nombre }}</span>
-                        <span class="juego-item-flecha">↗</span>
-                    </a>
+                    <div class="juego-item-solo">
+    <span class="juego-item-icono">🎮</span>
+
+    <span class="juego-item-nombre">
+        {{ juego.nombre }}
+    </span>
+</div>
                 {% endfor %}
             </div>
         </div>
@@ -31,10 +34,35 @@
 .categoria-juegos { margin-bottom:1rem; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
 .categoria-titulo-juego { margin:0; padding:0.7rem 1rem; font-size:0.82rem; font-weight:700; color:#d32f2f; text-transform:uppercase; letter-spacing:0.5px; background:#fff9f9; border-bottom:1px solid #f5f5f5; }
 .juegos-lista { display:flex; flex-direction:column; }
-.juego-item-link { display:flex; align-items:center; justify-content:space-between; padding:0.7rem 1rem; text-decoration:none; color:#1a1a1a; border-bottom:1px solid #f5f5f5; transition:background 0.1s; font-size:0.9rem; }
-.juego-item-link:last-child { border-bottom:none; }
-.juego-item-link:hover { background:#fff5f5; }
 .juego-item-nombre { font-weight:500; }
-.juego-item-flecha { color:#d32f2f; font-size:0.9rem; }
+.juego-item-solo {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.75rem 1rem;
+    color: #1a1a1a;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 0.9rem;
+}
+
+.juego-item-solo:last-child {
+    border-bottom: none;
+}
+
+.juego-item-icono {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: #fff1f1;
+    font-size: 0.9rem;
+}
+
+.juego-item-nombre {
+    font-weight: 500;
+}
 </style>
 {% endblock %}
