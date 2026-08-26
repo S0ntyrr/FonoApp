@@ -462,7 +462,53 @@ body.fondo-blanco {
 .nav-links { margin-bottom: 1.2rem; display: flex; gap: 0.8rem; flex-wrap: wrap; }
 .nav-links a { color: var(--color-rojo); text-decoration: none; font-size: 0.88rem; font-weight: 600; padding: 0.3rem 0.8rem; border: 1px solid #ffcdd2; border-radius: 20px; background: #fff; transition: background 0.15s; }
 .nav-links a:hover { background: var(--color-rojo-claro); }
+
+/* Control de volumen */
+.control-volumen {
+    position: fixed;
+    left: 20px;
+    bottom: 14px;
+    width: 220px;
+    padding: 10px 14px;
+    border-radius: 15px;
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+/* Botón siguiente */
+.btn-siguiente {
+    position: fixed;
+    right: 20px;
+    bottom: 14px;
+    width: auto;
+    padding: 12px 20px;
+    border-radius: 25px;
+    z-index: 1000;
+    margin-top: 0;
+}
+
+
 @media (max-width: 480px) {
+
+      .control-volumen {
+        left: 12px;
+        bottom: 12px;
+        width: 42vw;
+        max-width: 180px;
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .btn-siguiente {
+        right: 12px;
+        bottom: 12px;
+        width: auto;
+        max-width: 44vw;
+        padding: 10px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        line-height: 1.1;
+    }
     .pantalla-movil { padding: 1rem; }
     .cabecera-app { padding: 0.7rem 1rem; }
     .titulo-app { font-size: 1rem; }

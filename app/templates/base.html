@@ -15,6 +15,9 @@
     <style>body { font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif; }</style>
     <script>
     const FONOAPP_VOLUME_KEY = 'fonoapp_master_volume';
+    const FONOAPP_ROL_ACTUAL =
+    "{{ request.session.get('user', {}).get('rol', '') if request and request.session else '' }}";
+
     const __fonoAudios = new Set();
     const __fonoAudioContexts = new Set();
     const __fonoAudioCleanup = new Set();
@@ -119,8 +122,16 @@
         __fonoAudioContexts.clear();
     }
 
-    async function subirEvidenciaAudio(blob, categoria, juego) {
-        if (!blob || !blob.size) return '';
+async function subirEvidenciaAudio(blob, categoria, juego) {
+
+    // Los juegos abiertos por Doctor/Admin son solo demostración.
+    // No deben guardar evidencia como si fueran un paciente.
+    if (FONOAPP_ROL_ACTUAL !== 'paciente') {
+        console.log('Modo demostración: evidencia de audio no guardada.');
+        return '';
+    }
+
+    if (!blob || !blob.size) return '';
         const formData = new FormData();
         const extension = (blob.type || '').includes('ogg') ? 'ogg' : 'webm';
         formData.append('audio', blob, `${juego || 'actividad'}.${extension}`);
@@ -221,7 +232,7 @@
         if (document.querySelector('.fono-volume-widget')) return;
         const valor = obtenerVolumenFono();
         const widget = document.createElement('div');
-        widget.className = 'fono-volume-widget';
+        widget.className = 'fono-volume-widget control-volume';
         widget.innerHTML = `
             <div class="fono-volume-head">
                 <span>🔊 Volumen</span>
@@ -229,8 +240,7 @@
             </div>
             <input id="fono-volume-slider" type="range" min="0" max="100" value="${Math.round(valor * 100)}" />
         `;
-        widget.style.cssText = 'position:fixed;left:12px;right:12px;bottom:72px;z-index:9998;background:#ffffff;border:1px solid #f1d4d4;border-radius:14px;padding:0.65rem 0.85rem;box-shadow:0 5px 18px rgba(0,0,0,0.16);max-width:360px;margin:0 auto;';
-        const esMovil = window.matchMedia('(max-width: 768px)').matches;
+widget.style.cssText = 'background:#ffffff;border:1px solid #f1d4d4;box-shadow:0 5px 18px rgba(0,0,0,0.16);';        const esMovil = window.matchMedia('(max-width: 768px)').matches;
         if (!esMovil) {
             widget.style.left = '14px';
             widget.style.right = 'auto';
@@ -259,6 +269,26 @@
      * @param {number} nivel - Nivel del paciente (opcional)
      */
     function guardarResultadoJuego(categoria, juego, pasoCompletado, totalPasos, completado, puntos=0, nivel=1, detalles={}) {
+    if (FONOAPP_ROL_ACTUAL !== 'paciente') {
+
+        console.log(
+            'Modo demostración: resultado no guardado.',
+            {
+                rol: FONOAPP_ROL_ACTUAL,
+                categoria: categoria,
+                juego: juego
+            }
+        );
+
+        if (completado) {
+            reproducirSonidoExito();
+        }
+
+        return Promise.resolve({
+            status: 'demo',
+            guardado: false
+        });
+    }
         // El backend toma el email desde la sesión firmada.
         // Este valor solo se envía como respaldo para compatibilidad.
         let email = sessionStorage.getItem('paciente_email')
@@ -500,12 +530,8 @@
         const esJuegoArticulacion = rutaActual.startsWith('/juegos/articulacion/');
         if (esPantallaJuego && !esJuegoArticulacion && !document.querySelector('.btn-continuar-global')) {
             const btnContinuar = document.createElement('button');
-            btnContinuar.className = 'btn-continuar-global boton-rojo';
-            const esMovil = window.matchMedia('(max-width: 768px)').matches;
-            btnContinuar.style.cssText = esMovil
-                ? 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:0.78rem 1rem;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);font-size:0.95rem;font-weight:700;'
-                : 'position:fixed;right:14px;bottom:14px;z-index:9999;padding:0.65rem 1rem;border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);';
-            const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
+            btnContinuar.className = 'btn-continuar-global boton-rojo btn-siguiente';
+btnContinuar.style.cssText = 'position:fixed;right:20px;bottom:14px;width:auto;padding:12px 20px;border:none;border-radius:25px;z-index:10000;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.2);font-size:0.95rem;font-weight:700;margin:0;';            const modoFlujo = sessionStorage.getItem('flujo_juegos_modo') || '';
             if (modoFlujo === 'actividades_hoy') {
                 const listaHoy = _leerListaActividadesHoy();
                 const pendientes = listaHoy.filter(url => !_leerCompletadasHoy().includes(url));
@@ -564,5 +590,74 @@
     <div class="contenedor-principal">
         {% block contenido %}{% endblock %}
     </div>
+
+{% set usuario_sesion = request.session.get('user') if request and request.session else None %}
+
+{% if usuario_sesion and usuario_sesion.get('rol') == 'paciente' %}
+<script>
+(function () {
+    const INTERVALO_USO_MS = 30000; // 30 segundos
+    let intervaloUso = null;
+
+    function enviarPulsoUso(reiniciar = false) {
+        const datos = new URLSearchParams();
+        datos.set('reiniciar', reiniciar ? 'true' : 'false');
+
+        fetch('/paciente/uso/pulso', {
+            method: 'POST',
+            body: datos,
+            credentials: 'same-origin',
+            keepalive: true,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            }
+        }).catch(() => {
+            // Si falla un pulso aislado, el siguiente continuará normalmente.
+        });
+    }
+
+    function iniciarIntervaloUso() {
+        if (intervaloUso) {
+            clearInterval(intervaloUso);
+        }
+
+        intervaloUso = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                enviarPulsoUso(false);
+            }
+        }, INTERVALO_USO_MS);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.visibilityState === 'visible') {
+            // Inicia una nueva referencia de tiempo sin sumar tiempo anterior.
+            enviarPulsoUso(true);
+            iniciarIntervaloUso();
+        }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+
+            // Guarda el tiempo transcurrido desde el último pulso.
+            if (intervaloUso) {
+                clearInterval(intervaloUso);
+                intervaloUso = null;
+            }
+
+            enviarPulsoUso(false);
+
+        } else {
+
+            // Al regresar a la aplicación comenzamos desde cero,
+            // evitando contar el tiempo que estuvo minimizada.
+            enviarPulsoUso(true);
+            iniciarIntervaloUso();
+        }
+    });
+})();
+</script>
+{% endif %}
+
 </body>
 </html>
