@@ -1,0 +1,773 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<section class="pantalla-movil nuevo-paciente-page">
+
+    <!-- ==========================================
+         HEADER
+    =========================================== -->
+
+    <div class="panel-header">
+
+        <a
+            href="/doctor/pacientes"
+            class="btn-volver-panel"
+        >
+            ← Pacientes
+        </a>
+
+        <h1 class="titulo-rojo">
+            Nuevo paciente
+        </h1>
+
+        <div class="espaciador-header"></div>
+
+    </div>
+
+
+    <!-- ==========================================
+         MENSAJES DE ERROR
+    =========================================== -->
+
+    {% if error == "email_existe" %}
+
+        <div class="mensaje-error">
+
+            ⚠️ Ya existe un usuario registrado
+            con este correo electrónico.
+
+        </div>
+
+    {% endif %}
+
+
+    {% if error == "password_corta" %}
+
+        <div class="mensaje-error">
+
+            ⚠️ La contraseña debe tener
+            al menos 6 caracteres.
+
+        </div>
+
+    {% endif %}
+
+
+    {% if error == "nombre_invalido" %}
+
+        <div class="mensaje-error">
+
+            ⚠️ Escribe un nombre válido.
+
+        </div>
+
+    {% endif %}
+
+
+    {% if error == "email_invalido" %}
+
+        <div class="mensaje-error">
+
+            ⚠️ Escribe un correo electrónico válido.
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- ==========================================
+         TARJETA
+    =========================================== -->
+
+    <div class="form-card">
+
+        <div class="form-icono">
+
+            👤
+
+        </div>
+
+
+        <h2>
+
+            Registrar paciente
+
+        </h2>
+
+
+        <p class="form-descripcion">
+
+            Crea la cuenta del paciente.
+            Al guardar, quedará asignado
+            automáticamente a ti.
+
+        </p>
+
+
+        <!-- ======================================
+             FORMULARIO
+        ======================================= -->
+
+        <form
+            method="post"
+            action="/doctor/pacientes/nuevo"
+            id="form-nuevo-paciente"
+        >
+
+
+            <!-- NOMBRE -->
+
+            <div class="campo-grupo">
+
+                <label
+                    for="nombre"
+                    class="campo-label"
+                >
+
+                    Nombre completo
+
+                </label>
+
+
+                <input
+                    type="text"
+                    id="nombre"
+                    name="nombre"
+                    class="campo-input"
+                    placeholder="Ejemplo: Juan Pérez"
+                    minlength="2"
+                    required
+                    autocomplete="name"
+                >
+
+            </div>
+
+
+            <!-- EMAIL -->
+
+            <div class="campo-grupo">
+
+                <label
+                    for="email"
+                    class="campo-label"
+                >
+
+                    Correo electrónico
+
+                </label>
+
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="campo-input"
+                    placeholder="Ejemplo: paciente@correo.com"
+                    required
+                    autocomplete="email"
+                >
+
+            </div>
+
+
+            <!-- PASSWORD -->
+
+            <div class="campo-grupo">
+
+                <label
+                    for="password"
+                    class="campo-label"
+                >
+
+                    Contraseña temporal
+
+                </label>
+
+
+                <div class="password-wrap">
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="campo-input password-input"
+                        placeholder="Mínimo 6 caracteres"
+                        minlength="6"
+                        required
+                        autocomplete="new-password"
+                    >
+
+
+                    <button
+                        type="button"
+                        class="btn-ver-password"
+                        onclick="togglePassword()"
+                        aria-label="Mostrar contraseña"
+                    >
+
+                        👁
+
+                    </button>
+
+                </div>
+
+
+                <small class="campo-ayuda">
+
+                    El paciente podrá usar este correo
+                    y contraseña para iniciar sesión.
+
+                </small>
+
+            </div>
+
+
+            <!-- CONFIRMAR PASSWORD -->
+
+            <div class="campo-grupo">
+
+                <label
+                    for="confirmar_password"
+                    class="campo-label"
+                >
+
+                    Confirmar contraseña
+
+                </label>
+
+
+                <input
+                    type="password"
+                    id="confirmar_password"
+                    class="campo-input"
+                    placeholder="Escribe nuevamente la contraseña"
+                    minlength="6"
+                    required
+                    autocomplete="new-password"
+                >
+
+            </div>
+
+
+            <!-- ERROR JAVASCRIPT -->
+
+            <div
+                id="error-password"
+                class="error-password"
+                style="display:none;"
+            >
+
+                ⚠️ Las contraseñas no coinciden.
+
+            </div>
+
+
+            <!-- BOTÓN -->
+
+            <button
+                type="submit"
+                class="btn-guardar-paciente"
+            >
+
+                <span>
+
+                    💾
+
+                </span>
+
+                Crear paciente
+
+            </button>
+
+
+            <!-- CANCELAR -->
+
+            <a
+                href="/doctor/pacientes"
+                class="btn-cancelar"
+            >
+
+                Cancelar
+
+            </a>
+
+
+        </form>
+
+    </div>
+
+</section>
+
+
+<style>
+
+/* ==========================================
+   PÁGINA
+========================================== */
+
+.nuevo-paciente-page {
+
+    padding-top: 1rem;
+
+}
+
+
+/* ==========================================
+   HEADER
+========================================== */
+
+.panel-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    margin-bottom: 1.5rem;
+
+    padding-bottom: 0.8rem;
+
+    border-bottom: 1px solid #eeeeee;
+
+}
+
+
+.panel-header .titulo-rojo {
+
+    margin: 0;
+
+    font-size: 1.1rem;
+
+}
+
+
+.espaciador-header {
+
+    width: 80px;
+
+}
+
+
+/* ==========================================
+   VOLVER
+========================================== */
+
+.btn-volver-panel {
+
+    background: white;
+
+    border: 1px solid #d32f2f;
+
+    color: #d32f2f;
+
+    border-radius: 20px;
+
+    padding:
+        0.35rem
+        0.8rem;
+
+    text-decoration: none;
+
+    font-size: 0.82rem;
+
+    font-weight: 600;
+
+}
+
+
+/* ==========================================
+   ERRORES
+========================================== */
+
+.mensaje-error {
+
+    background: #ffebee;
+
+    border: 1px solid #ffcdd2;
+
+    color: #c62828;
+
+    padding: 0.85rem;
+
+    border-radius: 10px;
+
+    margin-bottom: 1rem;
+
+    font-size: 0.85rem;
+
+    line-height: 1.4;
+
+}
+
+
+/* ==========================================
+   TARJETA FORMULARIO
+========================================== */
+
+.form-card {
+
+    background: white;
+
+    border-radius: 18px;
+
+    padding:
+        1.5rem
+        1.2rem;
+
+    box-shadow:
+        0 4px 18px
+        rgba(0,0,0,0.08);
+
+    border:
+        1px solid
+        #f0f0f0;
+
+}
+
+
+.form-icono {
+
+    width: 60px;
+
+    height: 60px;
+
+    margin:
+        0 auto
+        1rem;
+
+    background: #fff5f5;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 1.8rem;
+
+}
+
+
+.form-card h2 {
+
+    margin: 0;
+
+    text-align: center;
+
+    color: #333;
+
+    font-size: 1.1rem;
+
+}
+
+
+.form-descripcion {
+
+    text-align: center;
+
+    color: #777;
+
+    font-size: 0.85rem;
+
+    line-height: 1.5;
+
+    margin:
+        0.6rem
+        0
+        1.5rem;
+
+}
+
+
+/* ==========================================
+   CAMPOS
+========================================== */
+
+.campo-grupo {
+
+    margin-bottom: 1.1rem;
+
+}
+
+
+.campo-label {
+
+    display: block;
+
+    margin-bottom: 0.4rem;
+
+    color: #444;
+
+    font-size: 0.82rem;
+
+    font-weight: 700;
+
+}
+
+
+.campo-input {
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+    border:
+        1px solid
+        #dddddd;
+
+    border-radius: 10px;
+
+    padding:
+        0.8rem
+        0.9rem;
+
+    font-size: 0.9rem;
+
+    outline: none;
+
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+
+}
+
+
+.campo-input:focus {
+
+    border-color: #d32f2f;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(211,47,47,0.1);
+
+}
+
+
+.campo-ayuda {
+
+    display: block;
+
+    margin-top: 0.35rem;
+
+    color: #888;
+
+    font-size: 0.72rem;
+
+    line-height: 1.4;
+
+}
+
+
+/* ==========================================
+   PASSWORD
+========================================== */
+
+.password-wrap {
+
+    position: relative;
+
+}
+
+
+.password-input {
+
+    padding-right: 3rem;
+
+}
+
+
+.btn-ver-password {
+
+    position: absolute;
+
+    right: 0.5rem;
+
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    border: none;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    font-size: 1rem;
+
+}
+
+
+/* ==========================================
+   ERROR PASSWORD
+========================================== */
+
+.error-password {
+
+    background: #ffebee;
+
+    color: #c62828;
+
+    padding: 0.7rem;
+
+    border-radius: 8px;
+
+    font-size: 0.8rem;
+
+    margin-top: -0.4rem;
+
+    margin-bottom: 1rem;
+
+}
+
+
+/* ==========================================
+   GUARDAR
+========================================== */
+
+.btn-guardar-paciente {
+
+    width: 100%;
+
+    border: none;
+
+    background:
+        linear-gradient(
+            135deg,
+            #d32f2f,
+            #b71c1c
+        );
+
+    color: white;
+
+    padding: 0.9rem;
+
+    border-radius: 10px;
+
+    font-size: 0.95rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s,
+        box-shadow 0.15s;
+
+}
+
+
+.btn-guardar-paciente:hover {
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 5px 15px
+        rgba(211,47,47,0.3);
+
+}
+
+
+/* ==========================================
+   CANCELAR
+========================================== */
+
+.btn-cancelar {
+
+    display: block;
+
+    text-align: center;
+
+    color: #777;
+
+    text-decoration: none;
+
+    margin-top: 1rem;
+
+    font-size: 0.85rem;
+
+}
+
+</style>
+
+
+<script>
+
+/* ==========================================
+   MOSTRAR / OCULTAR PASSWORD
+========================================== */
+
+function togglePassword() {
+
+    const input =
+        document.getElementById("password");
+
+    const boton =
+        document.querySelector(".btn-ver-password");
+
+
+    if (input.type === "password") {
+
+        input.type = "text";
+
+        boton.textContent = "🙈";
+
+    } else {
+
+        input.type = "password";
+
+        boton.textContent = "👁";
+
+    }
+
+}
+
+
+/* ==========================================
+   VALIDAR CONTRASEÑAS
+========================================== */
+
+document
+    .getElementById("form-nuevo-paciente")
+    .addEventListener(
+        "submit",
+        function(event) {
+
+            const password =
+                document.getElementById("password")
+                .value;
+
+            const confirmar =
+                document.getElementById("confirmar_password")
+                .value;
+
+            const error =
+                document.getElementById("error-password");
+
+
+            if (password !== confirmar) {
+
+                event.preventDefault();
+
+                error.style.display = "block";
+
+                document
+                    .getElementById("confirmar_password")
+                    .focus();
+
+                return;
+
+            }
+
+
+            error.style.display = "none";
+
+        }
+    );
+
+</script>
+
+{% endblock %}

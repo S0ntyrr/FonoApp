@@ -1,11 +1,57 @@
 {% extends "base.html" %}
 {% block contenido %}
 <section class="pantalla-movil" style="padding-top:1rem;">
+
     <div class="panel-header">
-        <a href="/doctor/pacientes" class="btn-volver-panel">← Pacientes</a>
-        <h1 class="titulo-rojo" style="margin:0;font-size:1.1rem;">Perfil del paciente</h1>
+
+        <a href="/doctor/pacientes" class="btn-volver-panel">
+            ← Pacientes
+        </a>
+
+        <h1 class="titulo-rojo" style="margin:0;font-size:1.1rem;">
+            Perfil del paciente
+        </h1>
+
         <div style="width:70px;"></div>
+
     </div>
+
+
+    <!-- MENSAJE DE ÉXITO -->
+
+    {% if request.query_params.get("mensaje") == "actualizado" %}
+
+        <div class="mensaje-paciente-exito">
+
+            ✓ Los datos del paciente fueron actualizados correctamente.
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- MENSAJES DE ERROR -->
+
+    {% if request.query_params.get("error") == "email_existe" %}
+
+        <div class="mensaje-paciente-error">
+
+            ⚠️ Ya existe otro usuario con este correo.
+
+        </div>
+
+    {% endif %}
+
+
+    {% if request.query_params.get("error") == "nombre_invalido" %}
+
+        <div class="mensaje-paciente-error">
+
+            ⚠️ El nombre debe tener al menos 2 caracteres.
+
+        </div>
+
+    {% endif %}
 
     <div class="paciente-perfil-card">
         <div class="paciente-avatar-lg">{{ (paciente.nombre or paciente.email)[0] | upper }}</div>
@@ -19,48 +65,220 @@
         </div>
     </div>
 
+<div class="resumen-uso-doctor">
+
+    <div class="uso-doctor-card">
+        <span class="uso-doctor-icono">⏱️</span>
+        <div>
+            <span class="uso-doctor-label">Tiempo hoy</span>
+            <strong class="uso-doctor-valor">
+                {{ tiempo_hoy_texto | default('0 min') }}
+            </strong>
+        </div>
+    </div>
+
+    <div class="uso-doctor-card">
+        <span class="uso-doctor-icono">📊</span>
+        <div>
+            <span class="uso-doctor-label">Este mes</span>
+            <strong class="uso-doctor-valor">
+                {{ tiempo_mes_texto | default('0 min') }}
+            </strong>
+        </div>
+    </div>
+
+    <div class="uso-doctor-card">
+        <span class="uso-doctor-icono">📅</span>
+        <div>
+            <span class="uso-doctor-label">Días activos</span>
+            <strong class="uso-doctor-valor">
+                {{ dias_activos_mes | default(0) }}
+            </strong>
+        </div>
+    </div>
+
+</div>
+
+
     <div class="acciones-crud">
         <button class="btn-crud editar" onclick="toggleEditar()">✏️ Editar</button>
     </div>
 
-    <div id="form-editar" style="display:none;margin-bottom:1rem;">
-        <form method="post" action="/doctor/pacientes/{{ paciente._id }}/editar" class="formulario-movil">
-            <label class="etiqueta-campo">Nombre</label>
-            <input type="text" name="nombre" class="campo-texto" value="{{ paciente.nombre or '' }}" required />
-            <label class="etiqueta-campo">Email</label>
-            <input type="email" name="email" class="campo-texto" value="{{ paciente.email }}" required />
-            <button type="submit" class="boton-rojo ancho-completo">💾 Guardar cambios</button>
-            <button type="button" class="boton-rojo-borde ancho-completo" onclick="toggleEditar()">Cancelar</button>
-        </form>
-    </div>
+<div
+    id="form-editar"
+    class="form-editar-paciente"
+    style="display:none;"
+>
+
+    <form
+        method="post"
+        action="/doctor/pacientes/{{ paciente._id }}/editar"
+    >
+
+
+        <div class="campo-edicion">
+
+            <label
+                for="nombre"
+            >
+                Nombre completo
+            </label>
+
+            <input
+                type="text"
+                id="nombre"
+                name="nombre"
+                value="{{ paciente.nombre or '' }}"
+                required
+                minlength="2"
+            >
+
+        </div>
+
+
+        <div class="campo-edicion">
+
+            <label
+                for="email"
+            >
+                Correo electrónico
+            </label>
+
+            <input
+                type="email"
+                id="email"
+                name="email"
+                value="{{ paciente.email }}"
+                required
+            >
+
+            <small>
+                Si cambias el correo, se actualizarán
+                automáticamente los datos relacionados
+                con el paciente.
+            </small>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="btn-guardar-edicion"
+        >
+
+            💾 Guardar cambios
+
+        </button>
+
+
+        <button
+            type="button"
+            class="btn-cancelar-edicion"
+            onclick="toggleEditar()"
+        >
+
+            Cancelar
+
+        </button>
+
+
+    </form>
+
+</div>
 
     <section style="margin-top:1.2rem;">
-        <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.8rem;">📊 Progreso en juegos</h3>
         {% if stats_por_categoria %}
-            <div class="grafica-container">
-                {% for cat, stats in stats_por_categoria.items() %}
-                    {% set pct = stats.avance_promedio if stats.avance_promedio is defined else (((stats.completados / stats.total) * 100) | int if stats.total > 0 else 0) %}
-                    <div class="grafica-fila">
-                        <div class="grafica-label">{{ cat | title }}</div>
-                        <div class="grafica-barra-wrap">
-                            <div class="grafica-barra" style="width:{{ pct }}%;">
-                                <span class="grafica-pct">{{ pct }}%</span>
-                            </div>
-                        </div>
-                        <div class="grafica-nums">
-                            <span class="num-ok">✓ {{ stats.completados }}</span>
-                            <span class="num-fail">✗ {{ stats.en_progreso }}</span>
-                        </div>
+
+    <div class="grafica-container">
+
+        {% for cat, stats in stats_por_categoria.items() %}
+
+            {% if stats.avance_promedio is defined %}
+
+                {% set pct = stats.avance_promedio %}
+
+            {% elif stats.total > 0 %}
+
+                {% set pct = ((stats.completados / stats.total) * 100) | int %}
+
+            {% else %}
+
+                {% set pct = 0 %}
+
+            {% endif %}
+
+
+            <div class="grafica-fila">
+
+                <div class="grafica-label">
+
+                    {{ cat | title }}
+
+                </div>
+
+
+                <div class="grafica-barra-wrap">
+
+                    <div class="grafica-barra" style="width: {{ pct }}%;">
+
+                        <span class="grafica-pct">
+
+                            {{ pct }}%
+
+                        </span>
+
                     </div>
-                    <p class="grafica-submeta">Promedio puntaje: {{ stats.puntaje_promedio if stats.puntaje_promedio is defined else 0 }}</p>
-                {% endfor %}
+
+                </div>
+
+
+                <div class="grafica-nums">
+
+                    <span class="num-ok">
+
+                        ✓ {{ stats.completados }}
+
+                    </span>
+
+
+                    <span class="num-fail">
+
+                        ✗ {{ stats.en_progreso }}
+
+                    </span>
+
+                </div>
+
             </div>
-        {% else %}
-            <div class="actividad-vacia">
-                <span style="font-size:2rem;">🎮</span>
-                <p>Este paciente aún no ha jugado ningún juego.</p>
-            </div>
-        {% endif %}
+
+
+            <p class="grafica-submeta">
+
+                Promedio puntaje:
+
+                {% if stats.puntaje_promedio is defined %}
+
+                    {{ stats.puntaje_promedio }}
+
+                {% else %}
+
+                    0
+
+                {% endif %}
+
+            </p>
+
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+    <div class="actividad-vacia">
+        <span style="font-size:2rem;">🎮</span>
+        <p>Este paciente aún no ha jugado ningún juego.</p>
+    </div>
+{% endif %}
     </section>
 
     {% if resultados %}
@@ -101,6 +319,79 @@
 </section>
 
 <style>
+.resumen-uso-doctor {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.7rem;
+    margin: 0.9rem 0 1rem;
+}
+
+.uso-doctor-card {
+    background: #ffffff;
+    border: 1px solid #f0dede;
+    border-radius: 14px;
+    padding: 0.85rem 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    box-shadow: 0 3px 10px rgba(180, 40, 40, 0.07);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.uso-doctor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(180, 40, 40, 0.12);
+}
+
+.uso-doctor-icono {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 12px;
+    background: #fff1f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.uso-doctor-card > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.uso-doctor-label {
+    font-size: 0.68rem;
+    color: #888;
+    font-weight: 600;
+}
+
+.uso-doctor-valor {
+    margin-top: 0.15rem;
+    font-size: 0.9rem;
+    color: #c62828;
+    font-weight: 800;
+}
+
+@media (max-width: 600px) {
+    .resumen-uso-doctor {
+        grid-template-columns: 1fr;
+        gap: 0.55rem;
+    }
+
+    .uso-doctor-card {
+        padding: 0.8rem;
+    }
+
+    .uso-doctor-icono {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+    }
+}
 .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
 .btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
 .btn-volver-panel:hover { background:#fff5f5; }
@@ -135,6 +426,173 @@
 .historial-meta { margin:0.1rem 0 0; font-size:0.72rem; color:#888; }
 .badge-feedback { background:#e8f5e9; color:#2e7d32; font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:8px; white-space:nowrap; }
 .badge-sin-feedback { background:#fff3e0; color:#e65100; font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:8px; white-space:nowrap; text-decoration:none; }
+
+.mensaje-paciente-exito {
+
+    background: #e8f5e9;
+
+    border: 1px solid #c8e6c9;
+
+    color: #2e7d32;
+
+    padding: 0.8rem;
+
+    border-radius: 10px;
+
+    font-size: 0.85rem;
+
+    margin-bottom: 1rem;
+
+}
+
+
+.mensaje-paciente-error {
+
+    background: #ffebee;
+
+    border: 1px solid #ffcdd2;
+
+    color: #c62828;
+
+    padding: 0.8rem;
+
+    border-radius: 10px;
+
+    font-size: 0.85rem;
+
+    margin-bottom: 1rem;
+
+}
+
+.form-editar-paciente {
+
+    background: #ffffff;
+
+    border: 1px solid #eeeeee;
+
+    border-radius: 14px;
+
+    padding: 1rem;
+
+    margin-bottom: 1rem;
+
+    box-shadow:
+        0 2px 10px
+        rgba(0,0,0,0.06);
+
+}
+
+
+.campo-edicion {
+
+    margin-bottom: 1rem;
+
+}
+
+
+.campo-edicion label {
+
+    display: block;
+
+    margin-bottom: 0.4rem;
+
+    font-size: 0.82rem;
+
+    font-weight: 700;
+
+    color: #444;
+
+}
+
+
+.campo-edicion input {
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+    border: 1px solid #dddddd;
+
+    border-radius: 9px;
+
+    padding: 0.75rem;
+
+    font-size: 0.9rem;
+
+}
+
+
+.campo-edicion input:focus {
+
+    outline: none;
+
+    border-color: #d32f2f;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(211,47,47,0.1);
+
+}
+
+
+.campo-edicion small {
+
+    display: block;
+
+    margin-top: 0.35rem;
+
+    color: #888;
+
+    font-size: 0.7rem;
+
+    line-height: 1.4;
+
+}
+
+
+.btn-guardar-edicion {
+
+    width: 100%;
+
+    border: none;
+
+    background: #d32f2f;
+
+    color: white;
+
+    padding: 0.8rem;
+
+    border-radius: 9px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+}
+
+
+.btn-cancelar-edicion {
+
+    width: 100%;
+
+    margin-top: 0.5rem;
+
+    border: 1px solid #cccccc;
+
+    background: white;
+
+    color: #666;
+
+    padding: 0.75rem;
+
+    border-radius: 9px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
 </style>
 <script>
 function toggleEditar() {

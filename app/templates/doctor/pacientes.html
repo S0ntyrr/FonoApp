@@ -1,48 +1,916 @@
 {% extends "base.html" %}
+
 {% block contenido %}
-<section class="pantalla-movil" style="padding-top:1rem;">
+
+<section class="pantalla-movil pacientes-page">
+
+    <!-- ==========================================
+         ENCABEZADO
+    =========================================== -->
+
     <div class="panel-header">
-        <a href="/doctor/home" class="btn-volver-panel">← Volver</a>
-        <h1 class="titulo-rojo" style="margin:0;font-size:1.2rem;">👥 Pacientes</h1>
-        <div style="width:70px;"></div>
+
+        <a href="/doctor/home" class="btn-volver-panel">
+            ← Volver
+        </a>
+
+        <h1 class="titulo-rojo">
+            👥 Mis pacientes
+        </h1>
+
+        <a
+            href="/doctor/pacientes/nuevo"
+            class="btn-nuevo-header"
+            title="Agregar paciente"
+        >
+            + Nuevo
+        </a>
+
     </div>
-    {% if pacientes %}
-        <div class="lista-pacientes-doctor">
-            {% for p in pacientes %}
-                <a href="/doctor/pacientes/{{ p._id }}" class="paciente-card">
-                    <div class="paciente-avatar">{{ (p.nombre or p.email)[0] | upper }}</div>
-                    <div class="paciente-info">
-                        <p class="paciente-nombre">{{ p.nombre or p.email }}</p>
-                        <p class="paciente-email">{{ p.email }}</p>
-                        <div class="paciente-stats">
-                            <span class="stat-mini">🎮 {{ p.juegos_completados or 0 }} completados</span>
-                            <span class="stat-mini">📊 {{ p.total_juegos or 0 }} total</span>
-                        </div>
-                    </div>
-                    <span class="paciente-flecha">›</span>
-                </a>
-            {% endfor %}
+
+
+    <!-- ==========================================
+         BOTÓN PRINCIPAL
+    =========================================== -->
+
+    <a
+        href="/doctor/pacientes/nuevo"
+        class="btn-nuevo-paciente"
+    >
+        <span class="btn-nuevo-icono">＋</span>
+
+        <span>
+            <strong>Agregar nuevo paciente</strong>
+            <small>
+                Crear y asignar un paciente
+            </small>
+        </span>
+
+        <span class="btn-nuevo-flecha">
+            ›
+        </span>
+    </a>
+
+
+    <!-- ==========================================
+         MENSAJES
+    =========================================== -->
+
+    {% if request.query_params.get("mensaje") == "paciente_creado" %}
+
+        <div class="mensaje-exito">
+            ✓ Paciente creado correctamente.
         </div>
-    {% else %}
-        <div class="actividad-vacia" style="margin-top:2rem;">
-            <span style="font-size:2.5rem;">👥</span>
-            <p>No hay pacientes registrados.</p>
-        </div>
+
     {% endif %}
+
+
+    <!-- ==========================================
+         LISTA DE PACIENTES
+    =========================================== -->
+
+    {% if pacientes %}
+
+        <div class="buscador-pacientes">
+    <span class="buscador-icono">🔎</span>
+
+    <input
+        type="text"
+        id="buscarPaciente"
+        class="buscador-input"
+        placeholder="Buscar por nombre o correo..."
+        autocomplete="off"
+    />
+</div>
+
+        <div class="contador-pacientes">
+
+            {{ pacientes|length }}
+
+            {% if pacientes|length == 1 %}
+                paciente registrado
+            {% else %}
+                pacientes registrados
+            {% endif %}
+
+        </div>
+
+
+        <div class="lista-pacientes-doctor">
+
+            {% for p in pacientes %}
+
+                <a
+    href="/doctor/pacientes/{{ p._id }}"
+    class="paciente-card"
+    data-nombre="{{ (p.nombre or '') | lower }}"
+    data-email="{{ (p.email or '') | lower }}"
+>
+
+                    <!-- Avatar -->
+
+                    <div class="paciente-avatar">
+
+                        {{
+                            (p.nombre or p.email)[0]
+                            | upper
+                        }}
+
+                    </div>
+
+
+                    <!-- Información -->
+
+                    <div class="paciente-info">
+
+                        <p class="paciente-nombre">
+
+                            {{
+                                p.nombre
+                                or "Sin nombre"
+                            }}
+
+                        </p>
+
+
+                        <p class="paciente-email">
+
+                            {{ p.email }}
+
+                        </p>
+
+
+                        <div class="paciente-stats">
+
+                            <span class="stat-mini">
+
+                                🎮
+                                {{
+                                    p.juegos_completados
+                                    or 0
+                                }}
+                                completados
+
+                            </span>
+
+
+                            <span class="stat-mini">
+
+                                📊
+                                {{
+                                    p.total_juegos
+                                    or 0
+                                }}
+                                intentos
+
+                            </span>
+
+                        </div>
+
+                        {% set total = p.total_juegos or 0 %}
+                        {% set completados = p.juegos_completados or 0 %}
+                        {% set progreso = p.progreso_promedio or 0 %}
+
+                        <div class="paciente-progreso">
+                            <div class="paciente-progreso-header">
+                                <span>Progreso registrado</span>
+                                <strong>{{ progreso }}%</strong>
+                            </div>
+
+                            <div class="paciente-progreso-barra">
+                                <div
+                                    class="paciente-progreso-relleno"
+                                    data-progreso="{{ progreso }}"
+                                ></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Flecha -->
+
+                    <span class="paciente-flecha">
+                        ›
+                    </span>
+
+                </a>
+
+            {% endfor %}
+
+        </div>
+
+
+    {% else %}
+
+
+        <!-- ==========================================
+             ESTADO VACÍO
+        =========================================== -->
+
+        <div class="actividad-vacia">
+
+            <div class="estado-vacio-icono">
+                👥
+            </div>
+
+            <h2>
+                Aún no tienes pacientes
+            </h2>
+
+            <p>
+                Puedes crear tu primer paciente
+                usando el botón de abajo.
+            </p>
+
+
+            <a
+                href="/doctor/pacientes/nuevo"
+                class="btn-crear-vacio"
+            >
+                + Crear mi primer paciente
+            </a>
+
+        </div>
+
+
+    {% endif %}
+
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const barrasProgreso = document.querySelectorAll(
+    '.paciente-progreso-relleno'
+);
+
+barrasProgreso.forEach(function (barra) {
+    const progreso = Number(
+        barra.dataset.progreso || 0
+    );
+
+    const porcentajeSeguro = Math.max(
+        0,
+        Math.min(100, progreso)
+    );
+
+    barra.style.width = porcentajeSeguro + '%';
+});
+
+    const input = document.getElementById('buscarPaciente');
+    const tarjetas = document.querySelectorAll('.paciente-card');
+
+    if (!input) {
+        return;
+    }
+
+    input.addEventListener('input', function () {
+        const termino = input.value
+            .trim()
+            .toLowerCase();
+
+        tarjetas.forEach(function (tarjeta) {
+            const nombre = tarjeta.dataset.nombre || '';
+            const email = tarjeta.dataset.email || '';
+
+            const coincide =
+                nombre.includes(termino) ||
+                email.includes(termino);
+
+            tarjeta.style.display = coincide
+                ? 'flex'
+                : 'none';
+        });
+    });
+});
+</script>
+
 <style>
-.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
-.btn-volver-panel { background:none; border:1px solid #d32f2f; color:#d32f2f; border-radius:20px; padding:0.3rem 0.8rem; font-size:0.82rem; font-weight:600; text-decoration:none; white-space:nowrap; }
-.btn-volver-panel:hover { background:#fff5f5; }
-.lista-pacientes-doctor { display:flex; flex-direction:column; gap:0.6rem; }
-.paciente-card { display:flex; align-items:center; gap:0.9rem; padding:0.9rem 1rem; background:#fff; border-radius:12px; text-decoration:none; color:#1a1a1a; box-shadow:0 1px 6px rgba(0,0,0,0.06); border:1px solid #f0f0f0; transition:transform 0.1s, box-shadow 0.1s; }
-.paciente-card:hover { transform:translateX(3px); box-shadow:0 4px 14px rgba(0,0,0,0.1); border-color:#ffcdd2; }
-.paciente-avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#d32f2f,#b71c1c); color:#fff; font-size:1.2rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.paciente-info { flex:1; }
-.paciente-nombre { margin:0; font-size:0.95rem; font-weight:700; color:#1a1a1a; }
-.paciente-email { margin:0.1rem 0 0.3rem; font-size:0.78rem; color:#888; }
-.paciente-stats { display:flex; gap:0.6rem; flex-wrap:wrap; }
-.stat-mini { font-size:0.72rem; color:#666; background:#f5f5f5; padding:0.15rem 0.5rem; border-radius:10px; }
-.paciente-flecha { font-size:1.3rem; color:#ccc; }
+
+.paciente-progreso {
+    margin-top: 0.55rem;
+}
+
+.paciente-progreso-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    gap: 0.5rem;
+}
+
+.paciente-progreso-header span {
+    font-size: 0.7rem;
+    color: #888;
+    font-weight: 600;
+}
+
+.paciente-progreso-header strong {
+    font-size: 0.72rem;
+    color: #c62828;
+    font-weight: 800;
+}
+
+.paciente-progreso-barra {
+    width: 100%;
+    height: 7px;
+    background: #f2e5e5;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.paciente-progreso-relleno {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        #d32f2f,
+        #ef5350
+    );
+    border-radius: 20px;
+    transition: width 0.5s ease;
+}
+
+.buscador-pacientes {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #ffffff;
+    border: 1px solid #f0dede;
+    border-radius: 14px;
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 3px 10px rgba(180, 40, 40, 0.07);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.buscador-pacientes:focus-within {
+    border-color: #e57373;
+    box-shadow: 0 5px 14px rgba(198, 40, 40, 0.12);
+}
+
+.buscador-icono {
+    font-size: 1rem;
+    opacity: 0.7;
+}
+
+.buscador-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.85rem;
+    color: #333;
+    min-width: 0;
+}
+
+.buscador-input::placeholder {
+    color: #aaa;
+}
+
+/* ==========================================
+   CONTENEDOR
+========================================== */
+
+.pacientes-page {
+    padding-top: 1rem;
+}
+
+
+/* ==========================================
+   HEADER
+========================================== */
+
+.panel-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 0.5rem;
+
+    margin-bottom: 1.2rem;
+
+    padding-bottom: 0.8rem;
+
+    border-bottom: 1px solid #f0f0f0;
+
+}
+
+
+.panel-header .titulo-rojo {
+
+    margin: 0;
+
+    font-size: 1.15rem;
+
+    text-align: center;
+
+}
+
+
+/* ==========================================
+   BOTÓN VOLVER
+========================================== */
+
+.btn-volver-panel {
+
+    background: white;
+
+    border: 1px solid #d32f2f;
+
+    color: #d32f2f;
+
+    border-radius: 20px;
+
+    padding: 0.35rem 0.8rem;
+
+    font-size: 0.82rem;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    white-space: nowrap;
+
+}
+
+
+.btn-volver-panel:hover {
+
+    background: #fff5f5;
+
+}
+
+
+/* ==========================================
+   BOTÓN NUEVO HEADER
+========================================== */
+
+.btn-nuevo-header {
+
+    background: #d32f2f;
+
+    color: white;
+
+    padding: 0.4rem 0.8rem;
+
+    border-radius: 20px;
+
+    text-decoration: none;
+
+    font-size: 0.8rem;
+
+    font-weight: 700;
+
+    white-space: nowrap;
+
+}
+
+
+.btn-nuevo-header:hover {
+
+    background: #b71c1c;
+
+}
+
+
+/* ==========================================
+   BOTÓN PRINCIPAL NUEVO PACIENTE
+========================================== */
+
+.btn-nuevo-paciente {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.8rem;
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+    background: linear-gradient(
+        135deg,
+        #d32f2f,
+        #b71c1c
+    );
+
+    color: white;
+
+    padding: 1rem;
+
+    border-radius: 14px;
+
+    text-decoration: none;
+
+    margin-bottom: 1.2rem;
+
+    box-shadow:
+        0 4px 14px
+        rgba(211, 47, 47, 0.25);
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+
+}
+
+
+.btn-nuevo-paciente:hover {
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 7px 20px
+        rgba(211, 47, 47, 0.35);
+
+}
+
+
+.btn-nuevo-icono {
+
+    width: 44px;
+
+    height: 44px;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,0.2);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 1.8rem;
+
+    flex-shrink: 0;
+
+}
+
+
+.btn-nuevo-paciente span:nth-child(2) {
+
+    display: flex;
+
+    flex-direction: column;
+
+    flex: 1;
+
+}
+
+
+.btn-nuevo-paciente strong {
+
+    font-size: 0.95rem;
+
+}
+
+
+.btn-nuevo-paciente small {
+
+    margin-top: 0.15rem;
+
+    opacity: 0.85;
+
+}
+
+
+.btn-nuevo-flecha {
+
+    font-size: 2rem;
+
+}
+
+
+/* ==========================================
+   CONTADOR
+========================================== */
+
+.contador-pacientes {
+
+    font-size: 0.78rem;
+
+    color: #777;
+
+    margin-bottom: 0.7rem;
+
+}
+
+
+/* ==========================================
+   LISTA
+========================================== */
+
+.lista-pacientes-doctor {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.7rem;
+
+}
+
+
+/* ==========================================
+   TARJETA PACIENTE
+========================================== */
+
+.paciente-card {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.9rem;
+
+    padding: 0.9rem 1rem;
+
+    background: #fff;
+
+    border-radius: 14px;
+
+    text-decoration: none;
+
+    color: #1a1a1a;
+
+    box-shadow:
+        0 2px 8px
+        rgba(0,0,0,0.06);
+
+    border: 1px solid #eeeeee;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+
+}
+
+
+.paciente-card:hover {
+
+    transform: translateX(3px);
+
+    box-shadow:
+        0 5px 16px
+        rgba(0,0,0,0.10);
+
+    border-color: #ffcdd2;
+
+}
+
+
+/* ==========================================
+   AVATAR
+========================================== */
+
+.paciente-avatar {
+
+    width: 48px;
+
+    height: 48px;
+
+    border-radius: 50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            #d32f2f,
+            #b71c1c
+        );
+
+    color: white;
+
+    font-size: 1.25rem;
+
+    font-weight: 700;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+}
+
+
+/* ==========================================
+   INFORMACIÓN
+========================================== */
+
+.paciente-info {
+
+    flex: 1;
+
+    min-width: 0;
+
+}
+
+
+.paciente-nombre {
+
+    margin: 0;
+
+    font-size: 0.95rem;
+
+    font-weight: 700;
+
+    color: #1a1a1a;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+}
+
+
+.paciente-email {
+
+    margin:
+        0.15rem
+        0
+        0.45rem;
+
+    font-size: 0.76rem;
+
+    color: #888;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+}
+
+
+/* ==========================================
+   ESTADÍSTICAS
+========================================== */
+
+.paciente-stats {
+
+    display: flex;
+
+    gap: 0.4rem;
+
+    flex-wrap: wrap;
+
+}
+
+
+.stat-mini {
+
+    font-size: 0.68rem;
+
+    color: #666;
+
+    background: #f5f5f5;
+
+    padding:
+        0.2rem
+        0.45rem;
+
+    border-radius: 12px;
+
+}
+
+
+/* ==========================================
+   FLECHA
+========================================== */
+
+.paciente-flecha {
+
+    font-size: 1.7rem;
+
+    color: #d0d0d0;
+
+}
+
+
+/* ==========================================
+   ESTADO VACÍO
+========================================== */
+
+.actividad-vacia {
+
+    margin-top: 2rem;
+
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 2rem 1.2rem;
+
+    text-align: center;
+
+    box-shadow:
+        0 2px 10px
+        rgba(0,0,0,0.05);
+
+}
+
+
+.estado-vacio-icono {
+
+    font-size: 3rem;
+
+    margin-bottom: 0.8rem;
+
+}
+
+
+.actividad-vacia h2 {
+
+    margin: 0 0 0.5rem;
+
+    font-size: 1.05rem;
+
+    color: #333;
+
+}
+
+
+.actividad-vacia p {
+
+    margin: 0 0 1.2rem;
+
+    color: #777;
+
+    font-size: 0.88rem;
+
+    line-height: 1.5;
+
+}
+
+
+.btn-crear-vacio {
+
+    display: inline-block;
+
+    background: #d32f2f;
+
+    color: white;
+
+    padding:
+        0.7rem
+        1.2rem;
+
+    border-radius: 10px;
+
+    text-decoration: none;
+
+    font-weight: 700;
+
+    font-size: 0.85rem;
+
+}
+
+
+.btn-crear-vacio:hover {
+
+    background: #b71c1c;
+
+}
+
+
+/* ==========================================
+   MENSAJE DE ÉXITO
+========================================== */
+
+.mensaje-exito {
+
+    background: #e8f5e9;
+
+    color: #2e7d32;
+
+    border:
+        1px solid
+        #c8e6c9;
+
+    padding: 0.8rem;
+
+    border-radius: 10px;
+
+    font-size: 0.85rem;
+
+    margin-bottom: 1rem;
+
+}
+
 </style>
+
 {% endblock %}
