@@ -21,10 +21,11 @@ class AppSettings(BaseSettings):
     1. Variables de entorno del sistema
     2. Archivo .env en la raíz del proyecto
     
-    Los valores por defecto son para desarrollo local con MongoDB local.
+    Las credenciales de MongoDB deben declararse explícitamente. Esto evita
+    que un despliegue sin variables intente conectar a localhost.
      """
-    MONGODB_URI: str = "mongodb://localhost:27017"
-    MONGODB_DB_NAME: str = "fono_app"
+    MONGODB_URI: str
+    MONGODB_DB_NAME: str = "tesis"
     SESSION_SECRET_KEY: str = "change-this-in-production"
     SESSION_COOKIE_NAME: str = "fonoapp_session"
     SESSION_MAX_AGE: int = 86400
