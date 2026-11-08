@@ -242,7 +242,8 @@ const NIVELES = [
     },
 ];
 
-let nivelActual = 0;
+const nivelTareaEscala = Number(new URLSearchParams(location.search).get('nivel'));
+let nivelActual = [1,2,3].includes(nivelTareaEscala) ? (nivelTareaEscala-1)*2 : 0;
 let notaActual = 0;
 let faseEscala = 'inhala'; // inhala, canta
 let audioCtxE = null, analyserE = null, micStreamE = null, micActivoE = false, animFrameE = null;

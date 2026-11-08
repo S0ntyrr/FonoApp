@@ -6,6 +6,11 @@
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
   <link rel="stylesheet" href="/static/css/articulacion-juego.css">
+  <script>window.FONOAPP_ES_PACIENTE = {{ 'true' if request.session.get('user', {}).get('rol') == 'paciente' else 'false' }};</script>
+  <script src="/static/js/fono-evidencia-universal.js"></script>
+  <script src="/static/js/fono-boca-real.js?v=3"></script>
+  <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=1">
+  <link rel="stylesheet" href="/static/css/fono-terapia.css">
   <script src="/static/js/juego-audio-utils.js"></script>
   <script src="/static/js/articulacion-voz.js"></script>
   <script src="/static/js/articulacion-letra.js"></script>
@@ -13,18 +18,19 @@
 <body>
 <div class="art-screen">
   <h1 class="art-cat">Articulación · Letra D</h1>
+<div class="fono-demo-contenedor"><div data-real-fonema="d"></div></div>
 
   <section class="art-step active" id="s1">
     <div class="art-card">
       <p class="art-titulo">1. Prepara la articulación</p>
-      <p class="art-ayuda">Prepara la lengua para producir el sonido de la D de forma suave.</p>
-      <ol class="art-list">
+      <p class="art-ayuda">👀 Mira la boca. 👅 Mueve la lengua. 🔊 Escucha y repite.</p>
+      <details class="fono-guia-nueva"><summary>👨‍👩‍👧 Orientación para acompañantes</summary><ol class="art-list">
         <li><strong>Acerca la punta de la lengua</strong> a la zona de los dientes superiores.</li>
         <li><strong>Haz un contacto suave</strong>; no empujes con fuerza.</li>
         <li><strong>Activa la voz y suelta la lengua</strong> para dejar salir el sonido con naturalidad.</li>
-      </ol>
+      </ol></details>
       <div style="text-align:center;font-size:3.5rem;margin-top:12px;">👅</div>
-      <div class="art-alerta">La app puede reconocer palabras completas, pero no puede determinar por sí sola si el sonido de la D fue producido de manera fonéticamente correcta. Los intentos de voz se guardan en una sola evidencia de audio para revisión profesional.</div>
+      <div class="art-alerta">La app puede reconocer palabras completas, pero no puede determinar por sí sola si el sonido de la D fue producido de manera fonéticamente correcta. Los audios grabados se guardan para revisión profesional.</div>
       <button class="art-btn" type="button" onclick="artGoStep(2)">Siguiente →</button>
     </div>
   </section>
@@ -41,7 +47,7 @@
   <section class="art-step" id="s3">
     <div class="art-card">
       <p class="art-titulo">3. Haz avanzar la moto</p>
-      <p class="art-ayuda">Di la <strong>palabra completa</strong> que aparece. La moto avanza únicamente cuando el navegador reconoce esa palabra.</p>
+      <p class="art-ayuda">Di la <strong>palabra completa</strong> que aparece. Si el micrófono no reconoce tu voz, puedes continuar indicando que lo intentaste.</p>
       <div class="art-reto">
         <div class="art-reto-contador" id="moto-contador"></div>
         <div class="art-reto-palabra" id="moto-objetivo"></div>
@@ -76,7 +82,7 @@
     <div class="art-card art-final">
       <div class="art-final-icon">🏆</div>
       <h2 style="color:var(--art-rojo);margin-bottom:8px;">¡Actividad completada!</h2>
-      <p class="art-ayuda">Terminaste la práctica de la letra D. La evidencia de voz quedó guardada para revisión profesional.</p>
+      <p class="art-ayuda">Terminaste la práctica de la letra D. Si grabaste tu voz, quedó guardada para revisión profesional.</p>
       <a id="btn-siguiente-final" href="/juegos/articulacion/letra-f" class="art-link primary">Siguiente</a>
       <a href="/juegos/articulacion" class="art-link secondary">Volver a Articulación</a>
     </div>

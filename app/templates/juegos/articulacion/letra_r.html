@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{ titulo_pagina }}</title>
   <link rel="stylesheet" href="/static/css/estilos.css">
+  <script>window.FONOAPP_ES_PACIENTE = {{ 'true' if request.session.get('user', {}).get('rol') == 'paciente' else 'false' }};</script>
+  <script src="/static/js/fono-evidencia-universal.js"></script>
+  <script src="/static/js/fono-boca-real.js?v=1"></script>
+  <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=1">
+  <link rel="stylesheet" href="/static/css/fono-terapia.css">
   <script src="/static/js/juego-audio-utils.js"></script>
   <script src="/static/js/articulacion-voz.js"></script>
 
@@ -197,20 +202,21 @@
   </style>
 </head>
 <body>
+<div class="fono-demo-contenedor"><div data-real-fonema="r"></div></div>
 <div class="screen">
   <h1 class="cat">Articulación · Letra R</h1>
 
   <div class="step active" id="s1">
     <div class="card">
       <p class="titulo-paso">1. Prepara la posición de la lengua</p>
-      <p class="texto-ayuda">Hazlo despacio y, si puedes, mírate en un espejo.</p>
-      <ol class="instruction-list">
+      <p class="texto-ayuda">👀 Mira la boca. 👅 Mueve la lengua. 🔊 Escucha e imita.</p>
+      <details class="fono-guia-nueva"><summary>👨‍👩‍👧 Orientación para acompañantes</summary><ol class="instruction-list">
         <li><strong>Coloca la punta de la lengua</strong> cerca de la zona detrás de los dientes superiores.</li>
         <li><strong>Deja pasar el aire</strong> sin apretar demasiado la lengua.</li>
         <li><strong>Intenta una vibración suave</strong> y evita forzar la garganta.</li>
-      </ol>
+      </ol></details>
       <div style="text-align:center;font-size:3.5rem;margin-top:12px;">👅</div>
-      <div class="alerta-revision">La app puede reconocer palabras, pero la calidad fonética de la R debe revisarla un profesional. Todos tus intentos de voz se guardarán juntos en una única evidencia de audio para el doctor.</div>
+      <div class="alerta-revision">La app puede reconocer palabras, pero la calidad fonética de la R debe revisarla un profesional. Los audios grabados quedan disponibles para el profesional.</div>
       <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
     </div>
   </div>
@@ -542,6 +548,7 @@ function goStep(n) {
    ========================================================= */
 function hablarEjemplo(texto) {
   if (reconocimientoEnCursoR) return;
+  if (window.FonoVoz) { pausarGrabacionR(); window.FonoVoz.hablar(texto); return; }
   if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
 
   // No queremos que la voz de ejemplo termine dentro de la evidencia
@@ -823,6 +830,7 @@ async function finalizarLetraR() {
   fd.append('notas', 'Palabras completas reconocidas por Web Speech API. La pronunciación fonética de la R requiere revisión profesional del audio.');
 
   try {
+    if (window.FonoEvidencia) await window.FonoEvidencia.enriquecer(fd);
     const response = await fetch('/juegos/resultado', { method:'POST', body:fd });
 
     if (response.status === 401 || response.status === 403) {

@@ -108,6 +108,19 @@
             <div class="acceso-juegos-flecha">›</div>
         </div>
 
+        {% if tareas_manuales %}
+        <section class="fono-tareas-paciente">
+          <h2>🩺 Mis retos del terapeuta</h2>
+          {% for t in tareas_manuales %}
+          <a class="fono-tarea-paciente" href="{{ t.url_juego }}?tarea_id={{ t._id }}&fonema={{ t.fonema }}&nivel={{ t.nivel }}">
+            <span class="fono-tarea-emoji">🎯</span>
+            <span><strong>{{ t.actividad }}</strong><small>{% if t.url_juego in juegos_con_niveles %}Nivel {{ t.nivel }} · {% endif %}Sonido {{ t.fonema }}</small>
+              {% if t.instrucciones %}<small>{{ t.instrucciones }}</small>{% endif %}</span>
+            <strong>▶</strong>
+          </a>
+          {% endfor %}
+        </section>
+        {% endif %}
         <section style="margin-top:1.5rem;">
             <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📋 Actividades de hoy</h3>
             <div id="listaActividades" class="lista-actividades">
@@ -236,6 +249,43 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/*
+ * Corrección responsive del dashboard del paciente.
+ * En base.html el contenedor general usa flex-direction: row;
+ * aquí la cabecera y el contenido son hermanos, por lo que deben
+ * apilarse verticalmente. Este ajuste existe SOLO en perfil.html;
+ * no modifica los paneles de médico, admin ni las pantallas de juegos.
+ */
+.contenedor-principal {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+.cabecera-app {
+    width: 100%;
+    max-width: 100%;
+}
+.contenido-principal {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0.5rem 0 1.5rem;
+}
+.contenido-principal > .pantalla-movil {
+    width: 100%;
+    min-width: 0;
+    max-width: 460px;
+    margin: 0 auto;
+}
+@media (max-width: 480px) {
+    .contenido-principal > .pantalla-movil {
+        max-width: 100%;
+        padding: 1rem;
+    }
+}
 .actividad-link { color: inherit; }
 .actividad-link.completada { background: #f0fff4 !important; border-color: #4caf50 !important; }
 .actividad-link.completada .actividad-detalle { text-decoration: line-through; color: #888; }

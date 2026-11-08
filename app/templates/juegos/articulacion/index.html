@@ -1,58 +1,8 @@
 {% extends "base.html" %}
 {% block contenido %}
-<section class="pantalla-movil">
-    <div class="juegos-header">
-        <a href="/juegos/" class="btn-volver-cat">← Juegos</a>
-        <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.2rem;">🗣️ Articulación</h1>
-        <div style="width:70px;"></div>
-    </div>
-    <p class="centrado texto-pequeño" style="margin-bottom:1.5rem;">Practica sonidos y palabras con ejemplos en español y ejercicios de voz</p>
-
-    <div class="juegos-grid">
-        <a href="/juegos/articulacion/letra-b" class="juego-card articulacion">
-            <div class="juego-icono">🐝</div>
-            <div class="juego-info"><h2>Letra B</h2><p>Prepara los labios y practica palabras con B</p></div>
-            <span class="juego-flecha">›</span>
-        </a>
-        <a href="/juegos/articulacion/letra-d" class="juego-card articulacion">
-            <div class="juego-icono">🐉</div>
-            <div class="juego-info"><h2>Letra D</h2><p>Prepara la lengua y practica palabras con D</p></div>
-            <span class="juego-flecha">›</span>
-        </a>
-        <a href="/juegos/articulacion/letra-f" class="juego-card articulacion">
-            <div class="juego-icono">🌸</div>
-            <div class="juego-info"><h2>Letra F</h2><p>Controla el aire y practica palabras con F</p></div>
-            <span class="juego-flecha">›</span>
-        </a>
-        <a href="/juegos/articulacion/letra-r" class="juego-card articulacion">
-            <div class="juego-icono">🎵</div>
-            <div class="juego-info"><h2>Letra R</h2><p>Practica sílabas y palabras completas con R</p></div>
-            <span class="juego-flecha">›</span>
-        </a>
-        <a href="/juegos/articulacion/completa-palabra" class="juego-card articulacion">
-            <div class="juego-icono">🔤</div>
-            <div class="juego-info"><h2>Completa la palabra</h2><p>Completa una letra y pronuncia la palabra completa</p></div>
-            <span class="juego-flecha">›</span>
-        </a>
-        <a href="/juegos/articulacion/moto-voz" class="juego-card articulacion">
-            <div class="juego-icono">🏍️</div>
-            <div class="juego-info"><h2>¡Acelera la moto!</h2><p>Pronuncia palabras completas para avanzar</p></div>
-            <span class="juego-flecha">›</span>
-        </a>
-    </div>
-</section>
-
-<style>
-.juegos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
-.btn-volver-cat { background:none; border:1px solid #e63946; color:#e63946; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
-.btn-volver-cat:hover { background:#fff0f8; }
-.juegos-grid { display:flex; flex-direction:column; gap:0.9rem; }
-.juego-card { display:flex; align-items:center; gap:1rem; padding:1rem 1.2rem; border-radius:14px; text-decoration:none; color:#333; transition:transform 0.15s, box-shadow 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
-.juego-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
-.juego-card.articulacion { background:linear-gradient(135deg,#fff0f8,#ffd6ee); border-left:4px solid #e63946; }
-.juego-icono { font-size:2.4rem; min-width:3rem; text-align:center; }
-.juego-info h2 { margin:0 0 0.2rem; font-size:1rem; color:#222; font-weight:700; }
-.juego-info p  { margin:0; font-size:0.8rem; color:#666; }
-.juego-flecha  { font-size:1.4rem; color:#bbb; margin-left:auto; padding-left:0.5rem; }
-</style>
+<main class="fono-hub">
+ <div style="margin-bottom:12px"><a class="fono-enlace" href="/juegos/">← Todas las categorías</a></div>
+ <section class="fono-hero"><div><span class="fono-chip">FonoApp · Articulación</span><h1>Articulación</h1><p>Mira la boca y practica un sonido a la vez.</p><div class="fono-chips"><span class="fono-chip">👀 Mira</span><span class="fono-chip">🔊 Escucha</span><span class="fono-chip">🎯 Juega</span></div></div><div class="fono-hero-dibujo" aria-hidden="true">🗣️</div></section>
+ <section class="fono-grupo-categorias" aria-label="Elige un juego"><div class="fono-cabecera-grupo"><h2>Elige un juego</h2><span class="fono-etiqueta-nivel">Elige un juego</span></div><p class="fono-descripcion-grupo">Toca una tarjeta grande para comenzar.</p><div class="juegos-grid"><a class="juego-card" style="--fondo-card:#fde8f1;--borde-card:#cc6095" href="/juegos/articulacion/fonemas"><span class="juego-icono" aria-hidden="true">👄</span><div class="juego-info"><h2>Fonemas M P S G R RR</h2><p>Elige una letra, mira el movimiento e imita.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#e6f4fe;--borde-card:#679aca" href="/juegos/articulacion/abcd"><span class="juego-icono" aria-hidden="true">🅰️</span><div class="juego-info"><h2>A B C D con dibujos</h2><p>Escucha y aprende las letras con imágenes.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#e9f7ed;--borde-card:#69aa7b" href="/juegos/articulacion/pronunciacion-5"><span class="juego-icono" aria-hidden="true">🎯</span><div class="juego-info"><h2>Cinco palabras</h2><p>Mira, escucha, completa y pronuncia.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#fff0e2;--borde-card:#ed9b60" href="/juegos/articulacion/letra-b"><span class="juego-icono" aria-hidden="true">🐝</span><div class="juego-info"><h2>Letra B</h2><p>Practica la B.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#e8f8f8;--borde-card:#70b3af" href="/juegos/articulacion/letra-d"><span class="juego-icono" aria-hidden="true">🐉</span><div class="juego-info"><h2>Letra D</h2><p>Practica la D.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#f5eaff;--borde-card:#b889ce" href="/juegos/articulacion/letra-f"><span class="juego-icono" aria-hidden="true">🌸</span><div class="juego-info"><h2>Letra F</h2><p>Practica la F.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#f8edf2;--borde-card:#bd779e" href="/juegos/articulacion/letra-r"><span class="juego-icono" aria-hidden="true">🚗</span><div class="juego-info"><h2>Letra R</h2><p>Practica la R.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#f3f4fe;--borde-card:#848aca" href="/juegos/articulacion/completa-palabra"><span class="juego-icono" aria-hidden="true">🔤</span><div class="juego-info"><h2>Completa la palabra</h2><p>Completa y di la palabra.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#fff1d6;--borde-card:#d1aa51" href="/juegos/articulacion/moto-voz"><span class="juego-icono" aria-hidden="true">🏍️</span><div class="juego-info"><h2>¡Acelera la moto!</h2><p>Una letra por ronda.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a></div></section>
+</main>
 {% endblock %}

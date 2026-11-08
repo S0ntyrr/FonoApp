@@ -1,0 +1,15 @@
+/* Guía por imágenes, adaptable y sin interferir con los juegos existentes. */
+.fono-ruta-juegos .fono-guias-visuales{margin:0 0 18px;width:100%;max-width:100%;padding:14px 17px;border-radius:20px;border:2px solid #d5e7f5;background:linear-gradient(115deg,#f4fbff,#fef6ef);box-shadow:0 5px 18px #29375912;color:#314c69}
+.fono-guias-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.fono-guias-head h2{font-size:clamp(1rem,2.2vw,1.25rem);color:#2d517b;margin:3px 0 0}
+.fono-guias-chip{font-weight:850;font-size:.67rem;letter-spacing:.07em;color:#ae5773}
+.fono-ruta-juegos .fono-guias-toggle,.fono-ruta-juegos .fono-guias-botones button{padding:9px 12px;min-height:43px;font:inherit;font-size:.84rem;font-weight:850;border:1px solid #bbd6f5;background:white;border-radius:12px;color:#24598b;cursor:pointer;touch-action:manipulation}
+.fono-ruta-juegos .fono-guias-toggle{background:#3169a5;color:#fff;border-color:#3169a5;white-space:nowrap}
+.fono-guias-body[hidden]{display:none}.fono-guias-body{padding:13px 0 3px;text-align:center}.fono-guias-visual{display:flex;justify-content:center;align-items:center;gap:14px;padding:12px 13px;border-radius:15px;background:#fff;border:1px solid #e1ebf6;min-height:115px}.fono-guias-imagen{min-width:82px;width:82px;height:82px;display:grid;place-items:center;font-size:3.3rem}.fono-guias-imagen img{max-width:100%;max-height:100%;object-fit:contain;border-radius:11px}.fono-guias-frase{font-size:clamp(1rem,2.6vw,1.25rem);text-align:left;line-height:1.35}
+.fono-guias-contador{font-size:.77rem;color:#617892;margin:9px}.fono-guias-botones{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.fono-ruta-juegos .fono-guias-botones button:disabled{opacity:.45;cursor:not-allowed}.fono-ruta-juegos .fono-guias-botones button:focus-visible,.fono-ruta-juegos .fono-guias-toggle:focus-visible{outline:3px solid #347cdc;outline-offset:3px}
+.fono-ruta-juegos .pantalla-movil canvas{max-width:100%;height:auto;display:block;margin-left:auto;margin-right:auto}
+.fono-ruta-juegos .pantalla-movil .campo-futbol,.fono-ruta-juegos .pantalla-movil .escaleras-area,.fono-ruta-juegos .pantalla-movil .puzzle-area{max-width:100%;overflow:hidden}
+.fono-ruta-juegos .pantalla-movil button{touch-action:manipulation;min-height:38px}
+.fono-ruta-juegos .pantalla-movil a,.fono-ruta-juegos .pantalla-movil button{overflow-wrap:break-word}
+@media(max-width:480px){.fono-ruta-juegos .fono-guias-visuales{padding:12px}.fono-guias-visual{gap:10px}.fono-guias-imagen{min-width:66px;width:66px;height:66px;font-size:2.7rem}.fono-ruta-juegos .fono-guias-botones button{flex:1;min-width:44%}.fono-guias-head{flex-wrap:wrap}.fono-ruta-juegos .fono-guias-toggle{width:100%}}

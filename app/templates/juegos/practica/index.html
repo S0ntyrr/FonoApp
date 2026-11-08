@@ -1,47 +1,8 @@
 {% extends "base.html" %}
-
 {% block contenido %}
-<section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Practica Conmigo</h1>
-    <p class="centrado" style="margin-bottom:0.5rem;">Completa los rompecabezas y obtén puntos para subir de nivel.</p>
-    <p class="centrado" style="color:#d32f2f; font-weight:bold; margin-bottom:1.5rem;">¡Vamos!</p>
-
-    <div class="juegos-grid">
-        <a href="/juegos/practica/rompecabezas" class="juego-card practica">
-            <div class="juego-icono">🧩</div>
-            <div class="juego-info">
-                <h2>Rompecabezas</h2>
-                <p>Arma el rompecabezas de letras y animales</p>
-            </div>
-        </a>
-        <a href="/juegos/practica/cara" class="juego-card practica">
-            <div class="juego-icono">😊</div>
-            <div class="juego-info">
-                <h2>Crea tu personaje</h2>
-                <p>Arma una cara y menciona cada parte</p>
-            </div>
-        </a>
-        <a href="/juegos/practica/asociacion" class="juego-card practica">
-            <div class="juego-icono">🔗</div>
-            <div class="juego-info">
-                <h2>Asociación de imágenes</h2>
-                <p>Selecciona la imagen que corresponde</p>
-            </div>
-        </a>
-    </div>
-
-    <div style="margin-top:2rem; text-align:center;">
-        <a href="/juegos/" class="boton-rojo-borde" style="display:inline-block; padding:0.6rem 1.5rem; text-decoration:none; border-radius:4px;">← Volver</a>
-    </div>
-</section>
-
-<style>
-.juegos-grid { display:flex; flex-direction:column; gap:1rem; }
-.juego-card { display:flex; align-items:center; gap:1rem; padding:1rem 1.2rem; border-radius:12px; text-decoration:none; color:#333; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-.juego-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.13); }
-.juego-card.practica { background:linear-gradient(135deg,#fff7f7,#ffe0e0); border-left:4px solid #d32f2f; }
-.juego-icono { font-size:2.5rem; min-width:3rem; text-align:center; }
-.juego-info h2 { margin:0 0 0.25rem; font-size:1.05rem; color:#222; }
-.juego-info p  { margin:0; font-size:0.82rem; color:#555; }
-</style>
+<main class="fono-hub">
+ <div style="margin-bottom:12px"><a class="fono-enlace" href="/juegos/">← Todas las categorías</a></div>
+ <section class="fono-hero"><div><span class="fono-chip">FonoApp · Practica conmigo</span><h1>Practica conmigo</h1><p>Arma, une y crea personajes.</p><div class="fono-chips"><span class="fono-chip">👀 Mira</span><span class="fono-chip">🔊 Escucha</span><span class="fono-chip">🎯 Juega</span></div></div><div class="fono-hero-dibujo" aria-hidden="true">🧩</div></section>
+ <section class="fono-grupo-categorias" aria-label="Elige un juego"><div class="fono-cabecera-grupo"><h2>Elige un juego</h2><span class="fono-etiqueta-nivel">Elige un juego</span></div><p class="fono-descripcion-grupo">Toca una tarjeta grande para comenzar.</p><div class="juegos-grid"><a class="juego-card" style="--fondo-card:#ffefe4;--borde-card:#e3915b" href="/juegos/practica/rompecabezas"><span class="juego-icono" aria-hidden="true">🧩</span><div class="juego-info"><h2>Rompecabezas</h2><p>Arma el dibujo y descubre la figura.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#fce9f4;--borde-card:#bd68a4" href="/juegos/practica/cara"><span class="juego-icono" aria-hidden="true">😊</span><div class="juego-info"><h2>Crea tu personaje</h2><p>Elige partes de la cara.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#eff7e6;--borde-card:#80ac58" href="/juegos/practica/asociacion"><span class="juego-icono" aria-hidden="true">🔗</span><div class="juego-info"><h2>Asociación</h2><p>Une dibujos que van juntos.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a><a class="juego-card" style="--fondo-card:#e6f7ff;--borde-card:#5d9dc3" href="/juegos/practica/praxias"><span class="juego-icono" aria-hidden="true">👄</span><div class="juego-info"><h2>Praxias visuales</h2><p>Mira una boca en movimiento e imítala.</p></div><span class="juego-flecha" aria-hidden="true">›</span></a></div></section>
+</main>
 {% endblock %}

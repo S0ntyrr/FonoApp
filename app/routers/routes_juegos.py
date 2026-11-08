@@ -56,6 +56,7 @@ Sistema de guardado de resultados:
 """
 
 import base64
+import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -68,6 +69,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ..database import get_db
 from ..security import require_role
 from ..time_utils import app_now, day_bounds
+from ..therapy_catalog import URLS_TERAPIA
 
 router = APIRouter(
     prefix="/juegos",
@@ -516,6 +518,8 @@ async def discriminacion_arrastra_sonido(request: Request):
 @router.post("/evidencia-audio", response_class=JSONResponse)
 async def subir_evidencia_audio(
     audio: UploadFile = File(...),
+    categoria: str = Form(""),
+    juego: str = Form(""),
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(require_role(["paciente"])),
 ):
@@ -535,6 +539,8 @@ async def subir_evidencia_audio(
 
     doc = {
         "paciente_email": user["email"],
+        "categoria": categoria[:100],
+        "juego": juego[:100],
         "extension": ext,
         "content_type": CONTENT_TYPE_MAP.get(ext, "audio/webm"),
         "data_b64": base64.b64encode(contenido).decode(),
@@ -561,11 +567,22 @@ async def servir_evidencia_audio(
     if not doc:
         return Response(status_code=404)
 
+    # Un doctor solo escucha pacientes con asignación activa; nunca audios ajenos.
+    if user.get('rol') == 'paciente' and doc.get('paciente_email') != user.get('email'):
+        return Response(status_code=403)
+    if user.get('rol') in ('medico', 'doctor'):
+        autorizado = await db['asignaciones'].find_one({
+            'medico_email': user.get('email'),
+            'paciente_email': doc.get('paciente_email'),
+            'estado': {'$in': ['aceptada', 'activo', 'asignada']},
+        })
+        if not autorizado:
+            return Response(status_code=403)
     audio_bytes = base64.b64decode(doc["data_b64"])
     return Response(
         content=audio_bytes,
         media_type=doc.get("content_type", "audio/webm"),
-        headers={"Cache-Control": "private, max-age=3600"},
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
     )
 
 
@@ -581,10 +598,12 @@ async def guardar_resultado_juego(
     notas: str = Form(""),
     audio_transcripcion: str = Form(""),
     audio_url: str = Form(""),
+    audios_extra_json: str = Form("[]"),
     requiere_revision_audio: bool = Form(False),
     puntos: int = Form(0),
     nivel: int = Form(1),
     ruta: str = Form(""),
+    tarea_id: str = Form(""),
     user: dict = Depends(require_role(["paciente"])),
 ):
     """
@@ -598,14 +617,85 @@ async def guardar_resultado_juego(
     inicio_dia, fin_dia = day_bounds(ahora)
     total_pasos_seguro = max(1, int(total_pasos))
     paso_seguro = max(0, int(paso_completado))
+    paso_seguro = min(paso_seguro, total_pasos_seguro)
     progreso_pct = int((paso_seguro / total_pasos_seguro) * 100)
     puntos_norm = max(0, min(100, int(puntos)))
     puntaje_actividad = int(round((progreso_pct * 0.65) + (puntos_norm * 0.35)))
     notas_limpias = (notas or "").strip()
     transcripcion_limpia = (audio_transcripcion or "").strip()
     audio_url_limpia = (audio_url or "").strip()
-    tiene_evidencia_audio = bool(audio_url_limpia or transcripcion_limpia)
+    # Todas las grabaciones deben existir, pertenecer al paciente de la
+    # sesión y no estar ya vinculadas a otro intento. No confiar en URLs de JS.
+    try:
+        extras = json.loads(audios_extra_json or '[]')
+    except (ValueError, TypeError):
+        return JSONResponse(status_code=400, content={'detail': 'Lista de audios inválida'})
+    if not isinstance(extras, list) or len(extras) > 12 or any(not isinstance(a, str) for a in extras):
+        return JSONResponse(status_code=400, content={'detail': 'Máximo 12 audios adicionales'})
+    audio_urls = list(dict.fromkeys(([audio_url_limpia] if audio_url_limpia else []) + extras))
+    audio_oids = []
+    for url_audio in audio_urls:
+        prefijo = '/juegos/evidencia-audio/'
+        try:
+            oid = ObjectId(url_audio[len(prefijo):]) if url_audio.startswith(prefijo) else None
+        except Exception:
+            oid = None
+        if not oid or not await db['evidencias_audio'].find_one({
+            '_id': oid, 'paciente_email': paciente_email, 'intento_id': {'$exists': False}
+        }):
+            return JSONResponse(status_code=400, content={'detail': 'Grabación no autorizada, inexistente o ya utilizada'})
+        audio_oids.append(oid)
+    tiene_evidencia_audio = bool(audio_urls or transcripcion_limpia)
     requiere_revision_audio = bool(requiere_revision_audio or tiene_evidencia_audio)
+
+    # 0. Cada intento se inserta en colección inmutable para NO perder audios previos.
+    #    resultados_juegos permanece como resumen compatible con el panel antiguo.
+    tarea_vinculada = None
+    if tarea_id:
+        try:
+            tarea_oid = ObjectId(tarea_id)
+        except Exception:
+            return JSONResponse(status_code=400, content={'detail': 'Tarea inválida'})
+        tarea_vinculada = await db['tareas_terapeuticas'].find_one({
+            '_id': tarea_oid, 'paciente_email': paciente_email,
+            'estado': 'pendiente', 'url_juego': ruta.split('?')[0],
+        })
+        if not tarea_vinculada:
+            return JSONResponse(status_code=400, content={'detail': 'Tarea no asignada o ya finalizada'})
+
+    nivel_de_juego = nivel
+    if tarea_vinculada:
+        # Los juegos originales pueden informar 1 aunque la tarea sea de nivel 2/3.
+        # Registrar el nivel prescrito para que el médico no pierda ese contexto.
+        nivel = tarea_vinculada['nivel']
+
+    intento = {
+        'paciente_email': paciente_email, 'categoria': categoria[:100],
+        'juego': juego[:100], 'ruta': ruta[:300], 'fecha': ahora,
+        'paso_completado': paso_seguro, 'total_pasos': total_pasos_seguro,
+        'completado': completado, 'puntos': puntos_norm, 'nivel': max(1, min(3, nivel)),
+        'puntaje_actividad': puntaje_actividad, 'notas': notas_limpias[:1000],
+        'nivel_reportado_por_juego': nivel_de_juego,
+        'fonema_asignado': tarea_vinculada.get('fonema') if tarea_vinculada else None,
+        'audio_url': audio_url_limpia or (audio_urls[0] if audio_urls else ''),
+        'audio_urls': audio_urls, 'audio_transcripcion': transcripcion_limpia[:1200],
+        'requiere_revision_audio': requiere_revision_audio,
+        'estado_audio': 'grabado' if audio_urls else 'sin_grabacion',
+        'tarea_id': str(tarea_vinculada['_id']) if tarea_vinculada else None,
+    }
+    id_intento = (await db['intentos_juegos'].insert_one(intento)).inserted_id
+    if audio_oids:
+        await db['evidencias_audio'].update_many({'_id': {'$in': audio_oids}}, {'$set': {
+            'intento_id': str(id_intento), 'juego': juego[:100], 'categoria': categoria[:100],
+        }})
+    if tarea_vinculada and completado:
+        await db['tareas_terapeuticas'].update_one(
+            {'_id': tarea_vinculada['_id'], 'estado': 'pendiente'},
+            {'$set': {'estado': 'completada', 'completada_en': ahora,
+                      'intento_id': str(id_intento)}})
+
+    if not audio_url_limpia and audio_urls:
+        audio_url_limpia = audio_urls[0]
 
     # 1. Guardar/actualizar en resultados_juegos (1 registro por paciente+juego+día)
     resultado = {
@@ -621,6 +711,7 @@ async def guardar_resultado_juego(
         "notas": notas_limpias,
         "audio_transcripcion": transcripcion_limpia,
         "audio_url": audio_url_limpia,
+        "audio_urls": audio_urls,
         "requiere_revision_audio": requiere_revision_audio,
         "puntos": puntos,
         "progreso_pct": progreso_pct,
@@ -656,6 +747,7 @@ async def guardar_resultado_juego(
             "ruta_juego": ruta,
             "audio_transcripcion": transcripcion_limpia,
             "audio_url": audio_url_limpia,
+            "audio_urls": audio_urls,
             "notas": notas_limpias,
             "requiere_revision_audio": requiere_revision_audio,
         }
@@ -692,6 +784,7 @@ async def guardar_resultado_juego(
         "puntos": puntos,
         "audio_url": audio_url_limpia,
         "audio_transcripcion": transcripcion_limpia,
+        "intento_id": str(id_intento),
     }
 
 
@@ -707,7 +800,7 @@ async def seed_actividades(
     juegos_por_categoria = [
         {
             "categoria": "respiracion",
-            "actividades": ["Infla el globo", "El molino de Pepe"]
+            "actividades": ["Infla el globo", "El molino de Pepe", "Burbujas de aire", "Sopla el algodón"]
         },
         {
             "categoria": "fonacion",
@@ -715,11 +808,11 @@ async def seed_actividades(
         },
         {
             "categoria": "resonancia",
-            "actividades": ["Escaleras de tono", "Piano - Estrellita", "¡Veo, veo!"]
+            "actividades": ["Escaleras de tono", "Piano - Estrellita", "¡Veo, veo!", "Imita al animal"]
         },
         {
             "categoria": "articulacion",
-            "actividades": ["Letra B", "Letra D", "Letra F", "Letra R", "Completa la palabra", "¡Acelera la moto!"]
+            "actividades": ["Letra B", "Letra D", "Letra F", "Letra R", "Completa la palabra", "¡Acelera la moto!", "Pronuncia un fonema", "5 retos de pronunciación", "Letras A B C D"]
         },
         {
             "categoria": "prosodia",
@@ -731,7 +824,7 @@ async def seed_actividades(
         },
         {
             "categoria": "practica_conmigo",
-            "actividades": ["Rompecabezas", "Crea tu personaje", "Asociación de imágenes"]
+            "actividades": ["Rompecabezas", "Crea tu personaje", "Asociación de imágenes", "Movimientos de la boca"]
         },
     ]
 
@@ -755,3 +848,41 @@ async def anuncio_activo(
         return {"anuncio": None}
     anuncio = activos[-1]
     return {"anuncio": anuncio}
+
+
+# Páginas nuevas compatibles con las rutas originales.
+@router.get('/respiracion/burbujas', response_class=HTMLResponse)
+async def juego_burbujas(request: Request):
+    return templates.TemplateResponse(request, 'juegos/nuevos/burbujas.html', {
+        'request': request, 'titulo_pagina': 'Burbujas de aire'})
+
+@router.get('/respiracion/pitillos', response_class=HTMLResponse)
+async def juego_pitillos(request: Request):
+    return templates.TemplateResponse(request, 'juegos/nuevos/pitillos.html', {
+        'request': request, 'titulo_pagina': 'Sopla el algodón'})
+
+@router.get('/articulacion/fonemas', response_class=HTMLResponse)
+async def juego_fonemas(request: Request):
+    return templates.TemplateResponse(request, 'juegos/nuevos/fonemas.html', {
+        'request': request, 'titulo_pagina': 'Fonemas por elementos'})
+
+@router.get('/articulacion/pronunciacion-5', response_class=HTMLResponse)
+async def juego_pronunciacion_5(request: Request):
+    return templates.TemplateResponse(request, 'juegos/nuevos/pronunciacion_5.html', {
+        'request': request, 'titulo_pagina': 'Cinco retos de pronunciación'})
+
+@router.get('/practica/praxias', response_class=HTMLResponse)
+async def juego_praxias(request: Request):
+    return templates.TemplateResponse(request, 'juegos/nuevos/praxias.html', {
+        'request': request, 'titulo_pagina': 'Praxias de boca'})
+
+@router.get('/resonancia/imitacion', response_class=HTMLResponse)
+async def juego_imitacion(request: Request):
+    return templates.TemplateResponse(request, 'juegos/nuevos/imitacion.html', {
+        'request': request, 'titulo_pagina': 'Imita al animal'})
+
+
+@router.get('/articulacion/abcd', response_class=HTMLResponse)
+async def juego_articulacion_abcd(request: Request):
+    return templates.TemplateResponse(request, 'juegos/nuevos/abc.html', {
+        'request': request, 'titulo_pagina': 'Letras A B C D'})

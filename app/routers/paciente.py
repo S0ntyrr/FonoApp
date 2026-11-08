@@ -31,7 +31,6 @@ Colecciones MongoDB usadas:
 from datetime import datetime, timedelta
 from collections import defaultdict
 import unicodedata
-from random import sample, seed as random_seed
 
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -40,6 +39,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..database import get_db
 from ..models import PerfilPaciente, SesionApp
+from ..therapy_catalog import JUEGOS_TERAPIA, JUEGOS_CON_NIVELES
+from ..daily_recommendations import elegir_actividades
 from ..security import email_match_filter, require_role
 
 router = APIRouter(
@@ -85,6 +86,11 @@ ACTIVIDADES_REALES = [
     {"categoria": "Practica Conmigo", "actividad": "Crea tu personaje", "url": "/juegos/practica/cara"},
     {"categoria": "Practica Conmigo", "actividad": "Asociación de imágenes", "url": "/juegos/practica/asociacion"},
 ]
+
+# Ampliación incremental: conserva actividades anteriores sin duplicarlas.
+for _categoria, _nombre, _url in JUEGOS_TERAPIA:
+    if not any(j['url'] == _url for j in ACTIVIDADES_REALES):
+        ACTIVIDADES_REALES.append({'categoria': _categoria, 'actividad': _nombre, 'url': _url})
 
 
 def _normalizar(valor: str) -> str:
@@ -133,7 +139,8 @@ async def vista_perfil_paciente(
         perfil_doc["_id"] = str(perfil_doc["_id"])
         perfil = PerfilPaciente(**perfil_doc)
 
-    hoy = datetime.now()
+    from ..time_utils import app_now
+    hoy = app_now()
     inicio_dia = datetime(hoy.year, hoy.month, hoy.day)
     fin_dia = inicio_dia + timedelta(days=1)
 
@@ -186,29 +193,8 @@ async def vista_perfil_paciente(
                     "url": "/juegos/"
                 })
     else:
-        # Selección DETERMINISTA por día y email
-        # La misma semilla garantiza las mismas actividades todo el día
-        import time as _time
-        seed_str = f"{hoy.strftime('%Y-%m-%d')}-{email}"
-        seed_val = sum(ord(c) for c in seed_str)
-        random_seed(seed_val)
-        
-        # Usar lista ORDENADA de categorías para garantizar determinismo
-        # (los sets de Python tienen orden no determinista)
-        categorias = sorted(list({a["categoria"] for a in ACTIVIDADES_REALES}))
-        categorias_elegidas = sample(categorias, min(4, len(categorias)))
-        actividades_disponibles_raw = []
-        for cat in categorias_elegidas:
-            # Ordenar opciones por nombre para garantizar determinismo
-            opciones_cat = sorted(
-                [a for a in ACTIVIDADES_REALES if a["categoria"] == cat],
-                key=lambda x: x["actividad"]
-            )
-            if opciones_cat:
-                actividades_disponibles_raw.append(sample(opciones_cat, 1)[0])
-        
-        # Resetear la semilla aleatoria para no afectar otras partes del código
-        random_seed(int(_time.time()))
+        # Selección estable por fecha y paciente; sin colisiones de suma de caracteres.
+        actividades_disponibles_raw = elegir_actividades(ACTIVIDADES_REALES, hoy, email)
 
     # ── Actividades completadas hoy (fuente de verdad: MongoDB) ────────────────
     mapa_url_por_juego = {}
@@ -216,6 +202,14 @@ async def vista_perfil_paciente(
         slug = act["url"].rstrip("/").split("/")[-1].replace("-", "_")
         mapa_url_por_juego[(_normalizar(act["categoria"]), _normalizar(slug))] = act["url"]
 
+    mapa_url_por_slug = {}
+    for act in ACTIVIDADES_REALES:
+        slug = act['url'].rstrip('/').split('/')[-1].replace('-', '_')
+        # Solo se usa cuando ese slug identifica una sola URL.
+        if slug not in mapa_url_por_slug:
+            mapa_url_por_slug[slug] = act['url']
+        elif mapa_url_por_slug[slug] != act['url']:
+            mapa_url_por_slug[slug] = None
     actividades_completadas_urls = set()
     cursor_resultados = db["resultados_juegos"].find(
         {
@@ -226,7 +220,7 @@ async def vista_perfil_paciente(
     )
     async for res in cursor_resultados:
         clave = (_normalizar(res.get("categoria", "")), _normalizar(res.get("juego", "")))
-        url = mapa_url_por_juego.get(clave)
+        url = mapa_url_por_juego.get(clave) or mapa_url_por_slug.get(_normalizar(res.get('juego', '')))
         if url:
             actividades_completadas_urls.add(url)
 
@@ -240,6 +234,13 @@ async def vista_perfil_paciente(
         for cat, acts in categorias_dict.items()
     ]
 
+    tareas_manuales = []
+    async for tarea in db['tareas_terapeuticas'].find({
+        'paciente_email': email, 'estado': 'pendiente'
+    }).sort('creada_en', -1).limit(25):
+        tarea['_id'] = str(tarea['_id'])
+        tareas_manuales.append(tarea)
+
     return templates.TemplateResponse(
         request,
         "paciente/perfil.html",
@@ -251,6 +252,8 @@ async def vista_perfil_paciente(
             "sesiones_por_dia": sesiones_por_dia,
             "email_paciente": email,
             "actividades_disponibles": actividades_disponibles,
+        "tareas_manuales": tareas_manuales,
+            "juegos_con_niveles": JUEGOS_CON_NIVELES,
             "actividades_completadas_urls": sorted(actividades_completadas_urls),
         },
     )

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<section class="pantalla-movil" style="padding:16px;max-width:850px">
+ <a class="fono-enlace" href="/doctor/home">← Panel médico</a>
+ <h1>📋 Tareas personalizadas</h1>
+ <p>Selecciona el juego para el paciente. Elige un nivel solamente cuando el juego tiene dificultades diferentes.</p>
+ <form method="post" action="/doctor/tareas" class="fono-tareas-paciente" style="display:grid;gap:12px">
+ <label>Paciente<select class="campo-texto" name="paciente_email" required>{% for correo in pacientes %}<option value="{{ correo }}">{{ correo }}</option>{% endfor %}</select></label>
+ <label>Juego<select class="campo-texto" name="url_juego" id="medico-juego" required>{% for cat, juego, url in juegos %}<option value="{{ url }}" data-con-niveles="{{ '1' if url in juegos_con_niveles else '0' }}">{{ cat }} · {{ juego }}</option>{% endfor %}</select></label>
+ <label>Sonido a trabajar<select class="campo-texto" name="fonema">{% for fonema in fonemas %}<option value="{{ fonema }}">{{ fonema }}</option>{% endfor %}</select></label>
+ <label id="medico-nivel-grupo">Nivel<select class="campo-texto" id="medico-nivel" name="nivel"><option value="1">1 · Fácil</option><option value="2">2 · Medio</option><option value="3">3 · Reto</option></select></label>
+ <small id="medico-sin-niveles" hidden>Este juego tiene una sola dificultad. Sus etapas se completan jugando.</small>
+ <label>Indicaciones para la familia (opcionales, 300 caracteres)<textarea class="campo-texto" name="instrucciones" maxlength="300" rows="2" placeholder="Ejemplo: realiza el ejercicio acompañado, sin forzar la voz"></textarea></label>
+ {% if pacientes %}<button class="boton-rojo" type="submit">Asignar tarea</button>{% else %}<p>Primero debe existir una asignación paciente-médico aceptada.</p>{% endif %}
+ </form>
+ <h2>Mis tareas asignadas</h2>
+ {% for t in tareas %}
+  <article class="fono-tarea-paciente">
+    <div style="flex:1"><strong>{{ t.actividad }}</strong><small>{{ t.paciente_email }}{% if t.url_juego in juegos_con_niveles %} · Nivel {{ t.nivel }}{% endif %} · {{ t.fonema }} · {{ t.estado }}</small>{% if t.instrucciones %}<small>{{ t.instrucciones }}</small>{% endif %}</div>
+    {% if t.estado == 'pendiente' %}<form method="post" action="/doctor/tareas/{{ t._id }}/cancelar"><button type="submit" class="boton-rojo-borde">Cancelar</button></form>{% endif %}
+  </article>
+ {% else %}<p>Sin tareas creadas todavía.</p>{% endfor %}
+</section>
+<style>#medico-nivel-grupo[hidden],#medico-sin-niveles[hidden]{display:none!important}</style>
+<script>
+(function(){
+ const juego=document.getElementById('medico-juego');
+ const nivel=document.getElementById('medico-nivel');
+ const grupo=document.getElementById('medico-nivel-grupo');
+ const sin=document.getElementById('medico-sin-niveles');
+ function cambiar(){
+   const opcion=juego.selectedOptions[0];
+   const compatible=opcion?.dataset.conNiveles==='1';
+   nivel.value=compatible?nivel.value:'1';
+   nivel.disabled=!compatible;
+   grupo.hidden=!compatible;
+   sin.hidden=compatible;
+ }
+ juego.addEventListener('change',cambiar);cambiar();
+})();
+</script>
+{% endblock %}

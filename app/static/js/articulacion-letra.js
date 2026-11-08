@@ -16,6 +16,7 @@
 
     let retoActual = 0;
     const hechas = new Set();
+    const reconocidas = new Set();
     let resultadoGuardado = false;
 
     function el(id) { return document.getElementById(id); }
@@ -61,13 +62,22 @@
       const reto = config.retosMoto[retoActual];
       if (!reto) {
         el('moto-objetivo').textContent = '¡META!';
-        el('moto-contador').textContent = `${config.retosMoto.length} de ${config.retosMoto.length} palabras reconocidas`;
+        el('moto-contador').textContent = `${config.retosMoto.length} de ${config.retosMoto.length} palabras practicadas`;
         el('btn-ir-palabras').disabled = false;
         feedback(el('fb-moto'), 'ok', '✅ Llegaste a la meta. Continúa con las palabras finales.');
         return;
       }
       el('moto-objetivo').textContent = reto.palabra.toUpperCase();
       el('moto-contador').textContent = `Palabra ${retoActual + 1} de ${config.retosMoto.length}`;
+    }
+
+    function intentarMoto(){
+      if(sesion.estaReconociendo())return;
+      if(retoActual>=config.retosMoto.length)return;
+      retoActual++;
+      el('moto').style.left=`${Math.min(86,6+(retoActual/config.retosMoto.length)*80)}%`;
+      feedback(el('fb-moto'),'info','⭐ Intento registrado. El profesional revisará la pronunciación.');
+      actualizarMoto();actualizarFinalizable();
     }
 
     function grabarMoto() {
@@ -116,6 +126,17 @@
         `;
         const btnAudio = card.querySelector('.audio-sm');
         const btnMic = card.querySelector('.mic-sm');
+        const bIntento=document.createElement('button');bIntento.type='button';
+        bIntento.className='art-intento-manual';bIntento.textContent='✅ Lo intenté';
+        bIntento.setAttribute('aria-label','Marcar '+item.palabra+' como intentada sin reconocimiento de voz');
+        card.querySelector('.acciones').appendChild(bIntento);
+        bIntento.addEventListener('click',()=>{
+          if(hechas.has(indice)||sesion.estaReconociendo())return;
+          hechas.add(indice);card.classList.add('done');
+          estado.textContent='⭐ Intento registrado para revisión del profesional';
+          estado.style.color='#245578';btnMic.disabled=true;bIntento.disabled=true;
+          actualizarProgreso();actualizarFinalizable();
+        });
         const estado = card.querySelector('.art-estado');
         btnAudio.addEventListener('click', () => hablar(item.palabra));
         btnMic.addEventListener('click', () => grabarPalabra(item, indice, card, btnMic, estado));
@@ -135,7 +156,7 @@
           estado.style.color = '#333';
         },
         alCorrecto: (coincidencia) => {
-          hechas.add(indice);
+          hechas.add(indice);reconocidas.add(indice);
           card.classList.add('done');
           btn.textContent = '✓';
           btn.style.background = '#2e7d32';
@@ -162,7 +183,7 @@
     function actualizarProgreso() {
       const total = config.palabras.length;
       const pct = Math.round((hechas.size / total) * 100);
-      el('palabras-progreso').textContent = `${hechas.size} / ${total} palabras reconocidas`;
+      el('palabras-progreso').textContent = `${hechas.size} / ${total} palabras practicadas`;
       el('palabras-fill').style.width = `${pct}%`;
     }
 
@@ -179,7 +200,7 @@
         return;
       }
       if (hechas.size < config.palabras.length) {
-        el('palabras-progreso').textContent = `Faltan ${config.palabras.length - hechas.size} palabra(s) por reconocer.`;
+        el('palabras-progreso').textContent = `Faltan ${config.palabras.length - hechas.size} palabra(s) por practicar.`;
         return;
       }
 
@@ -204,9 +225,10 @@
       fd.append('audio_transcripcion', detalle.audioTranscripcion || '');
       fd.append('audio_url', detalle.audioUrl || '');
       fd.append('requiere_revision_audio', 'true');
-      fd.append('notas', `Palabras completas reconocidas por Web Speech API. La calidad fonética de la ${config.letra} requiere revisión profesional del audio.`);
+      fd.append('notas', `Letra ${config.letra}. ${hechas.size} palabras practicadas, ${reconocidas.size} coincidencias de texto. Los intentos manuales no certifican pronunciación: requieren revisión profesional.`);
 
       try {
+        if (window.FonoEvidencia) await window.FonoEvidencia.enriquecer(fd);
         const response = await fetch('/juegos/resultado', { method: 'POST', body: fd });
         if (response.status === 401 || response.status === 403) {
           window.location.href = '/auth/login';
@@ -214,6 +236,7 @@
         }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
+        if (window.FonoEvidencia) window.FonoEvidencia.confirmado();
         resultadoGuardado = true;
         FonoArticulacion.marcarActividadCompletada();
         btn.textContent = '✓ Actividad guardada';
@@ -242,6 +265,11 @@
     window.artGoStep = goStep;
     window.artHablar = hablar;
     window.artGrabarMoto = grabarMoto;
+    const intentoMoto=document.createElement('button');
+    intentoMoto.type='button';intentoMoto.className='art-btn-sec art-intento-moto';
+    intentoMoto.textContent='✅ Ya lo intenté';
+    intentoMoto.addEventListener('click',intentarMoto);
+    el('mic-moto').insertAdjacentElement('afterend',intentoMoto);
     window.artFinalizar = guardarResultado;
 
     construirSilabas();

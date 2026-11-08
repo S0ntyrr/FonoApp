@@ -1,0 +1,3 @@
+# Opcional: pruebas de integración simuladas, sin MongoDB real.
+-r requirements.txt
+httpx>=0.27

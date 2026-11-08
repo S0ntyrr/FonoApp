@@ -11,16 +11,17 @@
   </div>
 
   <div class="art-card">
-    <p class="art-titulo">Completa la letra y después di la palabra</p>
-    <p class="art-ayuda">Primero elige la letra que falta. Cuando esté correcta, escucha el ejemplo si lo necesitas y pronuncia la <strong>palabra completa</strong> con el micrófono.</p>
-    <div class="art-alerta">El micrófono ya no intenta reconocer una letra aislada. La confirmación se hace con la palabra completa para que el reconocimiento sea más estable y la pronunciación quede guardada en audio.</div>
+    <p class="art-titulo">👀 Mira · 🔊 Escucha · ✍️ Elige · 👄 Di</p>
+    <p class="art-ayuda">Escucha el dibujo. Luego toca la letra y di la palabra.</p>
+    <details class="art-alerta"><summary>Ayuda para familiares</summary><p>El niño primero ve el dibujo, escucha una palabra y después completa una letra. Finalmente puede decirla al micrófono para registrar evidencia revisable por el profesional.</p></details>
   </div>
 
   <div class="art-card" id="juego-palabra">
     <div style="text-align:center;">
       <div id="palabra-contador" class="art-reto-contador">Palabra 1 de 8</div>
       <div id="palabra-emoji" style="font-size:4rem;margin:8px 0;">👢</div>
-      <p id="palabra-pista" class="art-ayuda" style="margin-bottom:4px;"></p>
+      <button id="btn-escuchar-imagen" type="button" class="art-btn-sec">🔊 Escuchar dibujo</button>
+      <details><summary>¿Una pista?</summary><p id="palabra-pista" class="art-ayuda" style="margin-bottom:4px;"></p></details>
     </div>
 
     <div class="art-letter-boxes" id="palabra-cajas"></div>
@@ -30,12 +31,12 @@
       <p class="art-ayuda" style="margin-bottom:8px;">Ahora pronuncia la palabra completa:</p>
       <div id="palabra-objetivo" class="art-reto-palabra"></div>
       <button id="btn-ejemplo" type="button" class="art-btn-sec" style="margin-top:8px;">🔊 Escuchar ejemplo</button>
-      <button id="btn-mic-palabra" type="button" class="art-mic">🎤</button>
+      <button id="btn-mic-palabra" type="button" class="art-mic">🎤</button><button id="btn-lo-intente-palabra" type="button" class="art-btn-sec" style="margin-left:10px">✅ Lo intenté</button>
       <div id="fb-palabra" class="art-feedback info">Pulsa el micrófono y di la palabra completa.</div>
     </div>
 
     <div class="art-progreso">
-      <div class="art-progreso-label" id="progreso-palabra">0 / 8 palabras pronunciadas</div>
+      <div class="art-progreso-label" id="progreso-palabra">0 / 8 palabras practicadas</div>
       <div class="art-barra"><div class="art-fill" id="fill-palabra"></div></div>
     </div>
   </div>
@@ -43,7 +44,7 @@
   <div class="art-card art-final" id="final-palabra" style="display:none;">
     <div class="art-final-icon">🏆</div>
     <h2 style="color:var(--art-rojo);margin-bottom:8px;">¡Actividad completada!</h2>
-    <p class="art-ayuda">Completaste y pronunciaste todas las palabras. La evidencia de voz quedó guardada para revisión profesional.</p>
+    <p class="art-ayuda">Completaste las palabras. Las grabaciones disponibles podrán ser revisadas por el profesional.</p>
     <a id="btn-siguiente-completa" href="/juegos/articulacion/moto-voz" class="art-link primary">Siguiente: Acelera la moto</a>
     <button type="button" class="art-link secondary" style="width:100%;cursor:pointer;" onclick="window.location.reload()">Jugar de nuevo</button>
     <a href="/juegos/articulacion" class="art-link secondary">Volver a Articulación</a>
@@ -75,6 +76,8 @@ const sesionCompleta = FonoArticulacion.crearSesionVoz({
 let indiceCompleta = 0;
 let letraCorrectaCompleta = false;
 let guardandoCompleta = false;
+let reconocidasCompleta = 0;
+let pasandoCompleta = false;
 
 function normalizarLetra(texto){
   return FonoArticulacion.normalizarTexto(texto).slice(0,1);
@@ -84,7 +87,7 @@ function renderCompleta(){
   const item = PALABRAS_COMPLETA[indiceCompleta];
   if (!item) return finalizarCompleta();
 
-  letraCorrectaCompleta = false;
+  letraCorrectaCompleta = false;pasandoCompleta=false;
   document.getElementById('palabra-contador').textContent = `Palabra ${indiceCompleta + 1} de ${PALABRAS_COMPLETA.length}`;
   document.getElementById('palabra-emoji').textContent = item.emoji;
   document.getElementById('palabra-pista').textContent = item.pista;
@@ -156,6 +159,7 @@ function reconocerCompleta(){
       mostrarFbCompleta('info', `Escuchando… di “${item.palabra.toUpperCase()}”.`);
     },
     alCorrecto:(coincidencia) => {
+      if(pasandoCompleta)return;pasandoCompleta=true;reconocidasCompleta++;
       mostrarFbCompleta('ok', `✅ Palabra reconocida: “${coincidencia.transcript}”.`);
       indiceCompleta += 1;
       actualizarProgresoCompleta();
@@ -175,7 +179,7 @@ function reconocerCompleta(){
 function actualizarProgresoCompleta(){
   const total = PALABRAS_COMPLETA.length;
   const pct = Math.round((indiceCompleta / total) * 100);
-  document.getElementById('progreso-palabra').textContent = `${indiceCompleta} / ${total} palabras pronunciadas`;
+  document.getElementById('progreso-palabra').textContent = `${indiceCompleta} / ${total} palabras practicadas`;
   document.getElementById('fill-palabra').style.width = `${pct}%`;
 }
 
@@ -192,7 +196,7 @@ async function finalizarCompleta(){
     await FonoArticulacion.guardarResultado({
       categoria:'articulacion', juego:'completa_palabra', pasoCompletado:1, totalPasos:1,
       completado:true, puntos:60, nivel:1,
-      notas:'El paciente completó la letra faltante y pronunció cada palabra completa. La calidad fonética requiere revisión del audio.',
+      notas:'Completó letras y practicó '+indiceCompleta+' palabras. El navegador reconoció texto en '+reconocidasCompleta+' palabras; las restantes son intentos manuales que requieren revisión del profesional.',
       requiereRevisionAudio:true,
       ...detalle
     });
@@ -206,6 +210,14 @@ async function finalizarCompleta(){
   }
 }
 
+document.getElementById('btn-lo-intente-palabra').addEventListener('click',()=>{
+  if(!letraCorrectaCompleta||pasandoCompleta||sesionCompleta.estaReconociendo())return;
+  pasandoCompleta=true;
+  mostrarFbCompleta('info','⭐ ¡Buen intento! El profesional puede revisar tu voz.');
+  indiceCompleta++;actualizarProgresoCompleta();
+  setTimeout(()=>{if(indiceCompleta<PALABRAS_COMPLETA.length)renderCompleta();else finalizarCompleta();},450);
+});
+document.getElementById('btn-escuchar-imagen').addEventListener('click',()=>{ const item=PALABRAS_COMPLETA[indiceCompleta]; if(item) sesionCompleta.hablar(item.palabra,{rate:.75}); });
 document.getElementById('btn-ejemplo').addEventListener('click', () => {
   const item = PALABRAS_COMPLETA[indiceCompleta];
   if (item) sesionCompleta.hablar(item.palabra, {rate:.8});

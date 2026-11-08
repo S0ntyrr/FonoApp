@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<section class="pantalla-movil" style="padding:14px;max-width:900px">
+ <a class="fono-enlace" href="/doctor/home">← Panel médico</a>
+ <h1>🎧 Audios por intento</h1>
+ <p>Se conserva una evidencia por intento registrado. La revisión auditiva la realiza el profesional; el puntaje solo representa avance en el juego. Si no se grabó voz, aparece «Sin grabación».</p>
+ <form method="get" action="/doctor/grabaciones" style="display:flex;gap:8px;flex-wrap:wrap">
+ <select name="paciente_email" class="campo-texto"><option value="">Todos mis pacientes</option>{% for email in pacientes %}<option value="{{ email }}" {% if paciente_email_sel == email %}selected{% endif %}>{{ email }}</option>{% endfor %}</select>
+ <button class="boton-rojo" type="submit">Filtrar</button>
+ </form>
+ {% for r in intentos %}
+ <article class="fono-tarea-paciente" style="display:block">
+  <strong>{{ r.juego | replace('_',' ') | title }} · Nivel {{ r.nivel or 1 }}</strong>
+  <small>{{ r.paciente_email }} · {{ r.fecha.strftime('%d/%m/%Y %H:%M:%S') if r.fecha else '-' }} · {{ 'Terminado' if r.completado else 'En progreso' }}</small>
+  <small>{{ r.categoria }} · {{ r.paso_completado }}/{{ r.total_pasos }} · Puntaje: {{ r.puntaje_actividad or 0 }} (orientativo)</small>
+  {% set lista_audios = r.audio_urls if r.audio_urls else ([r.audio_url] if r.audio_url else []) %}
+  {% if lista_audios %}
+    {% for audio_url in lista_audios %}
+    <small>Grabación {{ loop.index }} de {{ lista_audios | length }}</small>
+    <audio controls preload="none" style="width:100%;max-width:510px;margin-top:7px" src="{{ audio_url }}">Tu navegador no admite reproducción.</audio>
+    {% endfor %}
+  {% else %}<small style="color:#a33b25">Sin grabación asociada</small>{% endif %}
+  {% if r.audio_transcripcion %}<small>Texto reconocido: {{ r.audio_transcripcion }}</small>{% endif %}
+ </article>
+ {% else %}<p>Sin intentos registrados para los pacientes seleccionados.</p>{% endfor %}
+<nav aria-label="Navegar por intentos" class="fono-panel-links">
+ {% if pagina > 1 %}<a href="/doctor/grabaciones?paciente_email={{ paciente_email_sel | urlencode }}&pagina={{ pagina-1 }}&pagina_pendientes={{ pagina_pendientes }}">← Intentos anteriores</a>{% endif %}
+ <span>Intentos · página {{ pagina }}</span>
+ {% if mas_intentos %}<a href="/doctor/grabaciones?paciente_email={{ paciente_email_sel | urlencode }}&pagina={{ pagina+1 }}&pagina_pendientes={{ pagina_pendientes }}">Ver más intentos →</a>{% endif %}
+</nav>
+<h2>Audios guardados sin finalizar la actividad</h2>
+<p>La grabación se conserva aunque el niño cierre el juego antes de registrar el resultado.</p>
+{% for a in audios_sin_intento %}
+ <article class="fono-tarea-paciente" style="display:block">
+  <strong>{{ a.juego or 'Actividad sin terminar' }}</strong>
+  <small>{{ a.paciente_email }} · {{ a.fecha.strftime('%d/%m/%Y %H:%M') if a.fecha else '-' }}</small>
+  <audio controls preload="none" style="width:100%;max-width:510px" src="{{ a.audio_url }}">Audio no disponible</audio>
+ </article>
+{% else %}<p>No hay grabaciones sin actividad vinculada.</p>{% endfor %}
+<nav aria-label="Navegar por grabaciones sin finalizar" class="fono-panel-links">
+ {% if pagina_pendientes > 1 %}<a href="/doctor/grabaciones?paciente_email={{ paciente_email_sel | urlencode }}&pagina={{ pagina }}&pagina_pendientes={{ pagina_pendientes-1 }}">← Audios anteriores</a>{% endif %}
+ <span>Audios sin finalizar · página {{ pagina_pendientes }}</span>
+ {% if mas_pendientes %}<a href="/doctor/grabaciones?paciente_email={{ paciente_email_sel | urlencode }}&pagina={{ pagina }}&pagina_pendientes={{ pagina_pendientes+1 }}">Ver más audios →</a>{% endif %}
+</nav>
+</section>
+{% endblock %}

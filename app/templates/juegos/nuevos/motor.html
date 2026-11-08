@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<section class="fono-juego" data-fono-modo="{{ modo }}">
+ <a href="/juegos/" class="fono-enlace">← Juegos</a>
+ <h1 id="fono-titulo">¡Vamos a jugar!</h1>
+ <p class="fono-ayuda" id="fono-consigna">Sigue los pasos uno por uno.</p>
+ <details class="fono-guia-nueva"><summary>👨‍👩‍👧 Ayuda para acompañantes</summary><p>Muestra el dibujo, lee la instrucción con palabras simples y acompaña el intento. Si el ejercicio es de movimiento, no necesita grabar. Si el ejercicio es de sonido o letra, primero escucha y después graba.</p>{% if modo == 'imitacion' %}<small>Sonidos de vaca: Secretlondon; gato: Dcrosby; perro: Amada44, CC BY-SA 3.0; reloj: natalie, dominio público. Medios de Wikimedia Commons.</small>{% endif %}</details>
+ {% if modo in ['burbujas', 'pitillos'] %}
+ <div class="fono-niveles" id="fono-niveles">
+ <button type="button" data-nivel="1">1 · Fácil</button>
+ <button type="button" data-nivel="2">2 · Medio</button>
+ <button type="button" data-nivel="3">3 · Reto</button>
+ </div>
+ {% endif %}
+ <div class="fono-opciones" id="fono-fonemas"></div>
+ <div class="fono-visual" id="fono-visual" aria-label="Ilustración de la actividad"><span class="fono-ilustracion">🎮</span></div>
+ <div id="fono-palabra" class="fono-fonema"></div>
+ <div id="fono-acciones" class="fono-opciones"></div>
+ <div id="fono-status" class="fono-estado" role="status" aria-live="polite">Pulsa empezar</div>
+ <div class="fono-progreso"><div id="fono-progreso-barra"></div></div>
+ <p id="fono-contador" class="fono-ayuda"></p>
+ <div class="fono-pie"><a href="/juegos/">Terminar y volver</a></div>
+</section>
+<script src="/static/js/fono-juegos-nuevos.js"></script>
+<script>document.addEventListener('DOMContentLoaded', () => FonoJuegosNuevos.iniciar('{{ modo }}'));</script>
+{% endblock %}

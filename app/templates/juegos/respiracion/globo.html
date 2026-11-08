@@ -3,8 +3,17 @@
 {% block contenido %}
 <section class="pantalla-movil">
     <h1 class="titulo-rojo centrado">Respiración</h1>
-    <p class="centrado" style="font-weight:bold; margin-bottom:0.3rem;">Ya conoces la respiración<br>correcta es hora de inflar tu globo.</p>
-    <p class="centrado texto-pequeño" style="color:#888; margin-bottom:1rem;">Recuerda seguir las instrucciones anteriores.</p>
+    <p class="centrado" style="font-weight:bold; margin-bottom:0.3rem;">Toma aire y sopla despacito.</p>
+    <div class="fono-guia-infantil">
+       <img src="/static/img/soplo-boca.gif" alt="Boca animada que sopla" width="140" height="140" />
+       <div class="fono-pasos">👃 Toma aire → 👄 Sopla → 🎈 Infla</div>
+       <small>Si necesitas ayuda, mira cómo sopla tu acompañante.</small>
+    </div>
+    <div class="fono-niveles" role="group" aria-label="Elige nivel de dificultad">
+       <button onclick="seleccionarNivelGlobo(1)" id="globo-n1" class="activo" type="button">1 · Fácil</button>
+       <button onclick="seleccionarNivelGlobo(2)" id="globo-n2" type="button">2 · Medio</button>
+       <button onclick="seleccionarNivelGlobo(3)" id="globo-n3" type="button">3 · Reto</button>
+    </div>
 
     <!-- Área del globo -->
     <div class="globo-area">
@@ -55,16 +64,12 @@
         <p class="texto-pequeño centrado" style="margin-top:0.3rem;" id="mic-estado">Toca para activar el micrófono</p>
     </div>
 
-    <!-- Instrucciones para padres -->
-    <div class="instrucciones-padres">
-        <h3>Para padres y niños</h3>
-        <p>Antes de ir a la cama, practica la respiración con tu niño.
-        Ve en busca del juguete favorito de tu pequeño y busca un objeto para ti.
-        En primer lugar acuéstate en la cama con tu hijo, colócale el juguete en la barriga,
-        pídele que tome aire por la nariz hasta conseguir mover el juguete,
-        practica 5 veces en mismo ejercicio, bríndales compañía y muéstrale como lo haces tú.</p>
-    </div>
-
+    <details class="instrucciones-padres">
+      <summary>👨‍👩‍👧 Guía para acompañantes</summary>
+      <p>Para mayores de 3 años: 1. Muéstrale cómo tomas aire por la nariz.
+         2. Soplen lentamente con los labios redondos. 3. Felicita cada intento.
+         Realiza pausas. No le pidas soplar hasta marearse.</p>
+    </details>
     <div style="margin-top:1rem; text-align:center; display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
         <a href="/juegos/respiracion" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Respiración</a>
         <button onclick="volverInicio()" class="boton-rojo-borde" style="padding:0.5rem 1.2rem; border-radius:4px; cursor:pointer;">🏠 Inicio</button>
@@ -175,6 +180,18 @@ let micStream = null;
 let micActivo = false;
 let animFrame = null;
 let nivelGlobo = 0; // 0 a 100
+let dificultadGlobo = 1;
+const OBJETIVOS_GLOBO = {1: 40, 2: 70, 3: 100};
+function seleccionarNivelGlobo(n) {
+  if (micActivo) detenerMic();
+  dificultadGlobo = n;
+  document.querySelectorAll('.fono-niveles button').forEach(b => b.classList.toggle('activo', b.id === `globo-n${n}`));
+  reiniciar();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const n = Number(new URLSearchParams(window.location.search).get('nivel'));
+  if ([1, 2, 3].includes(n)) seleccionarNivelGlobo(n);
+});
 const MAX_NIVEL = 100;
 const evidenciaVozGlobo = (typeof crearCapturaActividad === 'function')
     ? crearCapturaActividad({ categoria: 'respiracion', juego: 'globo' })
@@ -257,7 +274,7 @@ function actualizarGlobo() {
     const g = Math.round(57 + (nivelGlobo / 100) * 30);
     document.getElementById('globo-cuerpo').setAttribute('fill', `rgb(${r},${g},57)`);
 
-    if (nivelGlobo >= MAX_NIVEL) {
+    if (nivelGlobo >= OBJETIVOS_GLOBO[dificultadGlobo]) {
         explotarGlobo();
     }
 }
@@ -272,7 +289,7 @@ function explotarGlobo() {
 
 async function registrarResultadoGlobo() {
     const detalleVoz = await detalleVozGloboPromise;
-    guardarResultadoJuego('respiracion', 'globo', 1, 1, true, 50, 1, {
+    guardarResultadoJuego('respiracion', 'globo', 1, 1, true, 50, dificultadGlobo, {
         notas: 'Actividad realizada con micrófono.',
         requiereRevisionAudio: true,
         ...detalleVoz,

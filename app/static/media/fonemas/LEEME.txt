@@ -1,0 +1,15 @@
+VÍDEOS REALES PARA FONEMAS: M, P, S, G, R, B, D y F
+
+Si el equipo clínico tiene clips con autorización de uso, colocar aquí:
+  m.mp4, p.mp4, s.mp4, g.mp4, r.mp4, b.mp4, d.mp4, f.mp4
+
+Mostrar frontalmente boca y cara de una persona REAL pronunciando el sonido
+específico. Debe revisarlo una fonoaudióloga antes de publicarlo. No usar
+videos aleatorios de Instagram, ni confundir el sonido /r/ suave con /rr/ fuerte.
+
+Sin estos archivos: la aplicación muestra un GIF de una persona real hablando
+pero IDENTIFICADO como demostración general (no como fonema concreto).
+Para RR fuerte incluye un video externo con licencia CC BY-SA 4.0.
+
+La carpeta de ejemplo NO contiene audios de pacientes ni archivos personales.
+Ver DOCUMENTACION_MEDIOS_REALES.md en la raíz.

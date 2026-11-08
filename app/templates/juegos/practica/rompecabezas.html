@@ -29,14 +29,14 @@
 
         <!-- Selector de nivel -->
         <div class="nivel-selector">
-            <button class="nivel-btn activo" onclick="cambiarNivel(3,this)">3×3</button>
-            <button class="nivel-btn" onclick="cambiarNivel(4,this)">4×4</button>
-            <button class="nivel-btn" onclick="cambiarNivel(5,this)">5×5</button>
+            <button class="nivel-btn{% if request.query_params.get('nivel') not in ['2', '3'] %} activo{% endif %}" onclick="cambiarNivel(3,this)">3×3</button>
+            <button class="nivel-btn{% if request.query_params.get('nivel') == '2' %} activo{% endif %}" onclick="cambiarNivel(4,this)">4×4</button>
+            <button class="nivel-btn{% if request.query_params.get('nivel') == '3' %} activo{% endif %}" onclick="cambiarNivel(5,this)">5×5</button>
         </div>
 
         <!-- Puntuación -->
         <div class="score-display">
-            SCORE: <span id="score">0</span>
+            ⭐ Puntos: <span id="score">0</span>
         </div>
 
         <!-- Mensaje de éxito -->
@@ -171,7 +171,9 @@ const IMAGENES_POR_NIVEL = {
     5: { url: '/static/img/puzzle_5.svg', nombre: 'Loro' },
 };
 
-let nivelActual = 3;
+// La tarea médica usa 1, 2, 3; el rompecabezas interno usa 3x3, 4x4, 5x5.
+const nivelTareaRompecabezas = Number(new URLSearchParams(location.search).get('nivel'));
+let nivelActual = [1,2,3].includes(nivelTareaRompecabezas) ? nivelTareaRompecabezas + 2 : 3;
 let piezas = [];
 let piezaArrastrada = null;
 let score = 0;

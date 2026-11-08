@@ -2,16 +2,13 @@
 
 {% block contenido %}
 <section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">Resonancia</h1>
+    <h1 class="titulo-rojo centrado">Sube la pelota</h1>
 
     <!-- Instrucción -->
     <div id="instruccion-escaleras" class="instruccion-res">
-        <p><strong>Pronuncia el sonido de la letra m de manera prolongada como muestra el ejemplo</strong></p>
+        <p class="fono-pasos">🔊 Escucha → 👄 Di «mmm» → ⚽ Sube</p>
         <button class="btn-audio" onclick="reproducirEjemplo()" title="Escuchar ejemplo">🔊 Escuchar ejemplo</button>
-        <p class="texto-pequeño" style="margin-top:0.5rem;">
-            Recuerda iniciar desde el tono más bajo hasta el más alto,
-            sigue el ritmo del personaje que sube por las escaleras.
-        </p>
+        <details><summary>👨‍👩‍👧 Guía de acompañamiento</summary><p>Invita al niño a hacer «mmm» suavemente. La pelota sube o baja con la variación de tono. Evita forzar la voz.</p></details>
     </div>
 
     <!-- Área de escaleras -->
@@ -34,12 +31,12 @@
 
     <!-- Instrucción fase 2 -->
     <div id="instruccion-fase2" class="instruccion-res" style="display:none;">
-        <p><strong>Hazlo nuevamente desde el tono más alto hasta el más bajo, el personaje bajará a tu ritmo.</strong></p>
+        <p><strong>⬇️ Ahora baja la pelota con tu voz.</strong></p>
     </div>
 
     <!-- Progreso -->
     <div class="res-progreso">
-        <span>Nivel: <strong id="nivel-res">1</strong>/2</span>
+        <span>Parte: <strong id="nivel-res">1</strong>/2</span>
         <span>Puntos: <strong id="puntos-res">0</strong></span>
     </div>
 
@@ -200,27 +197,18 @@ function dibujarEscaleras() {
     const px = 30 + escalonActual * anchoEscalon + anchoEscalon * (ESCALONES - escalonActual) / 2;
     const py = H - 20 - (escalonActual + 1) * altoEscalon - 35;
 
-    dibujarPersonaje(px, py);
+    dibujarPelota(px, py);
 }
 
-function dibujarPersonaje(x, y) {
-    // Cuerpo (stick figure)
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2.5;
-    ctx.fillStyle = '#333';
-
-    // Cabeza
-    ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.stroke();
-
-    // Cuerpo
-    ctx.beginPath(); ctx.moveTo(x, y + 10); ctx.lineTo(x, y + 35); ctx.stroke();
-
-    // Brazos
-    ctx.beginPath(); ctx.moveTo(x - 15, y + 20); ctx.lineTo(x + 15, y + 20); ctx.stroke();
-
-    // Piernas
-    ctx.beginPath(); ctx.moveTo(x, y + 35); ctx.lineTo(x - 12, y + 55); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x, y + 35); ctx.lineTo(x + 12, y + 55); ctx.stroke();
+function dibujarPelota(x, y) {
+    // Pelota simple y grande: se identifica mejor que un muñeco pequeño.
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.20)'; ctx.shadowBlur = 6;
+    ctx.fillStyle = '#ffcc40'; ctx.strokeStyle = '#d8740c';ctx.lineWidth = 3;
+    ctx.beginPath();ctx.arc(x,y+24,18,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.shadowBlur = 0;ctx.strokeStyle = '#fff';ctx.lineWidth = 3;
+    ctx.beginPath();ctx.arc(x,y+24,11,-Math.PI*.3,Math.PI*.8);ctx.stroke();
+    ctx.restore();
 }
 
 function animarPersonaje() {

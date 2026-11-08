@@ -89,17 +89,29 @@ async def create_indexes():
         print("\n📋 Colección: resultados_juegos")
         resultados = db["resultados_juegos"]
         try:
-            await resultados.create_index("usuario_email")
+            await resultados.create_index("paciente_email")
             print("  ✅ Creado índice en 'usuario_email'")
         except Exception as e:
             print(f"  ⚠️  'usuario_email': {str(e)}")
         
         try:
-            await resultados.create_index([("usuario_email", 1), ("fecha", -1)])
+            await resultados.create_index([("paciente_email", 1), ("fecha", -1)])
             print("  ✅ Creado índice compuesto en 'usuario_email' + 'fecha'")
         except Exception as e:
             print(f"  ⚠️  'usuario_email + fecha': {str(e)}")
         
+        # Nuevos registros: cada intento conserva su audio y fecha, sin reemplazos.
+        for coleccion, campos in (
+            ('intentos_juegos', [('paciente_email', 1), ('fecha', -1)]),
+            ('tareas_terapeuticas', [('medico_email', 1), ('paciente_email', 1), ('estado', 1)]),
+            ('evidencias_audio', [('paciente_email', 1), ('fecha', -1)]),
+        ):
+            try:
+                await db[coleccion].create_index(campos)
+                print(f'  ✅ Índice creado: {coleccion}')
+            except Exception as exc:
+                print(f'  ⚠️  {coleccion}: {exc}')
+
         print("\n" + "="*60)
         print("✅ Índices creados exitosamente")
         print("="*60)

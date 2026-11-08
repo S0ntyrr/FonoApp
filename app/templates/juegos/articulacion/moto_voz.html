@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="/static/css/articulacion-juego.css">
 <script src="/static/js/articulacion-voz.js"></script>
 
-<section class="pantalla-movil" style="max-width:460px;margin:0 auto;">
+<section class="pantalla-movil" style="max-width:780px;margin:0 auto;">
   <div class="juegos-header">
     <a href="/juegos/articulacion" class="btn-volver-cat">← Articulación</a>
     <h1 class="titulo-rojo centrado" style="margin:0;font-size:1.1rem;">🏍️ Acelera pronunciando</h1>
@@ -11,14 +11,17 @@
   </div>
 
   <div class="art-card">
-    <p class="art-titulo">Pronuncia para hacer avanzar la moto</p>
-    <p class="art-ayuda">Ya no necesitas gritar ni alcanzar un volumen determinado. Escucha la palabra si lo necesitas y después <strong>di la palabra completa</strong>. Cada palabra reconocida hace avanzar la moto.</p>
-    <div class="art-alerta">El volumen del micrófono no se usa como indicador de “buena pronunciación”. La app registra el texto reconocido y conserva una evidencia de audio para que la articulación pueda revisarse profesionalmente.</div>
+    <p class="art-titulo">Mira · Escucha · Di la palabra</p>
+    <p class="art-ayuda">🏍️ Una letra, cinco palabras. ¡Haz avanzar la moto!</p>
+    <details class="art-alerta"><summary>Guía para familia</summary><p>Muestra la imagen y pulsa escuchar antes de pedirle al niño que repita. No es una evaluación automática de pronunciación; el profesional escucha el audio.</p></details>
   </div>
 
+  <div class="fono-niveles" id="moto-fonemas" aria-label="Selecciona la letra"></div>
   <div class="art-card" id="moto-juego">
     <div class="art-reto">
       <div class="art-reto-contador" id="moto-contador">Palabra 1 de 5</div>
+      <div class="fono-moto-imagen" id="moto-emoji" aria-label="Imagen de la palabra">⛵</div>
+      <div id="moto-gif-boca" aria-label="Ejemplo visual humano real"></div>
       <div class="art-reto-palabra" id="moto-palabra">BARCO</div>
       <button id="moto-ejemplo" type="button" class="art-btn-sec">🔊 Escuchar ejemplo</button>
     </div>
@@ -29,11 +32,11 @@
       <div class="art-meta">🏁</div>
     </div>
 
-    <button id="moto-mic" type="button" class="art-mic">🎤</button>
+    <button id="moto-mic" type="button" class="art-mic">🎤</button><button id="moto-intente" type="button" class="art-btn-sec" style="margin:8px">✅ Lo intenté</button>
     <div id="moto-fb" class="art-feedback info">Pulsa el micrófono y di la palabra completa.</div>
 
     <div class="art-progreso">
-      <div id="moto-progreso-label" class="art-progreso-label">0 / 5 palabras reconocidas</div>
+      <div id="moto-progreso-label" class="art-progreso-label">0 / 5 palabras</div>
       <div class="art-barra"><div id="moto-fill" class="art-fill"></div></div>
     </div>
   </div>
@@ -41,7 +44,7 @@
   <div class="art-card art-final" id="moto-final" style="display:none;">
     <div class="art-final-icon">🏆</div>
     <h2 style="color:var(--art-rojo);margin-bottom:8px;">¡Llegaste a la meta!</h2>
-    <p class="art-ayuda">Reconociste todas las palabras y la evidencia de voz quedó guardada para revisión profesional.</p>
+    <p class="art-ayuda">Terminaste cinco palabras. Las grabaciones disponibles quedan para revisión del profesional.</p>
     <a id="btn-siguiente-moto" href="/juegos/articulacion" class="art-link primary">Continuar</a>
     <button type="button" class="art-link secondary" style="width:100%;cursor:pointer;" onclick="window.location.reload()">Correr de nuevo</button>
     <a href="/juegos/articulacion" class="art-link secondary">Volver a Articulación</a>
@@ -54,16 +57,25 @@
 </style>
 
 <script>
-const RETOS_MOTO_VOZ = [
-  {palabra:'barco'},
-  {palabra:'dedo'},
-  {palabra:'foca'},
-  {palabra:'rana'},
-  {palabra:'jirafa'}
-];
+const RETOS_MOTO_POR_FONEMA = {
+  M:[{palabra:'mano',emoji:'🖐️'},{palabra:'moto',emoji:'🏍️'},{palabra:'mesa',emoji:'🪑'},{palabra:'mapa',emoji:'🗺️'},{palabra:'mono',emoji:'🐒'}],
+  P:[{palabra:'pato',emoji:'🦆'},{palabra:'pera',emoji:'🍐'},{palabra:'pan',emoji:'🍞'},{palabra:'pez',emoji:'🐟'},{palabra:'papa',emoji:'🥔'}],
+  S:[{palabra:'sol',emoji:'☀️'},{palabra:'sapo',emoji:'🐸'},{palabra:'sopa',emoji:'🍲'},{palabra:'silla',emoji:'🪑'},{palabra:'sal',emoji:'🧂'}],
+  G:[{palabra:'gato',emoji:'🐈'},{palabra:'globo',emoji:'🎈'},{palabra:'gallo',emoji:'🐓'},{palabra:'goma',emoji:'🧽'},{palabra:'gorila',emoji:'🦍'}],
+  R:[{palabra:'loro',emoji:'🦜'},{palabra:'pera',emoji:'🍐'},{palabra:'cara',emoji:'🙂'},{palabra:'toro',emoji:'🐂'},{palabra:'oro',emoji:'🪙'}],
+  RR:[{palabra:'carro',emoji:'🚗'},{palabra:'perro',emoji:'🐕'},{palabra:'tarro',emoji:'🫙'},{palabra:'gorra',emoji:'🧢'},{palabra:'ferrocarril',emoji:'🚆'}]
+};
+const FONEMAS_MOTO = Object.keys(RETOS_MOTO_POR_FONEMA);
+const URLPARAMS_MOTO = new URLSearchParams(location.search);
+let fonemaMoto = (URLPARAMS_MOTO.get('fonema')||'M').toUpperCase();
+if(!FONEMAS_MOTO.includes(fonemaMoto)) fonemaMoto='M';
+let RETOS_MOTO_VOZ = RETOS_MOTO_POR_FONEMA[fonemaMoto];
+const nivelMoto = Math.max(1,Math.min(3, Number(URLPARAMS_MOTO.get('nivel')||1)||1));
+
 const sesionMotoVoz = FonoArticulacion.crearSesionVoz({categoria:'articulacion',juego:'moto_voz',idiomaReconocimiento:'es-ES'});
 let motoIndice = 0;
 let motoGuardando = false;
+let reconocidasMoto=0;
 
 function mostrarMotoFb(tipo,texto){
   const fb=document.getElementById('moto-fb');
@@ -76,18 +88,20 @@ function actualizarMotoVoz(){
   const reto=RETOS_MOTO_VOZ[motoIndice];
   const pct=Math.round((motoIndice/total)*100);
   document.getElementById('moto-fill').style.width=`${pct}%`;
-  document.getElementById('moto-progreso-label').textContent=`${motoIndice} / ${total} palabras reconocidas`;
+  document.getElementById('moto-progreso-label').textContent=`${motoIndice} / ${total} palabras practicadas`;
   document.getElementById('moto-vehiculo').style.left=`${Math.min(86,6+(motoIndice/total)*80)}%`;
 
   if (!reto) {
-    document.getElementById('moto-contador').textContent=`${total} de ${total} palabras reconocidas`;
+    document.getElementById('moto-contador').textContent=`${total} de ${total} palabras practicadas`;
     document.getElementById('moto-palabra').textContent='¡META!';
     mostrarMotoFb('ok','✅ Llegaste a la meta. Guardando actividad…');
     finalizarMotoVoz();
     return;
   }
   document.getElementById('moto-contador').textContent=`Palabra ${motoIndice+1} de ${total}`;
-  document.getElementById('moto-palabra').textContent=reto.palabra.toUpperCase();
+  document.getElementById('moto-emoji').textContent=reto.emoji;
+  window.FonoBocaReal?.pintar(document.getElementById('moto-gif-boca'),fonemaMoto);
+  document.getElementById('moto-palabra').textContent=nivelMoto===3?reto.palabra.toUpperCase():fonemaMoto;
 }
 
 function reconocerMotoVoz(){
@@ -103,7 +117,7 @@ function reconocerMotoVoz(){
       mostrarMotoFb('info',`Escuchando… di “${reto.palabra.toUpperCase()}”.`);
     },
     alCorrecto:(coincidencia)=>{
-      motoIndice+=1;
+      motoIndice+=1;reconocidasMoto++;
       mostrarMotoFb('ok',`✅ Palabra reconocida: “${coincidencia.transcript}”.`);
       setTimeout(actualizarMotoVoz,450);
     },
@@ -123,8 +137,8 @@ async function finalizarMotoVoz(){
   try{
     await FonoArticulacion.guardarResultado({
       categoria:'articulacion', juego:'moto_voz', pasoCompletado:1, totalPasos:1,
-      completado:true, puntos:40, nivel:1,
-      notas:'La moto avanzó al reconocer palabras completas, no por nivel de volumen. La articulación requiere revisión profesional del audio.',
+      completado:true, puntos:40, nivel:nivelMoto,
+      notas:'Reto por fonema '+fonemaMoto+'. Palabras practicadas '+motoIndice+', reconocidas por texto '+reconocidasMoto+'. Los intentos manuales necesitan revisión clínica.',
       requiereRevisionAudio:true,
       ...detalle
     });
@@ -139,11 +153,24 @@ async function finalizarMotoVoz(){
   }
 }
 
+const panelFonemasMoto=document.getElementById('moto-fonemas');
+FONEMAS_MOTO.forEach(f => {
+  const b=document.createElement('button');b.type='button';b.textContent=f;
+  b.className=f===fonemaMoto?'activo':'';
+  b.addEventListener('click',()=>{if(f===fonemaMoto)return;
+    const q=new URLSearchParams(location.search);q.set('fonema',f);location.search=q.toString();});
+  panelFonemasMoto.appendChild(b);
+});
 document.getElementById('moto-ejemplo').addEventListener('click',()=>{
   const reto=RETOS_MOTO_VOZ[motoIndice];
   if(reto) sesionMotoVoz.hablar(reto.palabra,{rate:.8});
 });
 document.getElementById('moto-mic').addEventListener('click',reconocerMotoVoz);
+document.getElementById('moto-intente').addEventListener('click',()=>{
+  if(motoGuardando||sesionMotoVoz.estaReconociendo()||motoIndice>=RETOS_MOTO_VOZ.length)return;
+  motoIndice++;mostrarMotoFb('info','⭐ ¡Buen intento! Seguimos. El doctor puede escuchar tu voz.');
+  setTimeout(actualizarMotoVoz,250);
+});
 window.addEventListener('beforeunload',()=>sesionMotoVoz.cancelar());
 actualizarMotoVoz();
 FonoArticulacion.configurarSiguienteSeguro(document.getElementById('btn-siguiente-moto'), '/juegos/articulacion');

@@ -1,0 +1,255 @@
+/* FonoApp — Diseño adaptable para roles. No cambia rutas, formularios ni lógica. */
+/* Los paneles no deben compartir la fila flex horizontal del contenedor heredado. */
+body:is(.fono-panel-medico,.fono-panel-admin,.fono-panel-paciente) {
+  --panel-fondo: #f4f7fb;
+  --panel-tinta: #22314c;
+  --panel-borde: #dde6f0;
+  background: var(--panel-fondo);
+}
+body:is(.fono-panel-medico,.fono-panel-admin,.fono-panel-paciente) > .contenedor-principal {
+  display: block !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 100dvh;
+  overflow: visible;
+  background: var(--panel-fondo) !important;
+  padding: 0 0 clamp(35px,5vw,70px);
+}
+/* La vista completa ocupa espacio real en escritorio; en móvil conserva margen cómodo. */
+body:is(.fono-panel-medico,.fono-panel-admin) .contenedor-principal > .pantalla-movil,
+body:is(.fono-panel-medico,.fono-panel-admin) .contenedor-principal > .pacientes-page,
+body:is(.fono-panel-medico,.fono-panel-admin) .contenedor-principal > .nuevo-paciente-page {
+  width: min(1160px, calc(100% - 32px)) !important;
+  max-width: 1160px !important;
+  min-width: 0;
+  margin: clamp(15px,2.2vw,30px) auto 0 !important;
+  padding: clamp(18px,2.6vw,32px) !important;
+  border: 1px solid var(--panel-borde);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 12px 38px rgba(35,57,87,.065);
+}
+/* Herramientas del médico, que antes se quedaban como primera columna del flex. */
+body.fono-panel-medico .contenedor-principal > .fono-panel-links {
+  width: min(1160px, calc(100% - 32px));
+  max-width: 1160px;
+  margin: clamp(15px,2vw,25px) auto 0;
+  justify-content: flex-start;
+  gap: 10px;
+}
+body.fono-panel-medico .contenedor-principal > .fono-panel-links + .pantalla-movil {
+  margin-top: 12px !important;
+}
+body.fono-panel-medico .fono-panel-links a,
+body.fono-panel-admin .fono-panel-links a {
+  min-height: 44px;
+  margin: 0;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+/* Corregir encabezados de secciones internas y tarjetas que antes se salían. */
+body:is(.fono-panel-medico,.fono-panel-admin) .panel-header,
+body:is(.fono-panel-medico,.fono-panel-admin) .doctor-top-main,
+body:is(.fono-panel-medico,.fono-panel-admin) .doctor-estado-box {
+  max-width:100%;
+  min-width:0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+body:is(.fono-panel-medico,.fono-panel-admin) .panel-header > .titulo-rojo {
+  flex: 1 1 170px;
+  text-align: center;
+  font-size: clamp(1.1rem,1.8vw,1.5rem) !important;
+  overflow-wrap:anywhere;
+}
+body:is(.fono-panel-medico,.fono-panel-admin) .panel-header > div[style*="width:70px"],
+body:is(.fono-panel-medico,.fono-panel-admin) .panel-header > div[style*="width:72px"] {display:none;}
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.usuario-info,.doctor-menu-text,.doctor-stat-content,.sin-asignar-info,.evaluacion-info,.historial-info,.menu-item-texto,.form-card,.filtros-card) {
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(input,textarea,select) {
+  max-width:100%;
+}
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.filtros-card,.filtros-historial,.filtros-estado,.acciones-filtro,.buscador-pacientes) {
+  max-width:100%;
+  flex-wrap:wrap;
+  gap:12px;
+}
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.filtros-card,.filtros-historial) > :is(input,select) {
+  flex:1 1 190px;
+  min-width:0;
+  width:auto;
+}
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil img,
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil video,
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil audio {
+  max-width:100%;
+}
+/* Inicio médico: resumen ancho y tres grupos de menú organizados, sin espacios vacíos. */
+@media (min-width:900px) {
+  body.fono-panel-medico .fono-panel-inicio-medico {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:18px;
+    align-content:start;
+  }
+  body.fono-panel-medico .fono-panel-inicio-medico > .doctor-top-card,
+  body.fono-panel-medico .fono-panel-inicio-medico > .doctor-bloque:nth-child(2){grid-column:1/-1;}
+  body.fono-panel-medico .fono-panel-inicio-medico > .doctor-bloque {
+    margin:0;
+    min-width:0;
+    border:1px solid #edf0f5;
+    border-radius:18px;
+    padding:18px;
+    background:#fff;
+  }
+  body.fono-panel-medico .fono-panel-inicio-medico .doctor-stats-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+  body.fono-panel-medico .fono-panel-inicio-medico .doctor-menu-item{
+    min-height:75px;
+  }
+  body.fono-panel-admin .fono-panel-inicio-admin .menu-acciones{
+    display:grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap:13px;
+  }
+  body.fono-panel-admin .fono-panel-inicio-admin .menu-item{
+    min-height:76px;
+    padding:14px 17px;
+    border-radius:15px;
+  }
+  body.fono-panel-admin .fono-panel-inicio-admin .stats-grid{gap:14px;}
+  body.fono-panel-admin .fono-panel-inicio-admin .stat-card{padding:20px;}
+  body.fono-panel-admin .pantalla-movil .usuarios-lista,
+  body.fono-panel-medico .pantalla-movil .lista-pacientes-doctor {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:start;
+    gap:14px;
+  }
+}
+/* Paciente: cabecera de ancho completo; tareas y actividades quedan alineadas. */
+body.fono-panel-paciente .contenedor-principal > .cabecera-app {
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  z-index:30;
+}
+body.fono-panel-paciente .contenedor-principal > .contenido-principal {
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  padding:clamp(12px,2vw,30px) 0 50px;
+}
+body.fono-panel-paciente .contenido-principal > .pantalla-movil {
+  width:min(1100px,calc(100% - 32px)) !important;
+  max-width:1100px !important;
+  min-width:0;
+  margin:0 auto;
+  padding:clamp(16px,2.7vw,32px) !important;
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 12px 38px rgba(35,57,87,.07);
+  border:1px solid var(--panel-borde);
+}
+body.fono-panel-paciente .contenido-principal :is(.bienvenida-card,.acceso-juegos-card,.fono-tareas-paciente,.actividad-item) {
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+body.fono-panel-paciente .contenido-principal .actividad-link {min-height:54px;gap:12px;}
+body.fono-panel-paciente .contenido-principal .actividad-detalle {flex:1;}
+@media(min-width:800px){
+  body.fono-panel-paciente .contenido-principal > .pantalla-movil{
+    display:grid;
+    grid-template-columns:minmax(0,1.25fr) minmax(0,.85fr);
+    gap:14px 24px;
+    align-items:start;
+  }
+  body.fono-panel-paciente .contenido-principal .bienvenida-card,
+  body.fono-panel-paciente .contenido-principal .acceso-juegos-card,
+  body.fono-panel-paciente .contenido-principal .fono-tareas-paciente{
+    grid-column:1/-1;
+    margin-bottom:0;
+  }
+  body.fono-panel-paciente .contenido-principal > .pantalla-movil > section:not(.fono-tareas-paciente){
+    margin:0 !important;
+    min-width:0;
+    border:1px solid #edf0f5;
+    border-radius:18px;
+    padding:18px;
+    background:#fff;
+  }
+}
+/* Formularios y tablas: conservar información, permitir desplazamiento dentro de tablas en pantallas estrechas. */
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.stats-grid,.doctor-stats-grid,.stats-juego-grid,.stats-resumen-grid,.asig-stats-grid,.resumen-grid){max-width:100%;}
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil table {width:100%;border-collapse:collapse;}
+body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.tabla-container,.tabla-scroll,.table-responsive,.tabla-responsive){overflow-x:auto;max-width:100%;}
+@media (max-width:680px) {
+  body:is(.fono-panel-medico,.fono-panel-admin) .contenedor-principal > .pantalla-movil,
+  body:is(.fono-panel-medico,.fono-panel-admin) .contenedor-principal > .pacientes-page,
+  body:is(.fono-panel-medico,.fono-panel-admin) .contenedor-principal > .nuevo-paciente-page,
+  body.fono-panel-paciente .contenido-principal > .pantalla-movil {
+    width:calc(100% - 16px) !important;
+    max-width:none !important;
+    margin:8px auto 0 !important;
+    padding:16px 13px !important;
+    border-radius:17px;
+  }
+  body.fono-panel-medico .contenedor-principal > .fono-panel-links {width:calc(100% - 16px);margin:9px auto 0;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil .stats-grid,
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil .doctor-stats-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.menu-item,.doctor-menu-item,.usuario-card,.item-paciente,.asignacion-card) {min-width:0;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.doctor-estado-form,.doctor-estado-select){max-width:100%;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil .panel-header{align-items:center;gap:8px;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil .panel-header > .titulo-rojo{flex:1 1 135px;text-align:left;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.filtros-card,.filtros-historial) > :is(input,select,button){width:100%;flex:1 1 100%;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil table {
+    display:block;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+}
+@media(max-width:390px){
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil .stats-grid,
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil .doctor-stats-grid {grid-template-columns:1fr;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil .panel-header > .titulo-rojo{font-size:1rem !important;}
+  body:is(.fono-panel-medico,.fono-panel-admin) .pantalla-movil :is(.menu-item,.doctor-menu-item){padding:12px 10px;}
+}
+@media (prefers-reduced-motion:reduce){
+  body:is(.fono-panel-medico,.fono-panel-admin,.fono-panel-paciente) .pantalla-movil :is(a,button) {transition:none!important;}
+}
+/* Composición más compacta en computadores grandes. */
+@media(min-width:1100px){
+  body.fono-panel-medico .fono-panel-inicio-medico {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    align-items:start;
+  }
+}
+/* Acciones principales del médico con la misma anchura en teléfonos. */
+@media(max-width:680px){
+  body.fono-panel-medico .contenedor-principal > .fono-panel-links{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:stretch;
+    gap:8px;
+  }
+  body.fono-panel-medico .contenedor-principal > .fono-panel-links a{
+    text-align:center;
+    margin:0;
+    width:100%;
+    min-width:0;
+    padding:9px;
+    line-height:1.3;
+  }
+}
+@media(max-width:340px){
+  body.fono-panel-medico .contenedor-principal > .fono-panel-links{grid-template-columns:1fr;}
+}

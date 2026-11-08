@@ -58,18 +58,13 @@
   }
 
   function hablarEspanol(texto, opciones = {}) {
-    if (!texto) return false;
-    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return false;
-
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(texto);
-    const voz = elegirVozEspanol();
-    if (voz) utter.voice = voz;
-    utter.lang = voz ? voz.lang : (opciones.lang || 'es-CO');
-    utter.rate = opciones.rate || 0.82;
-    utter.pitch = opciones.pitch || 1;
-    utter.volume = 1;
-    window.speechSynthesis.speak(utter);
+    if (window.FonoVoz) return window.FonoVoz.hablar(texto, opciones);
+    if (!texto || !('speechSynthesis' in window)) return false;
+    const u = new SpeechSynthesisUtterance(texto);
+    const voz = elegirVozEspanol(); if (voz) u.voice = voz;
+    u.lang = voz ? voz.lang : (opciones.lang || 'es-CO');
+    u.rate = .96;
+    window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
     return true;
   }
 
@@ -345,6 +340,7 @@
     fd.append('audio_url', config.audioUrl || '');
     fd.append('requiere_revision_audio', config.requiereRevisionAudio ? 'true' : 'false');
 
+    if (window.FonoEvidencia) await window.FonoEvidencia.enriquecer(fd);
     const response = await fetch('/juegos/resultado', { method: 'POST', body: fd });
     if (response.status === 401 || response.status === 403) {
       window.location.href = '/auth/login';
@@ -352,6 +348,7 @@
     }
     if (!response.ok) throw new Error(`No se pudo guardar el resultado (${response.status})`);
     const data = await response.json();
+    if (window.FonoEvidencia) window.FonoEvidencia.confirmado();
     if (config.completado !== false) marcarActividadCompletada();
     return data;
   }

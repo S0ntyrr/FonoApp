@@ -18,6 +18,7 @@ from ..security import (
     normalize_email,
 )
 from ..time_utils import app_now, day_bounds
+from ..therapy_catalog import JUEGOS_TERAPIA, URLS_TERAPIA, FONEMAS_TERAPIA, JUEGOS_CON_NIVELES
 
 router = APIRouter(
     prefix="/doctor",
@@ -1477,3 +1478,103 @@ async def cambiar_estado_doctor(
 
     await db["usuarios"].update_one({"email": email_objetivo, "rol": "medico"}, {"$set": {"estado": estado}})
     return RedirectResponse(url="/doctor/home", status_code=303)
+
+
+# ── Tareas personalizadas: el médico asigna juegos, niveles y fonemas ─────────
+@router.get("/tareas", response_class=HTMLResponse)
+async def listar_tareas_terapeuticas(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    doctor = await _obtener_doctor_actual(request, db)
+    if not doctor:
+        return RedirectResponse('/auth/login', status_code=303)
+    pacientes = sorted(await _emails_pacientes_asignados(db, doctor['email']))
+    tareas = []
+    async for tarea in db['tareas_terapeuticas'].find({'medico_email': doctor['email']}).sort('creada_en', -1).limit(150):
+        tarea['_id'] = str(tarea['_id'])
+        tareas.append(tarea)
+    return templates.TemplateResponse(request, 'doctor/tareas.html', {
+        'request': request, 'titulo_pagina': 'Tareas terapéuticas',
+        'pacientes': pacientes, 'juegos': JUEGOS_TERAPIA, 'fonemas': FONEMAS_TERAPIA,
+        'juegos_con_niveles': JUEGOS_CON_NIVELES,
+        'tareas': tareas,
+    })
+
+
+@router.post("/tareas", response_class=RedirectResponse)
+async def crear_tarea_terapeutica(
+    request: Request, paciente_email: str = Form(...), url_juego: str = Form(...),
+    fonema: str = Form('M'), nivel: int = Form(1), instrucciones: str = Form(''),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    doctor = await _obtener_doctor_actual(request, db)
+    if not doctor:
+        return RedirectResponse('/auth/login', status_code=303)
+    permitidos = await _emails_pacientes_asignados(db, doctor['email'])
+    if paciente_email not in permitidos or url_juego not in URLS_TERAPIA:
+        return JSONResponse(status_code=400, content={'detail': 'Paciente o juego no permitido'})
+    if fonema not in FONEMAS_TERAPIA or nivel not in (1, 2, 3):
+        return JSONResponse(status_code=400, content={'detail': 'Fonema o nivel inválido'})
+    if url_juego not in JUEGOS_CON_NIVELES:
+        nivel = 1  # No etiquetar como dificultad lo que no cambia el juego.
+    cat, nombre, _ = next(j for j in JUEGOS_TERAPIA if j[2] == url_juego)
+    await db['tareas_terapeuticas'].insert_one({
+        'medico_email': doctor['email'], 'paciente_email': paciente_email,
+        'categoria': cat, 'actividad': nombre, 'url_juego': url_juego,
+        'fonema': fonema, 'nivel': nivel, 'instrucciones': instrucciones[:300].strip(),
+        'estado': 'pendiente', 'creada_en': app_now(), 'completada_en': None,
+    })
+    return RedirectResponse('/doctor/tareas', status_code=303)
+
+
+@router.post('/tareas/{tarea_id}/cancelar', response_class=RedirectResponse)
+async def cancelar_tarea_terapeutica(tarea_id: str, request: Request,
+    db: AsyncIOMotorDatabase = Depends(get_db)):
+    doctor = await _obtener_doctor_actual(request, db)
+    if not doctor:
+        return RedirectResponse('/auth/login', status_code=303)
+    oid = _parse_object_id(tarea_id)
+    if oid:
+        await db['tareas_terapeuticas'].update_one(
+            {'_id': oid, 'medico_email': doctor['email'], 'estado': 'pendiente'},
+            {'$set': {'estado': 'cancelada'}})
+    return RedirectResponse('/doctor/tareas', status_code=303)
+
+
+@router.get('/grabaciones', response_class=HTMLResponse)
+async def grabaciones_terapeuticas(request: Request, paciente_email: str = '',
+    pagina: int = 1, pagina_pendientes: int = 1,
+    db: AsyncIOMotorDatabase = Depends(get_db)):
+    doctor = await _obtener_doctor_actual(request, db)
+    if not doctor:
+        return RedirectResponse('/auth/login', status_code=303)
+    pacientes = sorted(await _emails_pacientes_asignados(db, doctor['email']))
+    filtro = {'paciente_email': {'$in': pacientes}}
+    if paciente_email:
+        if paciente_email not in pacientes:
+            return JSONResponse(status_code=403, content={'detail': 'Paciente no autorizado'})
+        filtro['paciente_email'] = paciente_email
+    pagina = max(1, min(100000, pagina))
+    pagina_pendientes = max(1, min(100000, pagina_pendientes))
+    tamano = 50
+    intentos = []
+    audios_sin_intento = []
+    if pacientes:
+        async for doc in db['intentos_juegos'].find(filtro).sort('fecha', -1).skip((pagina - 1) * tamano).limit(tamano + 1):
+            doc['_id'] = str(doc['_id'])
+            intentos.append(doc)
+        # Audios subidos pero sin resultado registrado, también disponibles.
+        async for doc in db['evidencias_audio'].find({
+            'paciente_email': filtro['paciente_email'],
+            'intento_id': {'$exists': False},
+        }).sort('fecha', -1).skip((pagina_pendientes - 1) * tamano).limit(tamano + 1):
+            doc['audio_url'] = '/juegos/evidencia-audio/' + str(doc['_id'])
+            audios_sin_intento.append(doc)
+    mas_intentos = len(intentos) > tamano
+    mas_pendientes = len(audios_sin_intento) > tamano
+    return templates.TemplateResponse(request, 'doctor/grabaciones.html', {
+        'request': request, 'titulo_pagina': 'Grabaciones por intento',
+        'intentos': intentos[:tamano], 'pacientes': pacientes,
+        'paciente_email_sel': paciente_email,
+        'audios_sin_intento': audios_sin_intento[:tamano],
+        'pagina': pagina, 'pagina_pendientes': pagina_pendientes,
+        'mas_intentos': mas_intentos, 'mas_pendientes': mas_pendientes,
+    })

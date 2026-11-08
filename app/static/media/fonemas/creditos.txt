@@ -1,0 +1,17 @@
+MATERIALES EXTERNOS QUE LA APLICACION PUEDE ENLAZAR
+
+- RR fuerte: "Alveolar-trill-slomo.webm", autor xyzzyva,
+  CC BY-SA 4.0, Wikimedia Commons.
+  https://commons.wikimedia.org/wiki/File:Alveolar-trill-slomo.webm
+  Recurso externo: requiere Internet. No se redistribuye como archivo local.
+
+- Demostraciones de boca adicionales: las GIFs en app/static/img/bocas/
+  son ESQUEMAS ANIMADOS del software, NO videos de personas reales.
+  Para utilizar videos humanos validados, colocar archivos:
+  app/static/media/fonemas/m.mp4, p.mp4, s.mp4, g.mp4,
+  r.mp4, b.mp4, d.mp4, f.mp4
+  Solo usar material con permisos y validacion fonoaudiologica.
+
+- El audio sintetizado del navegador es un ejemplo, no una evaluacion
+  de la calidad de la pronunciacion. Los audios de cada paciente
+  se guardan para revision por el profesional.
