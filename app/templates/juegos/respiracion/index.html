@@ -3,93 +3,114 @@
 {% block contenido %}
 
 <section class="pantalla-movil">
-    <h1 class="titulo-rojo centrado">🎈 Respiración</h1>
-    <p class="centrado" style="font-weight:bold; margin-bottom:0.5rem;">👃 Toma aire despacio · 👄 Suelta el aire suave</p>
-    <p class="centrado texto-pequeño" style="margin-bottom:1.5rem;">
-        Pon las manos en tu barriga. ¡Mira cómo se mueve!
-        <details><summary>👨‍👩‍👧 Ayuda para acompañantes</summary>Si el niño es pequeño, muéstrale primero cómo se mueve la barriga al respirar. Evita que fuerce o aguante la respiración. Sigue las indicaciones de su fonoaudióloga.</details>
-    </p>
+    <h1 class="titulo-rojo centrado">Respiración</h1>
+    <details class="resp-guia"><summary>Ayuda para acompañantes</summary>Practiquen juntos: 1) tomar aire por la nariz con la boca cerrada (4 s), 2) retenerlo un momento (2 s) y 3) soplarlo despacio con los labios redondos, como por un pitillo (4 s). Cada respiración mueve el algodón un poco; con 5 llega a la bandera. Si tienen un pitillo y un algodón reales, háganlo también sobre la mesa. No fuerces la respiración; si se marea, descansen.</details>
 
-    <!-- Animación de respiración -->
-    <div class="respiracion-demo">
-        <div class="figura-respiracion" id="figura">
-            <svg viewBox="0 0 120 200" xmlns="http://www.w3.org/2000/svg" width="100" height="160">
-                <!-- Cuerpo -->
-                <circle cx="60" cy="30" r="22" fill="#FFDAB9" stroke="#e0a070" stroke-width="1.5"/>
-                <!-- Cabello -->
-                <ellipse cx="60" cy="15" rx="22" ry="12" fill="#c0392b"/>
-                <!-- Cuerpo torso -->
-                <rect x="35" y="52" width="50" height="60" rx="8" fill="#e74c3c"/>
-                <!-- Barriga (se anima) -->
-                <ellipse id="barriga" cx="60" cy="95" rx="18" ry="12" fill="#c0392b" opacity="0.6"/>
-                <!-- Piernas -->
-                <rect x="38" y="110" width="18" height="50" rx="6" fill="#2c3e50"/>
-                <rect x="64" y="110" width="18" height="50" rx="6" fill="#2c3e50"/>
-                <!-- Brazos -->
-                <rect x="10" y="55" width="25" height="12" rx="6" fill="#FFDAB9" transform="rotate(-15,22,61)"/>
-                <rect x="85" y="55" width="25" height="12" rx="6" fill="#FFDAB9" transform="rotate(15,98,61)"/>
-                <!-- Flechas de respiración -->
-                <g id="flechas-inhala" opacity="0">
-                    <line x1="5" y1="80" x2="30" y2="80" stroke="#3498db" stroke-width="2" marker-end="url(#arrow)"/>
-                    <line x1="115" y1="80" x2="90" y2="80" stroke="#3498db" stroke-width="2" marker-end="url(#arrow2)"/>
+    <!-- Demostración: tomar aire por la nariz, retener y soplar por el pitillo -->
+    <div class="resp-demo" id="resp-demo" data-fase="idle">
+        <svg class="resp-escena" viewBox="0 0 320 170" role="img" aria-label="Niño que toma aire por la nariz y sopla por un pitillo para mover un algodón hasta la bandera">
+            <defs>
+                <radialGradient id="resp-alg" cx=".35" cy=".35"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#dfe6ee"/></radialGradient>
+                <clipPath id="resp-clip-pitillo"><rect x="66" y="104" width="116" height="12" rx="6"/></clipPath>
+            </defs>
+            <!-- suelo -->
+            <rect x="0" y="146" width="320" height="24" fill="#c9ecb9"/>
+            <path d="M0 146 Q40 140 80 146 T160 146 T240 146 T320 146" fill="#b3e2a0"/>
+            <!-- camino del algodón -->
+            <line x1="196" y1="140" x2="292" y2="140" stroke="#e7d3ad" stroke-width="10" stroke-linecap="round"/>
+            <!-- bandera -->
+            <g transform="translate(292 86)">
+                <rect x="0" y="0" width="4" height="56" fill="#e53935"/>
+                <g transform="translate(4 0)">
+                    <rect width="22" height="15" fill="#fff" stroke="#222" stroke-width="1"/>
+                    <rect x="0" y="0" width="5.5" height="5" fill="#222"/><rect x="11" y="0" width="5.5" height="5" fill="#222"/>
+                    <rect x="5.5" y="5" width="5.5" height="5" fill="#222"/><rect x="16.5" y="5" width="5.5" height="5" fill="#222"/>
+                    <rect x="0" y="10" width="5.5" height="5" fill="#222"/><rect x="11" y="10" width="5.5" height="5" fill="#222"/>
                 </g>
-                <g id="flechas-exhala" opacity="0">
-                    <line x1="30" y1="80" x2="5" y2="80" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow3)"/>
-                    <line x1="90" y1="80" x2="115" y2="80" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow4)"/>
+            </g>
+            <!-- cara -->
+            <g id="resp-cara" transform="translate(62 84)">
+                <circle r="44" fill="#ffd9b8" stroke="#e8a77a" stroke-width="3"/>
+                <path d="M-38 -12 Q-30 -50 0 -48 Q32 -50 38 -12 Q26 -32 0 -32 Q-24 -32 -38 -12Z" fill="#6b3f1f"/>
+                <circle cx="-16" cy="-6" r="5" fill="#2b2b2b"/><circle cx="16" cy="-6" r="5" fill="#2b2b2b"/>
+                <circle cx="-14.5" cy="-7.5" r="1.6" fill="#fff"/><circle cx="17.5" cy="-7.5" r="1.6" fill="#fff"/>
+                <path d="M-3 2 Q0 10 3 2" fill="none" stroke="#d08a5c" stroke-width="3" stroke-linecap="round"/>
+                <circle id="resp-mejilla-i" cx="-26" cy="14" r="8" fill="#ffb3a1" opacity="0"/>
+                <circle id="resp-mejilla-d" cx="26" cy="14" r="8" fill="#ffb3a1" opacity="0"/>
+                <path id="resp-boca-cerrada" d="M-9 22 Q0 27 9 22" fill="none" stroke="#b5523b" stroke-width="3.5" stroke-linecap="round"/>
+                <ellipse id="resp-boca-sopla" cx="0" cy="23" rx="7" ry="6" fill="#b5523b" opacity="0"/>
+                <!-- aire entrando por la nariz -->
+                <g id="resp-flechas-in" opacity="0" stroke="#2e9fd6" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path class="resp-flujo-in" d="M-46 30 Q-28 24 -8 11"/><path d="M-15 9 L-7 11 L-11 17"/>
+                    <path class="resp-flujo-in" d="M46 30 Q28 24 8 11"/><path d="M15 9 L7 11 L11 17"/>
                 </g>
-                <defs>
-                    <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-                        <path d="M0,0 L6,3 L0,6 Z" fill="#3498db"/>
-                    </marker>
-                    <marker id="arrow2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-                        <path d="M6,0 L0,3 L6,6 Z" fill="#3498db"/>
-                    </marker>
-                    <marker id="arrow3" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-                        <path d="M6,0 L0,3 L6,6 Z" fill="#e74c3c"/>
-                    </marker>
-                    <marker id="arrow4" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-                        <path d="M0,0 L6,3 L0,6 Z" fill="#e74c3c"/>
-                    </marker>
-                </defs>
-            </svg>
+                <!-- reloj de retener -->
+                <g id="resp-pausa" opacity="0" transform="translate(0 -62)">
+                    <circle r="12" fill="#fff" stroke="#f2b400" stroke-width="3"/>
+                    <rect x="-5" y="-6" width="3.5" height="12" rx="1" fill="#f2b400"/><rect x="1.5" y="-6" width="3.5" height="12" rx="1" fill="#f2b400"/>
+                </g>
+            </g>
+            <!-- pitillo desde la boca -->
+            <g clip-path="url(#resp-clip-pitillo)">
+                <rect x="66" y="104" width="116" height="12" fill="#fff"/>
+                <path d="M60 116 l8 -12 h7 l-8 12z M82 116 l8 -12 h7 l-8 12z M104 116 l8 -12 h7 l-8 12z M126 116 l8 -12 h7 l-8 12z M148 116 l8 -12 h7 l-8 12z M170 116 l8 -12 h7 l-8 12z" fill="#ef4b5f"/>
+            </g>
+            <rect x="66" y="104" width="116" height="12" rx="6" fill="none" stroke="#e9a1aa" stroke-width="1.5"/>
+            <!-- aire saliendo del pitillo -->
+            <g id="resp-aire" opacity="0" stroke="#2e9fd6" stroke-width="3" fill="none" stroke-linecap="round">
+                <path class="resp-flujo-out" d="M186 104 Q196 100 206 104"/>
+                <path class="resp-flujo-out" d="M186 110 Q198 110 210 112"/>
+                <path class="resp-flujo-out" d="M186 116 Q196 120 206 118"/>
+            </g>
+            <!-- algodón -->
+            <g id="resp-algodon" transform="translate(206 128)">
+                <ellipse cx="0" cy="12" rx="13" ry="3" fill="#0002"/>
+                <circle cx="0" cy="0" r="11" fill="url(#resp-alg)"/>
+                <circle cx="-8" cy="3" r="7" fill="url(#resp-alg)"/>
+                <circle cx="8" cy="3" r="7.5" fill="url(#resp-alg)"/>
+                <circle cx="-3" cy="-7" r="6.5" fill="url(#resp-alg)"/>
+            </g>
+        </svg>
+
+        <!-- Pasos con dibujos: 1 nariz, 2 retener, 3 soplar -->
+        <div class="resp-pasos" aria-hidden="true">
+            <span class="resp-paso" data-paso="inhala"><b>1</b><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="31" r="22" fill="#ffd9b8" stroke="#e8a77a" stroke-width="2"/><path d="M11 25 Q15 6 30 7 Q46 6 49 25 Q43 15 30 15 Q18 15 11 25Z" fill="#6b3f1f"/><circle cx="22" cy="28" r="2.6" fill="#2b2b2b"/><circle cx="38" cy="28" r="2.6" fill="#2b2b2b"/><path d="M28.5 32 Q30 36 31.5 32" fill="none" stroke="#d08a5c" stroke-width="1.8" stroke-linecap="round"/><path d="M25 42 Q30 44 35 42" fill="none" stroke="#b5523b" stroke-width="2" stroke-linecap="round"/><g stroke="#2e9fd6" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="resp-flujo-in" d="M4 50 Q15 46 27 37"/><path d="M22 36 L27.5 37.5 L25 42"/><path class="resp-flujo-in" d="M56 50 Q45 46 33 37"/><path d="M38 36 L32.5 37.5 L35 42"/></g></svg></span>
+            <svg class="resp-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 H18 M13 6 L19 12 L13 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="resp-paso" data-paso="pausa"><b>2</b><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="31" r="22" fill="#ffd9b8" stroke="#e8a77a" stroke-width="2"/><path d="M11 25 Q15 6 30 7 Q46 6 49 25 Q43 15 30 15 Q18 15 11 25Z" fill="#6b3f1f"/><circle cx="22" cy="28" r="2.6" fill="#2b2b2b"/><circle cx="38" cy="28" r="2.6" fill="#2b2b2b"/><path d="M28.5 32 Q30 36 31.5 32" fill="none" stroke="#d08a5c" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="38" r="5" fill="#ffb3a1"/><circle cx="43" cy="38" r="5" fill="#ffb3a1"/><path d="M25 43 L35 43" stroke="#b5523b" stroke-width="2.4" stroke-linecap="round"/><g transform="translate(48 10)"><circle r="8" fill="#fff" stroke="#f2b400" stroke-width="2"/><rect x="-3.6" y="-4" width="2.4" height="8" rx=".8" fill="#f2b400"/><rect x="1.2" y="-4" width="2.4" height="8" rx=".8" fill="#f2b400"/></g></svg></span>
+            <svg class="resp-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 H18 M13 6 L19 12 L13 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="resp-paso" data-paso="exhala"><b>3</b><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="31" r="22" fill="#ffd9b8" stroke="#e8a77a" stroke-width="2"/><path d="M11 25 Q15 6 30 7 Q46 6 49 25 Q43 15 30 15 Q18 15 11 25Z" fill="#6b3f1f"/><circle cx="22" cy="28" r="2.6" fill="#2b2b2b"/><circle cx="38" cy="28" r="2.6" fill="#2b2b2b"/><path d="M28.5 32 Q30 36 31.5 32" fill="none" stroke="#d08a5c" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="38" r="5" fill="#ffb3a1"/><circle cx="43" cy="38" r="5" fill="#ffb3a1"/><rect x="30" y="40" width="28" height="5" rx="2.5" fill="#fff" stroke="#e9a1aa"/><path d="M34 45 l3 -5 h3 l-3 5z M42 45 l3 -5 h3 l-3 5z M50 45 l3 -5 h3 l-3 5z" fill="#ef4b5f"/><ellipse cx="30" cy="42.5" rx="3.2" ry="3" fill="#b5523b"/></svg></span>
         </div>
 
-        <!-- Indicador de fase -->
-        <div class="fase-indicador" id="fase-texto">Toca "Comenzar" para practicar</div>
+        <div class="barra-respiracion" aria-hidden="true"><div class="barra-fill" id="barra-fill"></div></div>
 
-        <!-- Barra de progreso de respiración -->
-        <div class="barra-respiracion">
-            <div class="barra-fill" id="barra-fill"></div>
+        <!-- Respiraciones hechas: 5 algodones -->
+        <div class="resp-ciclos" id="resp-ciclos" aria-label="Respiraciones completadas: 0 de 5">
+            <span></span><span></span><span></span><span></span><span></span>
         </div>
-
-        <!-- Contador de ciclos -->
-        <div class="ciclos-contador">
-            Ciclos completados: <strong id="ciclos">0</strong> / 5
-        </div>
+        <p class="fase-indicador" id="fase-texto" role="status" aria-live="polite">Toca el botón verde para empezar</p>
     </div>
 
-    <p class="centrado" style="color:#d32f2f; font-weight:bold; margin-top:0.8rem;" id="mensaje-bien" style="display:none;">
-        Lo Haces genial sigue así
-    </p>
-
-    <!-- Botones -->
-    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
-        <button id="btn-comenzar" class="boton-rojo" style="flex:1;" onclick="comenzarRespiracion()">▶ Comenzar</button>
-        <button id="btn-parar" class="boton-rojo-borde" style="flex:1; display:none;" onclick="pararRespiracion()">⏹ Parar</button>
+    <div class="resp-botones">
+        <button id="btn-comenzar" class="resp-btn resp-btn-play" type="button" onclick="comenzarRespiracion()" aria-label="Comenzar">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#2bb673"/><path d="M25 18 L48 32 L25 46Z" fill="#fff"/></svg>
+        </button>
+        <button id="btn-parar" class="resp-btn" type="button" onclick="pararRespiracion()" aria-label="Parar" hidden>
+            <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#ef6c57"/><rect x="21" y="21" width="22" height="22" rx="4" fill="#fff"/></svg>
+        </button>
     </div>
 
     <div class="juegos-grid" style="margin-top:1.2rem;">
         <a href="/juegos/respiracion/burbujas" class="juego-card respiracion"><div class="juego-icono"><svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><circle cx="19" cy="27" r="13" fill="#e6f7ff" stroke="#6cc4ef" stroke-width="2.5"/><circle cx="35" cy="14" r="8" fill="#fde8f3" stroke="#ef8cc0" stroke-width="2.5"/><ellipse cx="14" cy="22" rx="3.5" ry="2" fill="#fff"/></svg></div><div class="juego-info"><h2>Burbujas</h2><p>Juega a soplar burbujas.</p></div></a>
         <a href="/juegos/respiracion/pitillos" class="juego-card respiracion"><div class="juego-icono"><svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><rect x="4" y="33" width="26" height="7" rx="3" fill="#fff" stroke="#e9a1aa" transform="rotate(-30 17 36)"/><path d="M9 38l4-6 3 2-4 6zM18 33l4-6 3 2-4 6z" fill="#ef4b5f"/><circle cx="33" cy="17" r="8" fill="#fff" stroke="#bfcad6" stroke-width="2"/><circle cx="26" cy="21" r="5" fill="#fff" stroke="#bfcad6" stroke-width="2"/><circle cx="40" cy="21" r="5" fill="#fff" stroke="#bfcad6" stroke-width="2"/></svg></div><div class="juego-info"><h2>Algodón con pitillo</h2><p>Mueve el algodón hacia la meta.</p></div></a>
         <a href="/juegos/respiracion/globo" class="juego-card respiracion">
-            <div class="juego-icono">🎈</div>
+            <div class="juego-icono"><svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><path d="M24 6 C33 6 38 13 38 20 C38 29 30 35 24 36 C18 35 10 29 10 20 C10 13 15 6 24 6Z" fill="#e53935"/><ellipse cx="18" cy="15" rx="3.5" ry="5.5" fill="#fff" opacity=".45" transform="rotate(-20 18 15)"/><path d="M22 36 L24 39 L26 36Z" fill="#b71c1c"/><path d="M24 39 Q20 42 24 44 Q28 46 25 48" fill="none" stroke="#888" stroke-width="1.5"/></svg></div>
             <div class="juego-info">
                 <h2>Infla el globo</h2>
                 <p>Sopla para inflar el globo</p>
             </div>
         </a>
         <a href="/juegos/respiracion/molino" class="juego-card respiracion">
-            <div class="juego-icono">🌀</div>
+            <div class="juego-icono"><svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><rect x="22.5" y="23" width="3" height="23" rx="1.5" fill="#8a5a35"/><g transform="translate(24 21)"><path d="M0 0 L0 -17 Q9 -14 0 0Z" fill="#2e9fd6"/><path d="M0 0 L17 0 Q14 9 0 0Z" fill="#f2b400"/><path d="M0 0 L0 17 Q-9 14 0 0Z" fill="#e0528f"/><path d="M0 0 L-17 0 Q-14 -9 0 0Z" fill="#2bb673"/><circle r="2.8" fill="#fff" stroke="#5a6b7b" stroke-width="1.2"/></g></svg></div>
             <div class="juego-info">
                 <h2>El molino de Pepe</h2>
                 <p>Ayuda a Pepe a arreglar el molino</p>
@@ -99,7 +120,7 @@
 
     <div style="margin-top:1rem; text-align:center; display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
         <a href="/juegos/" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Juegos</a>
-        <button onclick="volverInicio()" class="boton-rojo-borde" style="padding:0.5rem 1.2rem; border-radius:4px; cursor:pointer;">🏠 Inicio</button>
+        <button onclick="volverInicio()" class="boton-rojo-borde" style="padding:0.5rem 1.2rem; border-radius:4px; cursor:pointer;"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="vertical-align:-3px"><path d="M4 11 L12 4 L20 11 M6 10 V20 H18 V10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Inicio</button>
     </div>
 </section>
 <script>
@@ -110,143 +131,136 @@ function volverInicio() {
 </script>
 
 <style>
-.respiracion-demo {
-    background: #f0f8ff;
-    border-radius: 12px;
-    padding: 1rem;
-    text-align: center;
-    border: 1px solid #b3d9f5;
-}
-.figura-respiracion {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-}
-.fase-indicador {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #1976d2;
-    margin-bottom: 0.5rem;
-    min-height: 1.5rem;
-}
-.barra-respiracion {
-    height: 12px;
-    background: #e0e0e0;
-    border-radius: 6px;
-    overflow: hidden;
-    margin: 0.5rem 0;
-}
-.barra-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #3498db, #2ecc71);
-    border-radius: 6px;
-    transition: width 0.1s linear;
-}
-.ciclos-contador {
-    font-size: 0.9rem;
-    color: #555;
-}
+.resp-guia { margin: 0 0 .8rem; font-size: .88rem; background: #f5fbff; border: 2px solid #dcefff; border-radius: 12px; padding: 6px 12px; }
+.resp-guia summary { cursor: pointer; font-weight: 700; color: #2e6f9e; }
+.resp-demo { background: linear-gradient(#dff4ff, #f0f9ff); border-radius: 18px; padding: .6rem .6rem 1rem; text-align: center; border: 2px solid #b8e1f7; }
+.resp-escena { width: 100%; max-width: 420px; height: auto; display: block; margin: 0 auto; }
+#resp-algodon { transition: transform 4s ease-out; }
+.resp-flujo-in { stroke-dasharray: 6 6; animation: resp-flujo .6s linear infinite; }
+.resp-flujo-out { stroke-dasharray: 6 6; animation: resp-flujo .5s linear infinite reverse; }
+@keyframes resp-flujo { to { stroke-dashoffset: -12; } }
+.resp-pasos { display: flex; align-items: center; justify-content: center; gap: 6px; margin: .4rem 0 .2rem; }
+.resp-paso { position: relative; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #fff; border: 3px solid #dbe8f2; transition: all .25s; }
+.resp-paso svg { width: 50px; height: 50px; }
+.resp-paso b { position: absolute; top: -6px; left: -6px; width: 20px; height: 20px; border-radius: 50%; background: #9fb3c4; color: #fff; font-size: .7rem; display: grid; place-items: center; }
+.resp-flecha { color: #9fb3c4; width: 20px; height: 20px; }
+.resp-demo[data-fase="inhala"] .resp-paso[data-paso="inhala"],
+.resp-demo[data-fase="pausa"] .resp-paso[data-paso="pausa"],
+.resp-demo[data-fase="exhala"] .resp-paso[data-paso="exhala"] { transform: scale(1.18); border-color: #2e9fd6; background: #e3f4fd; box-shadow: 0 4px 12px #2e9fd633; }
+.resp-demo[data-fase="pausa"] .resp-paso[data-paso="pausa"] { border-color: #f2b400; background: #fff6d6; }
+.resp-demo[data-fase="inhala"] .resp-paso[data-paso="inhala"] b,
+.resp-demo[data-fase="pausa"] .resp-paso[data-paso="pausa"] b,
+.resp-demo[data-fase="exhala"] .resp-paso[data-paso="exhala"] b { background: #2e9fd6; }
+.barra-respiracion { height: 12px; background: #e0eaf2; border-radius: 6px; overflow: hidden; margin: .6rem auto .4rem; max-width: 320px; }
+.barra-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #2e9fd6, #2bb673); border-radius: 6px; }
+.resp-ciclos { display: flex; justify-content: center; gap: 8px; margin: .3rem 0; }
+.resp-ciclos span { width: 26px; height: 26px; border-radius: 50%; border: 3px dashed #c9d6e2; background: #fff; transition: all .3s; }
+.resp-ciclos span.on { border: 3px solid #fff; background: radial-gradient(circle at 35% 35%, #fff, #dfe6ee); box-shadow: 0 2px 6px #0003; transform: scale(1.1); }
+.fase-indicador { font-size: .95rem; font-weight: 700; color: #1976d2; margin: .3rem 0 0; min-height: 1.4rem; }
+.resp-botones { display: flex; justify-content: center; margin-top: .8rem; }
+.resp-btn { border: none; background: none; padding: 0; cursor: pointer; }
+.resp-btn svg { width: 76px; height: 76px; display: block; filter: drop-shadow(0 5px 8px #0003); }
+.resp-btn-play { animation: resp-late 1.2s ease-in-out infinite; }
+.resp-btn[hidden] { display: none; }
+.resp-demo.ganado .resp-escena { animation: resp-fiesta .6s ease 2; }
+@keyframes resp-late { 50% { transform: scale(1.08); } }
+@keyframes resp-fiesta { 50% { transform: scale(1.04) rotate(-1deg); } }
+@media (prefers-reduced-motion: reduce) { .resp-flujo-in, .resp-flujo-out, .resp-btn-play { animation: none; } #resp-algodon { transition: none; } }
 .juegos-grid { display:flex; flex-direction:column; gap:0.8rem; }
 .juego-card { display:flex; align-items:center; gap:1rem; padding:0.8rem 1rem; border-radius:12px; text-decoration:none; color:#333; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
 .juego-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.13); }
 .juego-card.respiracion { background:linear-gradient(135deg,#f0f8ff,#d0eaff); border-left:4px solid #1976d2; }
-.juego-icono { font-size:2rem; min-width:2.5rem; text-align:center; }
+.juego-icono { min-width:2.75rem; display:grid; place-items:center; }
 .juego-info h2 { margin:0 0 0.2rem; font-size:1rem; color:#222; }
 .juego-info p  { margin:0; font-size:0.8rem; color:#555; }
 </style>
 
 <script>
-let fase = 'idle'; // idle, inhala, pausa, exhala
-let ciclos = 0;
-let animInterval = null;
-let progreso = 0;
-const DURACION_INHALA = 4000;
-const DURACION_PAUSA  = 2000;
-const DURACION_EXHALA = 4000;
+(function () {
+    const INHALA = 4000, PAUSA = 2000, EXHALA = 4000, TOTAL = 5;
+    const X0 = 206, X1 = 280; // algodón: inicio y bandera
+    const $ = id => document.getElementById(id);
+    let ciclos = 0, temporizador = null, raf = 0, activo = false;
 
-function comenzarRespiracion() {
-    ciclos = 0;
-    document.getElementById('ciclos').textContent = 0;
-    document.getElementById('btn-comenzar').style.display = 'none';
-    document.getElementById('btn-parar').style.display = 'block';
-    document.getElementById('mensaje-bien').style.display = 'none';
-    iniciarFaseInhala();
-}
-
-function pararRespiracion() {
-    clearTimeout(animInterval);
-    fase = 'idle';
-    document.getElementById('btn-comenzar').style.display = 'block';
-    document.getElementById('btn-parar').style.display = 'none';
-    document.getElementById('fase-texto').textContent = 'Toca "Comenzar" para practicar';
-    document.getElementById('barra-fill').style.width = '0%';
-    document.getElementById('barriga').setAttribute('ry', '12');
-    document.getElementById('flechas-inhala').setAttribute('opacity', '0');
-    document.getElementById('flechas-exhala').setAttribute('opacity', '0');
-}
-
-function iniciarFaseInhala() {
-    fase = 'inhala';
-    document.getElementById('fase-texto').textContent = '😮 INHALA... (4 segundos)';
-    document.getElementById('flechas-inhala').setAttribute('opacity', '1');
-    document.getElementById('flechas-exhala').setAttribute('opacity', '0');
-    animarBarra(0, 100, DURACION_INHALA, () => {
-        animarBarriga(12, 22, DURACION_INHALA);
-        animInterval = setTimeout(iniciarFasePausa, DURACION_INHALA);
-    });
-}
-
-function iniciarFasePausa() {
-    fase = 'pausa';
-    document.getElementById('fase-texto').textContent = '🤐 MANTÉN... (2 segundos)';
-    document.getElementById('flechas-inhala').setAttribute('opacity', '0');
-    animInterval = setTimeout(iniciarFaseExhala, DURACION_PAUSA);
-}
-
-function iniciarFaseExhala() {
-    fase = 'exhala';
-    document.getElementById('fase-texto').textContent = '💨 EXHALA... (4 segundos)';
-    document.getElementById('flechas-exhala').setAttribute('opacity', '1');
-    animarBarra(100, 0, DURACION_EXHALA, () => {
-        animarBarriga(22, 12, DURACION_EXHALA);
-        animInterval = setTimeout(() => {
+    function fase(nombre, texto) {
+        $('resp-demo').dataset.fase = nombre;
+        $('fase-texto').textContent = texto;
+        const inhala = nombre === 'inhala', pausa = nombre === 'pausa', exhala = nombre === 'exhala';
+        $('resp-flechas-in').setAttribute('opacity', inhala ? '1' : '0');
+        $('resp-pausa').setAttribute('opacity', pausa ? '1' : '0');
+        $('resp-aire').setAttribute('opacity', exhala ? '1' : '0');
+        $('resp-boca-sopla').setAttribute('opacity', exhala ? '1' : '0');
+        $('resp-boca-cerrada').setAttribute('opacity', exhala ? '0' : '1');
+        ['resp-mejilla-i', 'resp-mejilla-d'].forEach(id => $(id).setAttribute('opacity', exhala || pausa ? '.8' : '0'));
+    }
+    function barra(desde, hasta, ms) {
+        cancelAnimationFrame(raf);
+        const t0 = performance.now();
+        const paso = ahora => {
+            const t = Math.min(1, (ahora - t0) / ms);
+            $('barra-fill').style.width = (desde + (hasta - desde) * t) + '%';
+            if (t < 1 && activo) raf = requestAnimationFrame(paso);
+        };
+        raf = requestAnimationFrame(paso);
+    }
+    function moverAlgodon(n) {
+        const x = X0 + (X1 - X0) * (n / TOTAL);
+        $('resp-algodon').setAttribute('transform', `translate(${x} 128)`);
+    }
+    function pintarCiclos() {
+        const marcas = $('resp-ciclos').querySelectorAll('span');
+        marcas.forEach((m, i) => m.classList.toggle('on', i < ciclos));
+        $('resp-ciclos').setAttribute('aria-label', `Respiraciones completadas: ${ciclos} de ${TOTAL}`);
+    }
+    function inhalar() {
+        fase('inhala', 'Toma aire por la nariz (4 s)');
+        barra(0, 100, INHALA);
+        temporizador = setTimeout(retener, INHALA);
+    }
+    function retener() {
+        fase('pausa', 'Guarda el aire (2 s)');
+        temporizador = setTimeout(soplar, PAUSA);
+    }
+    function soplar() {
+        fase('exhala', 'Sopla despacio por el pitillo (4 s)');
+        barra(100, 0, EXHALA);
+        moverAlgodon(ciclos + 1); // el algodón avanza mientras se sopla
+        temporizador = setTimeout(() => {
             ciclos++;
-            document.getElementById('ciclos').textContent = ciclos;
-            document.getElementById('flechas-exhala').setAttribute('opacity', '0');
-            if (ciclos >= 5) {
-                document.getElementById('fase-texto').textContent = '🎉 ¡Excelente trabajo!';
-                document.getElementById('mensaje-bien').style.display = 'block';
-                document.getElementById('btn-comenzar').style.display = 'block';
-                document.getElementById('btn-parar').style.display = 'none';
-            } else {
-                iniciarFaseInhala();
-            }
-        }, DURACION_EXHALA);
-    });
-}
-
-function animarBarra(desde, hasta, duracion, callback) {
-    const inicio = performance.now();
-    function step(now) {
-        const t = Math.min((now - inicio) / duracion, 1);
-        const val = desde + (hasta - desde) * t;
-        document.getElementById('barra-fill').style.width = val + '%';
-        if (t < 1) requestAnimationFrame(step);
-        else if (callback) callback();
+            pintarCiclos();
+            if (ciclos >= TOTAL) return terminar();
+            inhalar();
+        }, EXHALA);
     }
-    requestAnimationFrame(step);
-}
-
-function animarBarriga(desde, hasta, duracion) {
-    const inicio = performance.now();
-    function step(now) {
-        const t = Math.min((now - inicio) / duracion, 1);
-        const val = desde + (hasta - desde) * t;
-        document.getElementById('barriga').setAttribute('ry', val);
-        if (t < 1) requestAnimationFrame(step);
+    function terminar() {
+        activo = false;
+        fase('idle', '¡Llegó a la bandera!');
+        $('resp-demo').classList.add('ganado');
+        try { window.reproducirSonidoExito && window.reproducirSonidoExito(); } catch (e) {}
+        $('btn-comenzar').hidden = false;
+        $('btn-parar').hidden = true;
     }
-    requestAnimationFrame(step);
-}
+    window.comenzarRespiracion = function () {
+        clearTimeout(temporizador);
+        ciclos = 0; activo = true;
+        $('resp-demo').classList.remove('ganado');
+        // volver el algodón al inicio sin animación
+        const alg = $('resp-algodon');
+        alg.style.transition = 'none'; moverAlgodon(0); void alg.getBoundingClientRect(); alg.style.transition = '';
+        pintarCiclos();
+        $('btn-comenzar').hidden = true;
+        $('btn-parar').hidden = false;
+        inhalar();
+    };
+    window.pararRespiracion = function () {
+        activo = false;
+        clearTimeout(temporizador);
+        cancelAnimationFrame(raf);
+        fase('idle', 'Toca el botón verde para empezar');
+        $('barra-fill').style.width = '0%';
+        $('btn-comenzar').hidden = false;
+        $('btn-parar').hidden = true;
+    };
+})();
 </script>
 {% endblock %}

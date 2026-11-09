@@ -11,8 +11,14 @@
 
     <div class="fono-guia-infantil">
       <img src="/static/img/molino-demostracion.gif" alt="Demostración animada del molino girando al recibir aire" width="230" height="155" loading="eager">
-      <div class="fono-pasos">👀 Mira → 👃 Toma aire → 👄 Sopla</div>
-      <details class="fono-guia-nueva"><summary>👨‍👩‍👧 Para acompañantes</summary>Ayuda al niño a imitar el soplo breve. Hagan pausas. La respuesta al volumen no evalúa la capacidad respiratoria.</details>
+      <div class="fono-pasos fono-pasos-ico" aria-label="Mira , Toma aire , Sopla"><span class="fono-paso-ico">{{ icono('lupa', 46) }}<small>Mira</small></span><span class="fono-paso-flecha" aria-hidden="true">›</span><span class="fono-paso-ico">{{ icono('inspirar', 46) }}<small>Toma aire</small></span><span class="fono-paso-flecha" aria-hidden="true">›</span><span class="fono-paso-ico">{{ icono('soplar', 46) }}<small>Sopla</small></span></div><style>
+.fono-pasos-ico{display:flex;align-items:flex-start;justify-content:center;gap:8px;flex-wrap:wrap}
+.fono-paso-ico{display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:2px solid #e3eef6;border-radius:16px;padding:6px 8px;min-width:64px}
+.fono-paso-ico small{font-size:.72rem;font-weight:700;color:#5a6b7b}
+.fono-paso-flecha{align-self:center;font-size:1.6rem;color:#9fb3c4;font-weight:900}
+.btn-microfono svg{display:block;margin:auto}
+</style>
+      <details class="fono-guia-nueva"><summary>Para acompañantes</summary>Ayuda al niño a imitar el soplo breve. Hagan pausas. La respuesta al volumen no evalúa la capacidad respiratoria.</details>
     </div>
 
     <!-- Molino animado -->
@@ -84,7 +90,7 @@
 
     <!-- Botón micrófono -->
     <div style="text-align:center; margin-top:0.8rem;">
-        <button id="btn-mic-molino" class="btn-microfono" onclick="toggleMicMolino()">🎤</button>
+        <button id="btn-mic-molino" class="btn-microfono" onclick="toggleMicMolino()">{{ icono('microfono', 40) }}</button>
         <p class="texto-pequeño centrado" style="margin-top:0.3rem;" id="mic-estado-molino">Toca para activar el micrófono</p>
     </div>
 
@@ -174,11 +180,11 @@ async function iniciarMicMolino() {
         detalleVozMolinoPromise = evidenciaVozMolino.iniciar().then(() => ({})).catch(() => ({}));
         micActivoM = true;
         document.getElementById('btn-mic-molino').classList.add('activo');
-        document.getElementById('mic-estado-molino').textContent = '🔴 Activo - ¡Sopla!';
+        document.getElementById('mic-estado-molino').textContent = 'Activo: ¡sopla!';
         puntosInterval = setInterval(sumarPuntos, 500);
         animarMolino();
     } catch(e) {
-        document.getElementById('mic-estado-molino').textContent = '❌ Sin acceso al micrófono';
+        document.getElementById('mic-estado-molino').textContent = 'Sin acceso al micrófono';
     }
 }
 

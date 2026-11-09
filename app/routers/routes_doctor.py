@@ -33,6 +33,8 @@ router = APIRouter(
     dependencies=[Depends(require_role(["medico", "doctor"]))],
 )
 templates = Jinja2Templates(directory="app/templates")
+from ..iconos import registrar as _registrar_iconos
+_registrar_iconos(templates)
 
 JUEGOS_DISPONIBLES = [
     {"categoria": "Respiración", "juegos": [
@@ -1606,7 +1608,7 @@ async def listar_tareas_terapeuticas(request: Request, paciente: str = '', db: A
         tarea['_id'] = str(tarea['_id'])
         tarea['avance'] = progreso_de(tarea)
         tarea['paciente_nombre'] = nombres.get(tarea['paciente_email'], tarea['paciente_email'])
-        tarea['icono'] = next((j['icono'] for j in catalogo_visual() if j['url'] == tarea.get('url_juego')), '🎯')
+        tarea['icono'] = next((j['icono'] for j in catalogo_visual() if j['url'] == tarea.get('url_juego')), 'diana')
         tareas.append(tarea)
     return templates.TemplateResponse(request, 'doctor/tareas.html', {
         'request': request, 'titulo_pagina': 'Asignar actividades',

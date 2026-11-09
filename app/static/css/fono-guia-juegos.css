@@ -13,3 +13,7 @@
 .fono-ruta-juegos .pantalla-movil button{touch-action:manipulation;min-height:38px}
 .fono-ruta-juegos .pantalla-movil a,.fono-ruta-juegos .pantalla-movil button{overflow-wrap:break-word}
 @media(max-width:480px){.fono-ruta-juegos .fono-guias-visuales{padding:12px}.fono-guias-visual{gap:10px}.fono-guias-imagen{min-width:66px;width:66px;height:66px;font-size:2.7rem}.fono-ruta-juegos .fono-guias-botones button{flex:1;min-width:44%}.fono-guias-head{flex-wrap:wrap}.fono-ruta-juegos .fono-guias-toggle{width:100%}}
+
+/* Ilustraciones SVG de la guía (app/iconos.py) */
+.fono-guias-imagen svg{width:100%;height:100%;display:block}
+.fono-guias-frase svg{flex:none}

@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/css/estilos.css?v=10" />
-    <link rel="stylesheet" href="/static/css/fono-guia-juegos.css?v=1" />
+    <link rel="stylesheet" href="/static/css/fono-guia-juegos.css?v=2" />
     <link rel="stylesheet" href="/static/css/fono-experiencia.css?v=6" />
     <link rel="stylesheet" href="/static/css/fono-terapia.css?v=2" />
     <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=3" />
@@ -608,7 +608,10 @@ btnContinuar.style.cssText = 'position:fixed;right:20px;bottom:14px;width:auto;p
     <script>window.FONO_JUEGOS_CON_NIVELES = {{ FONO_JUEGOS_CON_NIVELES | default([]) | tojson }};</script>
     <script src="/static/js/fono-nivel.js?v=1"></script>
     <script src="/static/js/fono-boca-real.js?v=3"></script>
-    <script defer src="/static/js/fono-guia-juegos.js?v=3"></script>
+    <link rel="stylesheet" href="/static/css/fono-anim.css?v=2" />
+    <script defer src="/iconos.js?v=2"></script>
+    <script defer src="/static/js/fono-emoji.js?v=1"></script>
+    <script defer src="/static/js/fono-guia-juegos.js?v=4"></script>
 </head>
 <body class="fondo-blanco{% if request.url.path.startswith('/juegos') %} fono-ruta-juegos{% elif request.url.path.startswith('/doctor') %} fono-panel-medico{% elif request.url.path.startswith('/admin') %} fono-panel-admin{% elif request.url.path.startswith('/paciente') %} fono-panel-paciente{% endif %}">
     <div class="contenedor-principal">

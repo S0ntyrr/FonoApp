@@ -2,7 +2,7 @@
 {% block contenido %}
 
 <header class="cabecera-app">
-    <div class="titulo-app">🎙️ FonoApp</div>
+    <div class="titulo-app">{{ icono('microfono', 26) }} FonoApp</div>
     <button class="boton-hamburguesa" id="btn-hamburguesa" aria-label="Abrir perfil">
         <span class="hamburguesa-icono">☰</span>
     </button>
@@ -11,9 +11,9 @@
 <div id="splash" class="splash-full">
     <div class="splash-contenido">
         <!-- Elementos decorativos interactivos -->
-        <div class="splash-decoracion splash-deco-1">✨</div>
-        <div class="splash-decoracion splash-deco-2">🌟</div>
-        <div class="splash-decoracion splash-deco-3">💫</div>
+        <div class="splash-decoracion splash-deco-1">{{ icono('estrella', 34) }}</div>
+        <div class="splash-decoracion splash-deco-2">{{ icono('estrella', 42) }}</div>
+        <div class="splash-decoracion splash-deco-3">{{ icono('estrella', 28) }}</div>
         
         <!-- Logo con animación -->
         <div class="splash-logo-container">
@@ -40,7 +40,7 @@
 
 <aside id="panelPerfil" class="panel-perfil" role="dialog" aria-label="Panel de perfil">
     <div class="panel-perfil-header">
-        <h2 class="titulo-rojo">👤 Mi perfil</h2>
+        <h2 class="titulo-rojo">Mi perfil</h2>
         <button class="btn-cerrar-panel" id="btn-cerrar-panel">✕</button>
     </div>
     <form method="post" action="/paciente/perfil" class="formulario-movil">
@@ -80,11 +80,11 @@
         <input type="text" id="parentesco" name="parentesco" class="campo-texto" value="{{ perfil.parentesco if perfil else '' }}" placeholder="Ej: Madre, Padre..." required />
 
         {% if perfil %}
-            <p class="texto-pequeño" style="color:#999;margin-top:0.3rem;">📅 Desde: {{ perfil.fecha_registro.strftime('%d/%m/%Y') if perfil.fecha_registro else '' }}</p>
+            <p class="texto-pequeño" style="color:#999;margin-top:0.3rem;">Desde: {{ perfil.fecha_registro.strftime('%d/%m/%Y') if perfil.fecha_registro else '' }}</p>
         {% endif %}
 
-        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:1rem;">💾 Guardar perfil</button>
-        <a href="/auth/logout" class="boton-rojo-borde ancho-completo" style="display:block;text-align:center;margin-top:0.5rem;text-decoration:none;">🚪 Cerrar sesión</a>
+        <button type="submit" class="boton-rojo ancho-completo" style="margin-top:1rem;">Guardar perfil</button>
+        <a href="/auth/logout" class="boton-rojo-borde ancho-completo" style="display:block;text-align:center;margin-top:0.5rem;text-decoration:none;">Cerrar sesión</a>
     </form>
 </aside>
 
@@ -92,7 +92,7 @@
     <div class="pantalla-movil">
 
         <div class="bienvenida-card">
-            <span class="bienvenida-emoji">👋</span>
+            <span class="bienvenida-emoji">{{ icono('mano_hola', 44) }}</span>
             <div>
                 <p class="bienvenida-nombre">¡Hola, {{ (perfil.nombre if perfil and perfil.nombre else nombre_paciente).split()[0] if (perfil and perfil.nombre) or nombre_paciente else 'Paciente' }}!</p>
                 <p class="bienvenida-sub">¿Listo para practicar hoy?</p>
@@ -100,7 +100,8 @@
         </div>
 
         <div class="acceso-juegos-card{% if bloqueado %} bloqueado{% endif %}" data-bloqueado="{{ '1' if bloqueado else '0' }}" onclick="if(this.dataset.bloqueado==='1'){window.fonoSenalarReto&&window.fonoSenalarReto();return;} sessionStorage.setItem('juegos_origen','/paciente/perfil'); sessionStorage.setItem('flujo_juegos_modo','hub'); window.location.href='/juegos/'">
-            <div class="acceso-juegos-icono">🎮</div>
+            <div class="acceso-juegos-icono">{{ icono('control', 46) }}</div>
+            <span class="hub-candado">{{ icono('candado', 34) }}</span>
             <div class="acceso-juegos-info">
                 <h3>Juegos Fonoaudiológicos</h3>
                 <p>Respiración, fonación, resonancia y más</p>
@@ -111,37 +112,37 @@
         {% set pasos_total = (tareas_manuales | length) + (camino | length) %}
         <section class="camino-seccion" aria-label="Mis juegos de hoy">
           <div class="camino-cabecera">
-            <span class="camino-sol" aria-hidden="true">🗺️</span>
+            <span class="camino-sol">{{ icono('mapa', 36) }}</span>
             <div class="camino-progreso" aria-hidden="true"><div class="camino-progreso-barra" id="camino-barra"></div></div>
-            <span class="camino-trofeo-mini" id="camino-trofeo-mini" aria-hidden="true">🏆</span>
+            <span class="camino-trofeo-mini" id="camino-trofeo-mini">{{ icono('trofeo', 34) }}</span>
           </div>
-          {% if nota_familia %}<details class="camino-nota"><summary>👨‍👩‍👧 Nota del terapeuta</summary><p>{{ nota_familia }}</p></details>{% endif %}
+          {% if nota_familia %}<details class="camino-nota"><summary>{{ icono('familia', 22) }} Nota del terapeuta</summary><p>{{ nota_familia }}</p></details>{% endif %}
 
           {% if pasos_total %}
           <ol class="camino" id="camino">
             {% for t in tareas_manuales %}
             <li class="camino-paso reto" style="--c:{{ t.color }};--s:{{ t.suave }};--avance:{{ (t.avance.fraccion * 100) | round | int }}%">
               <a class="camino-nodo actividad-link" href="{{ t.url_juego }}?tarea_id={{ t._id }}{% if t.fonema %}&fonema={{ t.fonema }}{% endif %}&nivel={{ t.nivel }}" data-url="{{ t.url_juego }}" aria-label="Actividad del terapeuta: {{ t.actividad }}, {{ t.avance.texto }}">
-                <span class="camino-circulo camino-anillo"><span class="camino-ico">{{ t.icono }}</span></span>
-                <span class="camino-sello" aria-hidden="true">🩺</span>
+                <span class="camino-circulo camino-anillo"><span class="camino-ico">{{ icono(t.icono, 54) }}</span></span>
+                <span class="camino-sello">{{ icono('doctor', 30) }}</span>
                 {% if t.fonema %}<span class="camino-letra">{{ t.fonema }}</span>{% endif %}
                 <span class="camino-meta" aria-hidden="true">
-                  {% if t.avance.tipo == 'tiempo' %}⏱️ <b>{{ t.avance.meta }}</b>
-                  {% else %}{% for i in range(t.avance.meta if t.avance.meta <= 10 else 10) %}<i class="{{ 'on' if i < t.avance.intentos }}">★</i>{% endfor %}{% if t.avance.meta > 10 %}<b>{{ t.avance.intentos }}/{{ t.avance.meta }}</b>{% endif %}{% endif %}
+                  {% if t.avance.tipo == 'tiempo' %}{{ icono('reloj', 22) }} <b>{{ t.avance.meta }}</b>
+                  {% else %}{% for i in range(t.avance.meta if t.avance.meta <= 10 else 10) %}{{ icono('estrella' if i < t.avance.intentos else 'estrella_vacia', 16) }}{% endfor %}{% if t.avance.meta > 10 %}<b>{{ t.avance.intentos }}/{{ t.avance.meta }}</b>{% endif %}{% endif %}
                 </span>
                 <span class="camino-nombre">{{ t.actividad }}</span>
               </a>
             </li>
             {% endfor %}
             {% if bloqueado and camino %}
-            <li class="camino-paso camino-candado-paso" aria-hidden="true"><span class="camino-candado-grande">🔒</span></li>
+            <li class="camino-paso camino-candado-paso" aria-hidden="true"><span class="camino-candado-grande">{{ icono('candado', 30) }}</span></li>
             {% endif %}
             {% for j in camino %}
             <li class="camino-paso{% if j.hecho %} hecho{% endif %}{% if bloqueado %} bloqueado{% endif %}" style="--c:{{ j.color }};--s:{{ j.suave }}">
               <a class="camino-nodo actividad-link{% if j.hecho %} completada{% endif %}" href="{{ j.href }}" data-url="{{ j.url }}" aria-label="{{ j.actividad }}{% if bloqueado %} (bloqueado: primero la actividad del terapeuta){% endif %}"{% if bloqueado %} aria-disabled="true"{% endif %}>
-                {% if bloqueado %}<span class="camino-candado" aria-hidden="true">🔒</span>{% endif %}
-                <span class="camino-circulo"><span class="camino-ico">{{ j.icono }}</span></span>
-                <span class="camino-estrella" aria-hidden="true">⭐</span>
+                {% if bloqueado %}<span class="camino-candado">{{ icono('candado', 40) }}</span>{% endif %}
+                <span class="camino-circulo"><span class="camino-ico">{{ icono(j.icono, 54) }}</span></span>
+                <span class="camino-estrella">{{ icono('estrella', 54) }}</span>
                 {% if j.fonema %}<span class="camino-letra">{{ j.fonema }}</span>{% endif %}
                 {% if j.nivel %}<span class="camino-nivel" aria-hidden="true">{% for _ in range(j.nivel) %}<i></i>{% endfor %}</span>{% endif %}
                 <span class="camino-nombre">{{ j.actividad }}</span>
@@ -149,25 +150,25 @@
             </li>
             {% endfor %}
             <li class="camino-paso meta" id="camino-meta">
-              <span class="camino-nodo"><span class="camino-circulo"><span class="camino-ico">🏆</span></span></span>
+              <span class="camino-nodo"><span class="camino-circulo"><span class="camino-ico">{{ icono('trofeo', 44) }}</span></span></span>
             </li>
           </ol>
 
           <div id="sesion-completada" class="sesion-completada" style="display:none;">
-              <span style="font-size:3rem;">🏆</span>
-              <p class="sesion-titulo">⭐⭐⭐</p>
-              <button class="camino-libre" onclick="window.location.href='/juegos/'" aria-label="Seguir jugando libremente">🎮 ▶</button>
+              {{ icono('trofeo', 72) }}
+              <p class="sesion-titulo">{{ icono('estrella', 40) }}{{ icono('estrella', 40) }}{{ icono('estrella', 40) }}</p>
+              <button class="camino-libre" onclick="window.location.href='/juegos/'" aria-label="Seguir jugando libremente">{{ icono("control", 40) }}</button>
           </div>
           {% else %}
           <div class="actividad-vacia">
-              <span style="font-size:2.4rem;">🎮</span>
+              {{ icono('control', 56) }}
               <p>Pronto tendrás juegos aquí.</p>
           </div>
           {% endif %}
         </section>
 
         <section style="margin-top:1.8rem;">
-            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">📅 Mi actividad este mes</h3>
+            <h3 class="titulo-rojo" style="font-size:1rem;margin-bottom:0.5rem;">Mi actividad este mes</h3>
             <div class="calendario-uso">
                 {% if sesiones_por_dia %}
                     <div class="calendario-grid">
@@ -180,7 +181,7 @@
                     </div>
                 {% else %}
                     <div class="actividad-vacia">
-                        <span style="font-size:1.8rem;">📆</span>
+                        {{ icono('reloj', 36) }}
                         <p class="texto-pequeño">Todavía no hay registros este mes.</p>
                     </div>
                 {% endif %}
@@ -321,13 +322,13 @@ document.addEventListener('DOMContentLoaded', function() {
 :root { --fono-fav: #d32f2f; }
 .camino-seccion { margin-top: 1.4rem; }
 .camino-cabecera { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.camino-sol { font-size: 1.8rem; }
+.camino-sol, .camino-trofeo-mini { line-height: 0; }
 .camino-progreso { flex: 1; height: 16px; border-radius: 10px; background: #edf1f5; overflow: hidden; box-shadow: inset 0 2px 4px #0001; }
 .camino-progreso-barra { height: 100%; width: 0; border-radius: 10px; background: linear-gradient(90deg, var(--fono-fav), #ffc93c); transition: width .6s ease; }
-.camino-trofeo-mini { font-size: 1.6rem; filter: grayscale(1); opacity: .45; transition: all .4s; }
+.camino-trofeo-mini { filter: grayscale(1); opacity: .45; transition: all .4s; }
 .camino-trofeo-mini.ganado { filter: none; opacity: 1; transform: scale(1.2); }
 .camino-nota { background: #fff8e6; border: 2px solid #f6d58b; border-radius: 12px; padding: 6px 12px; margin-bottom: 10px; font-size: .9rem; }
-.camino-nota summary { cursor: pointer; font-weight: 700; }
+.camino-nota summary { cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .camino { list-style: none; margin: 0; padding: 6px 0 0; position: relative; display: flex; flex-direction: column; gap: 6px; }
 .camino::before { content: ""; position: absolute; left: 50%; top: 30px; bottom: 40px; border-left: 6px dotted color-mix(in srgb, var(--fono-fav) 45%, #dfe6ee); transform: translateX(-50%); }
 .camino-paso { position: relative; display: flex; justify-content: flex-start; padding-left: 8%; }
@@ -336,13 +337,13 @@ document.addEventListener('DOMContentLoaded', function() {
 .camino-nodo { position: relative; display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #1f3347; width: 116px; -webkit-tap-highlight-color: transparent; }
 .camino-circulo { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 50%; background: var(--s, #fff); border: 6px solid var(--c, var(--fono-fav)); box-shadow: 0 6px 0 color-mix(in srgb, var(--c, #999) 55%, #000 10%), 0 10px 18px #0002; transition: transform .15s; }
 .camino-nodo:active .camino-circulo { transform: translateY(4px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c, #999) 55%, #000 10%); }
-.camino-ico { font-size: 2.6rem; line-height: 1; }
+.camino-ico { line-height: 0; display: grid; place-items: center; }
 .camino-letra { position: absolute; top: -6px; right: 4px; min-width: 34px; height: 34px; padding: 0 6px; border-radius: 12px; background: #1f3347; color: #fff; font-weight: 900; font-size: 1.15rem; display: grid; place-items: center; border: 3px solid #fff; box-shadow: 0 2px 6px #0003; }
-.camino-sello { position: absolute; top: -6px; left: 6px; width: 34px; height: 34px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 1.1rem; box-shadow: 0 2px 6px #0003; }
+.camino-sello { position: absolute; top: -6px; left: 6px; line-height: 0; border-radius: 50%; box-shadow: 0 2px 6px #0003; }
 .camino-nivel { display: flex; gap: 4px; margin-top: 8px; }
 .camino-nivel i { width: 11px; height: 11px; border-radius: 50%; background: var(--c, var(--fono-fav)); display: block; }
 .camino-nombre { margin-top: 3px; font-size: .72rem; color: #6b7c8d; text-align: center; line-height: 1.15; }
-.camino-estrella { position: absolute; top: 24px; left: 50%; transform: translateX(-50%) scale(0); font-size: 3rem; transition: transform .35s cubic-bezier(.3,1.6,.5,1); filter: drop-shadow(0 3px 4px #0003); pointer-events: none; }
+.camino-estrella { position: absolute; top: 20px; left: 50%; line-height: 0; transform: translateX(-50%) scale(0); transition: transform .35s cubic-bezier(.3,1.6,.5,1); filter: drop-shadow(0 3px 4px #0003); pointer-events: none; }
 .camino-paso.hecho .camino-estrella { transform: translateX(-50%) scale(1); }
 .camino-paso.hecho .camino-ico { opacity: .25; }
 .camino-paso.hecho .camino-circulo { background: #fffbe8; border-color: #f2b400; box-shadow: 0 6px 0 #c99500, 0 10px 18px #0002; }
@@ -350,10 +351,10 @@ document.addEventListener('DOMContentLoaded', function() {
 .camino-paso.siguiente .camino-nodo::after { content: "▶"; position: absolute; top: 30px; left: -30px; font-size: 1.6rem; color: var(--fono-fav); animation: camino-apunta .9s ease-in-out infinite alternate; }
 .camino-paso.siguiente:nth-child(even) .camino-nodo::after { content: "◀"; left: auto; right: -30px; }
 .camino-paso.meta .camino-circulo { width: 78px; height: 78px; border-color: #d9dee5; background: #f4f6f9; box-shadow: none; }
-.camino-paso.meta .camino-ico { filter: grayscale(1); opacity: .45; font-size: 2.2rem; }
+.camino-paso.meta .camino-ico { filter: grayscale(1); opacity: .45; }
 .camino-paso.meta.ganado .camino-circulo { border-color: #f2b400; background: #fff6cf; animation: camino-late 1.3s ease-in-out infinite; }
 .camino-paso.meta.ganado .camino-ico { filter: none; opacity: 1; }
-.camino-libre { margin-top: .6rem; border: none; border-radius: 999px; padding: 12px 26px; font-size: 1.4rem; background: var(--fono-fav); color: #fff; cursor: pointer; box-shadow: 0 5px 0 #0003; }
+.camino-libre { margin-top: .6rem; border: none; border-radius: 999px; padding: 8px 26px; line-height: 0; background: var(--fono-fav); color: #fff; cursor: pointer; box-shadow: 0 5px 0 #0003; }
 @keyframes camino-late { 50% { transform: scale(1.08); } }
 @keyframes camino-apunta { to { transform: translateX(8px); } }
 .camino-paso:nth-child(even).siguiente .camino-nodo::after { animation-name: camino-apunta-izq; }
@@ -361,20 +362,19 @@ document.addEventListener('DOMContentLoaded', function() {
 .camino-nodo.actividad-link.completada { background: transparent !important; border: none !important; }
 .acceso-juegos-card { border-color: var(--fono-fav) !important; }
 .camino-paso.reto .camino-anillo { background: radial-gradient(circle, var(--s) 62%, transparent 63%), conic-gradient(var(--c) var(--avance), #e3e9f0 0); border-color: transparent; }
-.camino-meta { display: flex; align-items: center; gap: 2px; margin-top: 8px; font-size: 1rem; color: #c9d1dc; }
-.camino-meta i { font-style: normal; }
-.camino-meta i.on { color: #f2b400; }
+.camino-meta { display: flex; align-items: center; gap: 2px; margin-top: 8px; }
 .camino-meta b { color: #1f3347; font-size: .9rem; margin-left: 3px; }
 .camino-paso.bloqueado .camino-circulo { filter: grayscale(.85); opacity: .55; box-shadow: none; }
 .camino-paso.bloqueado .camino-letra, .camino-paso.bloqueado .camino-nivel { opacity: .45; }
 .camino-paso.bloqueado .camino-nodo { cursor: not-allowed; }
-.camino-candado { position: absolute; top: 28px; left: 50%; transform: translateX(-50%); font-size: 2.2rem; filter: drop-shadow(0 2px 4px #0003); z-index: 2; }
+.camino-candado { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); line-height: 0; filter: drop-shadow(0 2px 4px #0003); z-index: 2; }
 .camino-candado-paso { justify-content: center !important; padding: 0 !important; }
-.camino-candado-grande { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: #fff; border: 4px dashed #c9d1dc; font-size: 1.6rem; position: relative; z-index: 1; }
+.camino-candado-grande { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: #fff; border: 4px dashed #c9d1dc; position: relative; z-index: 1; }
 .camino-paso.sacude .camino-circulo { animation: camino-sacude .45s ease; }
 @keyframes camino-sacude { 20%,60% { transform: translateX(-8px) rotate(-4deg); } 40%,80% { transform: translateX(8px) rotate(4deg); } }
-.acceso-juegos-card.bloqueado { filter: grayscale(.8); opacity: .6; position: relative; cursor: not-allowed; }
-.acceso-juegos-card.bloqueado::after { content: "🔒"; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 1.8rem; }
+.acceso-juegos-card.bloqueado { filter: grayscale(.8); opacity: .6; position: relative; cursor: not-allowed; padding-right: 64px !important; }
+.acceso-juegos-card .hub-candado { display: none; }
+.acceso-juegos-card.bloqueado .hub-candado { display: block; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); }
 
 @media (prefers-reduced-motion: reduce) { .camino-paso.siguiente .camino-circulo, .camino-paso.siguiente .camino-nodo::after, .camino-paso.meta.ganado .camino-circulo { animation: none; } }
 @media (max-width: 380px) { .camino-circulo { width: 80px; height: 80px; } .camino-ico { font-size: 2.2rem; } .camino-paso { padding-left: 4%; } .camino-paso:nth-child(even) { padding-right: 4%; } }

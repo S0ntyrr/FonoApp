@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% from 'juegos/partials/demo_boca.html' import demo_boca %}<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -200,6 +200,9 @@
       .complete-grid{grid-template-columns:1fr;}
     }
   </style>
+  <link rel="stylesheet" href="/static/css/fono-anim.css?v=2">
+  <script defer src="/iconos.js?v=2"></script>
+  <script defer src="/static/js/fono-emoji.js?v=1"></script>
 </head>
 <body>
 <div class="fono-demo-contenedor"><div data-real-fonema="r"></div></div>
@@ -209,13 +212,13 @@
   <div class="step active" id="s1">
     <div class="card">
       <p class="titulo-paso">1. Prepara la posición de la lengua</p>
-      <p class="texto-ayuda">👀 Mira la boca. 👅 Mueve la lengua. 🔊 Escucha e imita.</p>
+      {{ demo_boca('R', 'La punta de la lengua da un toque arriba') }}
       <details class="fono-guia-nueva"><summary>👨‍👩‍👧 Orientación para acompañantes</summary><ol class="instruction-list">
         <li><strong>Coloca la punta de la lengua</strong> cerca de la zona detrás de los dientes superiores.</li>
         <li><strong>Deja pasar el aire</strong> sin apretar demasiado la lengua.</li>
         <li><strong>Intenta una vibración suave</strong> y evita forzar la garganta.</li>
       </ol></details>
-      <div style="text-align:center;font-size:3.5rem;margin-top:12px;">👅</div>
+      
       <div class="alerta-revision">La app puede reconocer palabras, pero la calidad fonética de la R debe revisarla un profesional. Los audios grabados quedan disponibles para el profesional.</div>
       <button class="btn-next" onclick="goStep(2)">Siguiente →</button>
     </div>

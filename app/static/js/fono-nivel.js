@@ -121,6 +121,10 @@
     const p = Math.round(Math.max(0, Math.min(1, f)) * 100);
     return `<svg viewBox="0 0 40 40" class="fn-reloj" aria-hidden="true"><circle cx="20" cy="20" r="16" fill="#fff" stroke="#e3e9f0" stroke-width="6"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--fono-fav,#2e9fd6)" stroke-width="6" stroke-linecap="round" pathLength="100" stroke-dasharray="${p} 100" transform="rotate(-90 20 20)"/><path d="M20 11 V20 L26 23" stroke="#1f3347" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`;
   };
+  // Ilustraciones (las mismas de app/iconos.py)
+  const ICO_DOCTOR = "<svg class=\"fn-doc\" viewBox=\"0 0 64 64\" aria-hidden=\"true\"><circle cx=\"32\" cy=\"32\" r=\"28\" fill=\"#fff\" stroke=\"#2e86de\" stroke-width=\"3\"/><path d=\"M20 14v12a9 9 0 0018 0V14\" fill=\"none\" stroke=\"#2e86de\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M29 35v5a10 10 0 0020 0v-4\" fill=\"none\" stroke=\"#2e86de\" stroke-width=\"4\"/><circle cx=\"49\" cy=\"31\" r=\"5\" fill=\"#e53935\"/><circle cx=\"20\" cy=\"14\" r=\"3\" fill=\"#1f3347\"/><circle cx=\"38\" cy=\"14\" r=\"3\" fill=\"#1f3347\"/></svg>";
+  const ICO_TROFEO = "<svg class=\"fn-trofeo\" viewBox=\"0 0 64 64\" aria-hidden=\"true\"><path d=\"M18 12H8q0 15 13 15M46 12h10q0 15-13 15\" fill=\"none\" stroke=\"#e9a400\" stroke-width=\"4.5\"/><path d=\"M17 6h30v16a15 15 0 01-30 0z\" fill=\"#f2b400\"/><path d=\"M22 10v10a10 10 0 005 9\" stroke=\"#fff\" stroke-width=\"3\" fill=\"none\" opacity=\".5\" stroke-linecap=\"round\"/><rect x=\"28\" y=\"36\" width=\"8\" height=\"10\" fill=\"#c99500\"/><rect x=\"17\" y=\"46\" width=\"30\" height=\"12\" rx=\"3\" fill=\"#8a5a35\"/><rect x=\"24\" y=\"50\" width=\"16\" height=\"4\" rx=\"2\" fill=\"#f2b400\"/></svg>";
+  const ICO_ABIERTO = "<svg class=\"fn-candado\" viewBox=\"0 0 64 64\" aria-hidden=\"true\"><path d=\"M44 30v-9a12 12 0 00-24 0v-4\" fill=\"none\" stroke=\"#8a97a6\" stroke-width=\"6\"/><rect x=\"12\" y=\"29\" width=\"40\" height=\"30\" rx=\"7\" fill=\"#2bb673\"/><rect x=\"12\" y=\"29\" width=\"40\" height=\"8\" rx=\"7\" fill=\"#fff\" opacity=\".25\"/><circle cx=\"32\" cy=\"42\" r=\"4.5\" fill=\"#1d6b43\"/><rect x=\"30\" y=\"43\" width=\"4\" height=\"9\" rx=\"2\" fill=\"#1d6b43\"/></svg>";
   const OTRA_VEZ = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="var(--fono-fav,#2bb673)"/><path d="M25 18 L48 32 L25 46Z" fill="#fff"/></svg>`;
   const CAMINO = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="var(--fono-fav,#2bb673)"/><path d="M18 34 L32 20 L46 34 M23 30 V46 H41 V30" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
@@ -137,13 +141,13 @@
       .fn-ronda svg{width:100%;height:100%}
       .fn-reloj{width:34px;height:34px}
       .fn-num{font-weight:900;color:#1f3347;font-size:.95rem}
-      .fn-doc{font-size:1.1rem}
+      .fn-doc{width:30px;height:30px}
       .fn-overlay{position:fixed;inset:0;z-index:10050;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#ffffffd9;backdrop-filter:blur(3px);animation:fn-entra .25s ease-out;padding:16px}
       .fn-estrellas{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:560px}
       .fn-estrella{width:clamp(48px,14vw,96px);height:auto}
       .fn-estrella.on.nueva{animation:fn-pop .55s cubic-bezier(.3,1.6,.5,1) both}
-      .fn-trofeo{font-size:clamp(64px,18vw,110px);animation:fn-pop .6s cubic-bezier(.3,1.6,.5,1) both}
-      .fn-candado{font-size:clamp(40px,11vw,64px);animation:fn-abre 1s .5s ease both}
+      .fn-trofeo{width:clamp(80px,22vw,130px);height:auto;animation:fn-pop .6s cubic-bezier(.3,1.6,.5,1) both}
+      .fn-candado{width:clamp(52px,13vw,76px);height:auto;animation:fn-abre 1s .5s ease both}
       .fn-boton{border:none;background:none;padding:0;cursor:pointer;animation:fn-late 1.2s ease-in-out infinite}
       .fn-boton svg{width:clamp(96px,22vw,128px);height:auto;filter:drop-shadow(0 6px 10px #0003)}
       .fn-salir{position:absolute;top:14px;left:14px;width:48px;height:48px;border-radius:50%;border:3px solid #dfe6ee;background:#fff;font-size:22px;cursor:pointer;color:#5a6b7b}
@@ -173,7 +177,7 @@
     if (tareaId) {
       if (!tarea) return;
       const el = contenedorIndicador();
-      let html = '<span class="fn-doc" aria-hidden="true">🩺</span>';
+      let html = ICO_DOCTOR;
       if (tarea.tipo === 'tiempo') {
         const min = Math.floor(tarea.segundos / 60);
         html += RELOJ(tarea.fraccion) + `<span class="fn-num">${Math.min(min, tarea.meta)}/${tarea.meta}</span>`;
@@ -222,7 +226,7 @@
 
   function mostrarRonda(ronda, ultima) {
     if (ultima) {
-      const ov = overlay(`<div class="fn-trofeo" aria-hidden="true">🏆</div>${filaEstrellas(totalRondas, ronda)}`, '¡Todas las rondas completas!');
+      const ov = overlay(`${ICO_TROFEO}${filaEstrellas(totalRondas, ronda)}`, '¡Todas las rondas completas!');
       ov.addEventListener('click', () => ov.remove());
       setTimeout(() => ov.remove(), 2600);
       return;
@@ -241,7 +245,7 @@
 
   function mostrarMetaCumplida() {
     if (document.querySelector('#fn-overlay.fn-meta')) return;
-    const ov = overlay(`<div class="fn-trofeo" aria-hidden="true">🏆</div><div class="fn-candado" aria-hidden="true">🔓</div><button type="button" class="fn-boton" aria-label="Volver a mis juegos">${CAMINO}</button>`, '¡Actividad del terapeuta completada! Ya puedes jugar tus otros juegos.');
+    const ov = overlay(`${ICO_TROFEO}${ICO_ABIERTO}<button type="button" class="fn-boton" aria-label="Volver a mis juegos">${CAMINO}</button>`, '¡Actividad del terapeuta completada! Ya puedes jugar tus otros juegos.');
     ov.classList.add('fn-meta');
     ov.querySelector('.fn-boton').addEventListener('click', () => {
       escribir('flujo_juegos_modo', 'hub');

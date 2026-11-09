@@ -78,6 +78,8 @@ router = APIRouter(
     dependencies=[Depends(require_role(["admin", "medico", "doctor", "paciente", "emisor"]))],
 )
 templates = Jinja2Templates(directory="app/templates")
+from ..iconos import registrar as _registrar_iconos
+_registrar_iconos(templates)
 # Lista para fono-nivel.js: estos juegos cambian su dificultad; el resto usa rondas.
 templates.env.globals['FONO_JUEGOS_CON_NIVELES'] = sorted(JUEGOS_CON_NIVELES)
 ALLOWED_AUDIO_EXTENSIONS = {".webm", ".wav", ".ogg", ".m4a", ".mp3", ".mp4"}

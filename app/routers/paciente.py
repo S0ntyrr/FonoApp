@@ -51,6 +51,8 @@ router = APIRouter(
     dependencies=[Depends(require_role(["paciente"]))],
 )
 templates = Jinja2Templates(directory="app/templates")
+from ..iconos import registrar as _registrar_iconos
+_registrar_iconos(templates)
 
 # ── Catálogo de actividades reales ─────────────────────────────────────────────
 # Cada actividad tiene: categoria, nombre para mostrar, y URL del juego.
@@ -249,7 +251,7 @@ async def vista_perfil_paciente(
         info_area = AREAS_TERAPIA.get(area, AREAS_TERAPIA["practica"])
         camino.append({
             "url": url, "href": act.get("href") or url, "actividad": act.get("actividad", "Juego"),
-            "icono": act.get("icono") or ICONOS_JUEGOS.get(url, "🎮"),
+            "icono": act.get("icono") or ICONOS_JUEGOS.get(url, "control"),
             "color": info_area["color"], "suave": info_area["suave"],
             "fonema": act.get("fonema", ""), "nivel": act.get("nivel") or 0,
             "hecho": url.rstrip("/") in actividades_completadas_urls,
@@ -262,7 +264,7 @@ async def vista_perfil_paciente(
     }).sort('creada_en', -1).limit(25):
         tarea['_id'] = str(tarea['_id'])
         info_area = AREAS_TERAPIA.get(area_de(tarea.get('url_juego', '')), AREAS_TERAPIA['practica'])
-        tarea['icono'] = ICONOS_JUEGOS.get(tarea.get('url_juego', ''), '🎯')
+        tarea['icono'] = ICONOS_JUEGOS.get(tarea.get('url_juego', ''), 'diana')
         tarea['color'] = info_area['color']
         tarea['suave'] = info_area['suave']
         tarea['avance'] = progreso_de(tarea)

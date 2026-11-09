@@ -1,0 +1,58 @@
+/* Animaciones de las ilustraciones (app/iconos*.py).
+ * - .fa-siempre: la ilustración se anima siempre (bocas de fonemas = demostraciones).
+ * - .animar: contenedor donde se animan los dibujos normales (guías «Ver ejemplo»).
+ */
+.fono-ico, .fono-emoji { overflow: visible; }
+.fono-emoji { width: 1.15em; height: 1.15em; vertical-align: -0.22em; display: inline-block; }
+
+:is(.fa-siempre, .animar) .fa-a { animation: fa-alterna-a 1.8s steps(1) infinite; }
+:is(.fa-siempre, .animar) .fa-b { animation: fa-alterna-b 1.8s steps(1) infinite; }
+.fa-b { opacity: 0; }
+:is(.fa-siempre, .animar) .fa-aire { stroke-dasharray: 5 5; animation: fa-flujo .6s linear infinite; }
+:is(.fa-siempre, .animar) .fa-aire-in { stroke-dasharray: 4 4; animation: fa-flujo-in .6s linear infinite; }
+:is(.fa-siempre, .animar) .fa-onda { transform-box: fill-box; transform-origin: center; animation: fa-onda 1.2s ease-out infinite; }
+:is(.fa-siempre, .animar) .fa-d2 { animation-delay: .4s; }
+:is(.fa-siempre, .animar) .fa-vibra { animation: fa-vibra .14s linear infinite; }
+:is(.fa-siempre, .animar) .fa-toque { animation: fa-toque 1.6s ease-in-out infinite; }
+:is(.fa-siempre, .animar) .fa-toque-rapido { animation: fa-toque 0.9s ease-in-out infinite; }
+:is(.fa-siempre, .animar) .fa-vibra-lengua { animation: fa-vibra-lengua .1s linear infinite; }
+:is(.fa-siempre, .animar) .fa-sube { animation: fa-sube 1.4s ease-in-out infinite; }
+:is(.fa-siempre, .animar) .fa-abre { transform-box: fill-box; transform-origin: center top; animation: fa-abre 1.6s ease-in-out infinite; }
+:is(.fa-siempre, .animar) .fa-mira { animation: fa-mira 2.4s ease-in-out infinite; }
+:is(.fa-siempre, .animar) .fa-gira { transform-box: fill-box; transform-origin: center; animation: fa-gira 2s linear infinite; }
+:is(.fa-siempre, .animar) .fa-late { transform-box: fill-box; transform-origin: center; animation: fa-late 1s ease-in-out infinite; }
+:is(.fa-siempre, .animar) .fa-mano { animation: fa-mano 1.6s ease-in-out infinite alternate; }
+:is(.fa-siempre, .animar) .fa-gira-rehilete { transform-box: fill-box; transform-origin: center; animation: fa-gira 1.2s linear infinite; }
+
+@keyframes fa-alterna-a { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes fa-alterna-b { 0% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes fa-flujo { to { stroke-dashoffset: -20; } }
+@keyframes fa-flujo-in { to { stroke-dashoffset: 16; } }
+@keyframes fa-onda { 0% { opacity: 0; transform: scale(.7); } 40% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15); } }
+@keyframes fa-vibra { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
+@keyframes fa-toque { 0%, 55%, 100% { transform: translateY(0); } 70%, 80% { transform: translateY(-9px); } }
+@keyframes fa-vibra-lengua { 0%, 100% { transform: translateY(-8px); } 50% { transform: translateY(-4px); } }
+@keyframes fa-sube { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes fa-abre { 0%, 100% { transform: scaleY(.75); } 50% { transform: scaleY(1.08); } }
+@keyframes fa-mira { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+@keyframes fa-gira { to { transform: rotate(360deg); } }
+@keyframes fa-late { 50% { transform: scale(.85); opacity: .75; } }
+@keyframes fa-mano { from { transform: translateX(-5px); } to { transform: translateX(5px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.fa-siempre, .animar) * { animation: none !important; }
+  .fa-b { opacity: 0; }
+}
+
+/* Tarjeta de demostración de la boca: dibujo animado + pasos con íconos */
+.fono-boca-demo { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+  background: #fff7f2; border: 2px solid #ffd9c2; border-radius: 18px; padding: 10px 12px; margin: 8px auto 12px; max-width: 520px; }
+.fono-boca-demo > .fono-ico { width: clamp(96px, 28vw, 128px); height: auto; border-radius: 16px; box-shadow: 0 4px 12px #0001; }
+.fono-boca-demo-pasos { display: flex; align-items: center; gap: 6px; }
+.fono-boca-demo-paso { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #fff; border: 2px solid #f0e2d8; border-radius: 14px; padding: 6px 8px; min-width: 58px; }
+.fono-boca-demo-paso .fono-ico { width: 40px; height: 40px; }
+.fono-boca-demo-paso small { font-size: .72rem; font-weight: 800; color: #5a6b7b; }
+.fono-boca-demo-flecha { font-size: 1.5rem; font-weight: 900; color: #c9b3a5; }
+.fono-boca-demo-letra { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: #e0528f; color: #fff; font-weight: 900; font-size: 1.3rem; }
+.fono-palabra-boca { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.fono-palabra-boca svg { border-radius: 14px; box-shadow: 0 3px 10px #0001; }

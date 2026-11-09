@@ -3,7 +3,7 @@
 <section class="plan-medico">
   <div class="plan-cabecera">
     <a href="/doctor/pacientes/{{ paciente._id }}" class="plan-volver">← {{ paciente.nombre or paciente.email }}</a>
-    <h1>🧭 Plan de terapia</h1>
+    <h1>{{ icono('mapa', 34) }} Plan de terapia</h1>
     <p>Define cuánta práctica necesita y qué trabaja. Los juegos del día del niño se arman solos con este plan.</p>
   </div>
 
@@ -19,7 +19,7 @@
         {% for n, g in gravedades.items() %}
         <label class="plan-grav g{{ n }}">
           <input type="radio" name="gravedad" value="{{ n }}" {% if plan.gravedad == n %}checked{% endif %} data-juegos="{{ g.juegos }}" data-nivel="{{ g.nivel }}">
-          <span class="plan-grav-caja"><span class="plan-grav-cara">{{ g.cara }}</span><strong>{{ n }}</strong><small>{{ g.nombre }}</small><em>{{ g.juegos }} juegos/día</em></span>
+          <span class="plan-grav-caja"><span class="plan-grav-cara">{{ icono(g.cara, 44) }}</span><strong>{{ n }}</strong><small>{{ g.nombre }}</small><em>{{ g.juegos }} juegos/día</em></span>
         </label>
         {% endfor %}
       </div>
@@ -64,7 +64,7 @@
       <p class="plan-ayuda">Elige uno o varios colores para limitar los juegos a esas áreas. Sin selección = todas las áreas.</p>
       <div class="plan-chips">
         {% for clave, a in areas.items() %}
-        <label class="plan-area" style="--c:{{ a.color }};--s:{{ a.suave }}"><input type="checkbox" name="areas" value="{{ clave }}" {% if clave in plan.areas %}checked{% endif %}><span><i>{{ a.icono }}</i>{{ a.nombre }}</span></label>
+        <label class="plan-area" style="--c:{{ a.color }};--s:{{ a.suave }}"><input type="checkbox" name="areas" value="{{ clave }}" {% if clave in plan.areas %}checked{% endif %}><span>{{ icono(a.icono, 24) }}{{ a.nombre }}</span></label>
         {% endfor %}
       </div>
     </fieldset>
@@ -90,10 +90,10 @@
       {% set del_area = juegos | selectattr('area', 'equalto', clave) | list %}
       {% if del_area %}
       <div class="plan-grupo" style="--c:{{ a.color }};--s:{{ a.suave }}">
-        <h3><i>{{ a.icono }}</i> {{ a.nombre }}</h3>
+        <h3>{{ icono(a.icono, 26) }} {{ a.nombre }}</h3>
         {% for j in del_area %}
         <div class="plan-juego" data-nombre="{{ j.actividad | lower }}">
-          <span class="plan-juego-icono">{{ j.icono }}</span>
+          <span class="plan-juego-icono">{{ icono(j.icono, 38) }}</span>
           <div class="plan-juego-info">
             <strong>{{ j.actividad }}</strong>
             <small>{% if j.nivel_nativo %}Dificultad propia{% else %}Nivel = rondas{% endif %}{% if j.letras %} · {{ j.letras | join(' ') }}{% endif %}</small>
@@ -121,11 +121,11 @@
 
     {% if existe %}
     <fieldset class="plan-bloque">
-      <legend>👀 Así ve hoy su camino</legend>
+      <legend>Así ve hoy su camino</legend>
       <div class="plan-previa">
         {% for j in vista_previa %}
         <div class="plan-previa-paso" style="--c:{{ j.area_color }};--s:{{ j.area_suave }}" title="{{ j.actividad }}">
-          <span class="ico">{{ j.icono }}</span>
+          <span class="ico">{{ icono(j.icono, 40) }}</span>
           {% if j.fonema %}<span class="letra">{{ j.fonema }}</span>{% endif %}
           <span class="puntos">{% for _ in range(j.nivel) %}●{% endfor %}</span>
           <small>{{ j.actividad }}</small>
@@ -136,8 +136,8 @@
     {% endif %}
 
     <div class="plan-acciones">
-      <button type="submit" class="boton-rojo">💾 Guardar plan</button>
-      <a href="/doctor/tareas?paciente={{ paciente.email | urlencode }}" class="boton-rojo-borde">🎯 Asignar actividad</a>
+      <button type="submit" class="boton-rojo">Guardar plan</button>
+      <a href="/doctor/tareas?paciente={{ paciente.email | urlencode }}" class="boton-rojo-borde">Asignar actividad</a>
     </div>
   </form>
   {% if existe %}
@@ -149,7 +149,7 @@
 
 <style>
 .plan-medico{max-width:900px;margin:0 auto;padding:16px 14px 110px;color:#1f3347}
-.plan-cabecera h1{margin:6px 0 4px;font-size:1.5rem}
+.plan-cabecera h1{margin:6px 0 4px;font-size:1.5rem;display:flex;align-items:center;gap:10px}
 .plan-cabecera p{margin:0 0 12px;color:#5a6b7b}
 .plan-volver{color:#c62828;font-weight:700;text-decoration:none}
 .plan-ok{background:#e7f8ee;border:2px solid #2bb673;color:#1d6b43;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
@@ -163,7 +163,7 @@
 .plan-gravedad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .plan-grav input,.plan-seg input,.plan-letra input,.plan-area input,.plan-color input,.plan-modo input{position:absolute;opacity:0;pointer-events:none}
 .plan-grav-caja{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:14px;border:3px solid #e3e9f0;cursor:pointer;text-align:center;transition:transform .12s}
-.plan-grav-cara{font-size:1.8rem}
+.plan-grav-cara{line-height:0}
 .plan-grav strong{font-size:1.3rem}
 .plan-grav small{font-weight:700;font-size:.78rem}
 .plan-grav em{font-style:normal;font-size:.72rem;color:#6b7c8d}
@@ -183,17 +183,17 @@
 .plan-letra span{display:grid;place-items:center;min-width:52px;height:52px;padding:0 8px;border-radius:14px;border:3px solid #dbe4ee;font-size:1.35rem;font-weight:900;cursor:pointer;background:#fff}
 .plan-letra input:checked+span{background:#e0528f;border-color:#e0528f;color:#fff}
 .plan-area span{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:3px solid var(--c);background:#fff;color:#1f3347;font-weight:700;cursor:pointer}
-.plan-area i{font-style:normal;font-size:1.2rem}
+.plan-area svg{flex:none}
 .plan-area input:checked+span{background:var(--c);color:#fff}
 .plan-colores{display:flex;flex-wrap:wrap;gap:10px}
 .plan-color span{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 2px #dbe4ee;cursor:pointer;font-weight:800;color:#8a9aaa}
 .plan-color input:checked+span{box-shadow:0 0 0 4px #1f3347}
 .plan-filtro input{width:100%;padding:10px 12px;border:2px solid #dbe4ee;border-radius:12px;margin-bottom:10px;font-size:1rem}
 .plan-grupo{border-left:6px solid var(--c);background:var(--s);border-radius:14px;padding:8px 10px;margin-bottom:10px}
-.plan-grupo h3{margin:2px 0 6px;font-size:1rem;color:#1f3347}
+.plan-grupo h3{margin:2px 0 6px;font-size:1rem;color:#1f3347;display:flex;align-items:center;gap:8px}
 .plan-grupo h3 i{font-style:normal}
 .plan-juego{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:8px 10px;margin:6px 0}
-.plan-juego-icono{font-size:1.6rem;width:38px;text-align:center}
+.plan-juego-icono{width:38px;line-height:0}
 .plan-juego-info strong{display:block;font-size:.95rem}
 .plan-juego-info small{color:#6b7c8d;font-size:.78rem}
 .plan-modo{display:flex;border:2px solid #dbe4ee;border-radius:999px;overflow:hidden}
@@ -205,7 +205,7 @@
 .plan-bloque textarea{width:100%;border:2px solid #dbe4ee;border-radius:12px;padding:10px;font:inherit;box-sizing:border-box}
 .plan-previa{display:flex;flex-wrap:wrap;gap:12px}
 .plan-previa-paso{position:relative;width:86px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
-.plan-previa-paso .ico{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--s);border:4px solid var(--c);font-size:1.8rem}
+.plan-previa-paso .ico{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--s);border:4px solid var(--c)}
 .plan-previa-paso .letra{position:absolute;top:-4px;right:6px;background:#1f3347;color:#fff;border-radius:10px;padding:1px 6px;font-weight:900;font-size:.8rem}
 .plan-previa-paso .puntos{color:var(--c);font-size:.7rem;letter-spacing:1px}
 .plan-previa-paso small{font-size:.72rem;color:#5a6b7b;line-height:1.15}

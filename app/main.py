@@ -75,6 +75,19 @@ async def manejar_error_autenticacion(request: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
+@app.get("/iconos.js", include_in_schema=False)
+def iconos_js():
+    """Ilustraciones de FonoApp (app/iconos*.py) para el navegador: reemplazan los emojis."""
+    import json
+    from fastapi.responses import Response
+    from .iconos import ICONOS, EMOJIS, BOCA_DE_FONEMA
+    cuerpo = ("window.FonoIconos=" + json.dumps(ICONOS, ensure_ascii=False, separators=(",", ":")) + ";"
+              "window.FonoEmojis=" + json.dumps(EMOJIS, ensure_ascii=False, separators=(",", ":")) + ";"
+              "window.FonoBocaDeFonema=" + json.dumps(BOCA_DE_FONEMA) + ";")
+    return Response(cuerpo, media_type="application/javascript; charset=utf-8",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
 @app.get("/", include_in_schema=False)
 async def raiz():
     """

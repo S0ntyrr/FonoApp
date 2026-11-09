@@ -1,0 +1,15 @@
+{# Demostración animada de cómo poner la boca para un fonema.
+   Uso: {% from 'juegos/partials/demo_boca.html' import demo_boca %}{{ demo_boca('B', 'Junta los labios y ábrelos con voz') }} #}
+{% macro demo_boca(letra, ayuda_adulto) %}
+{% set nombre_boca = {'M':'boca_m','P':'boca_p','B':'boca_b','S':'boca_s','F':'boca_f','D':'boca_d','R':'boca_r','RR':'boca_rr','G':'boca_g','C':'boca_c','A':'boca_a','O':'boca_o','U':'boca_o'}[letra] %}
+<div class="fono-boca-demo" role="img" aria-label="Así se pone la boca para decir {{ letra }}: {{ ayuda_adulto }}">
+  {{ icono(nombre_boca, 120) }}
+  <div class="fono-boca-demo-pasos animar" aria-hidden="true">
+    <span class="fono-boca-demo-paso">{{ icono('ojos', 40) }}<small>Mira</small></span>
+    <span class="fono-boca-demo-flecha">›</span>
+    <span class="fono-boca-demo-paso">{{ icono('altavoz', 40) }}<small>Escucha</small></span>
+    <span class="fono-boca-demo-flecha">›</span>
+    <span class="fono-boca-demo-paso"><span class="fono-boca-demo-letra">{{ letra }}</span><small>Dilo</small></span>
+  </div>
+</div>
+{% endmacro %}

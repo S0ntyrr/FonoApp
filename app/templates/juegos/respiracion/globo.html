@@ -6,7 +6,13 @@
     <p class="centrado" style="font-weight:bold; margin-bottom:0.3rem;">Toma aire y sopla despacito.</p>
     <div class="fono-guia-infantil">
        <img src="/static/img/soplo-boca.gif" alt="Boca animada que sopla" width="140" height="140" />
-       <div class="fono-pasos">👃 Toma aire → 👄 Sopla → 🎈 Infla</div>
+       <div class="fono-pasos fono-pasos-ico" aria-label="Toma aire , Sopla , Infla"><span class="fono-paso-ico">{{ icono('inspirar', 46) }}<small>Toma aire</small></span><span class="fono-paso-flecha" aria-hidden="true">›</span><span class="fono-paso-ico">{{ icono('soplar', 46) }}<small>Sopla</small></span><span class="fono-paso-flecha" aria-hidden="true">›</span><span class="fono-paso-ico">{{ icono('globo', 46) }}<small>Infla</small></span></div><style>
+.fono-pasos-ico{display:flex;align-items:flex-start;justify-content:center;gap:8px;flex-wrap:wrap}
+.fono-paso-ico{display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:2px solid #e3eef6;border-radius:16px;padding:6px 8px;min-width:64px}
+.fono-paso-ico small{font-size:.72rem;font-weight:700;color:#5a6b7b}
+.fono-paso-flecha{align-self:center;font-size:1.6rem;color:#9fb3c4;font-weight:900}
+.btn-microfono svg{display:block;margin:auto}
+</style>
        <small>Si necesitas ayuda, mira cómo sopla tu acompañante.</small>
     </div>
     <div class="fono-niveles" role="group" aria-label="Elige nivel de dificultad">
@@ -41,7 +47,7 @@
             <div class="vol-barra-container">
                 <div class="vol-barra" id="vol-barra"></div>
             </div>
-            <div class="vol-label" id="vol-label">🎤 Esperando...</div>
+            <div class="vol-label" id="vol-label">Esperando…</div>
         </div>
     </div>
 
@@ -52,27 +58,27 @@
 
     <!-- Mensaje de éxito -->
     <div id="globo-explotado" class="globo-explotado oculto">
-        <p>💥 ¡El globo explotó! ¡Muy bien!</p>
+        <p>{{ icono('estrella', 40) }}{{ icono('estrella', 40) }}{{ icono('estrella', 40) }}<br>¡El globo explotó! ¡Muy bien!</p>
         <button class="boton-rojo ancho-completo" onclick="reiniciar()">Inflar otro globo</button>
     </div>
 
     <!-- Botón micrófono -->
     <div style="text-align:center; margin-top:1rem;">
         <button id="btn-mic" class="btn-microfono" onclick="toggleMic()">
-            🎤
+            {{ icono('microfono', 40) }}
         </button>
         <p class="texto-pequeño centrado" style="margin-top:0.3rem;" id="mic-estado">Toca para activar el micrófono</p>
     </div>
 
     <details class="instrucciones-padres">
-      <summary>👨‍👩‍👧 Guía para acompañantes</summary>
+      <summary>Guía para acompañantes</summary>
       <p>Para mayores de 3 años: 1. Muéstrale cómo tomas aire por la nariz.
          2. Soplen lentamente con los labios redondos. 3. Felicita cada intento.
          Realiza pausas. No le pidas soplar hasta marearse.</p>
     </details>
     <div style="margin-top:1rem; text-align:center; display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
         <a href="/juegos/respiracion" class="boton-rojo-borde" style="display:inline-block; padding:0.5rem 1.2rem; text-decoration:none; border-radius:4px;">← Respiración</a>
-        <button onclick="volverInicio()" class="boton-rojo-borde" style="padding:0.5rem 1.2rem; border-radius:4px; cursor:pointer;">🏠 Inicio</button>
+        <button onclick="volverInicio()" class="boton-rojo-borde" style="padding:0.5rem 1.2rem; border-radius:4px; cursor:pointer;">{{ icono('casa', 18) }} Inicio</button>
     </div>
 <script>
 function volverInicio() {
@@ -221,11 +227,11 @@ async function iniciarMic() {
 
         micActivo = true;
         document.getElementById('btn-mic').classList.add('activo');
-        document.getElementById('mic-estado').textContent = '🔴 Micrófono activo - ¡Sopla!';
+        document.getElementById('mic-estado').textContent = 'Micrófono activo: ¡sopla!';
         document.getElementById('instruccion-texto').textContent = '¡Sopla para inflar el globo!';
         medirVolumen();
     } catch(e) {
-        document.getElementById('mic-estado').textContent = '❌ No se pudo acceder al micrófono';
+        document.getElementById('mic-estado').textContent = 'No se pudo acceder al micrófono';
         console.error(e);
     }
 }
@@ -239,7 +245,7 @@ function detenerMic() {
     document.getElementById('btn-mic').classList.remove('activo');
     document.getElementById('mic-estado').textContent = 'Toca para activar el micrófono';
     document.getElementById('vol-barra').style.height = '0%';
-    document.getElementById('vol-label').textContent = '🎤 Esperando...';
+    document.getElementById('vol-label').textContent = 'Esperando…';
 }
 
 function medirVolumen() {
@@ -256,9 +262,9 @@ function medirVolumen() {
         const incremento = volPct * 0.04;
         nivelGlobo = Math.min(MAX_NIVEL, nivelGlobo + incremento);
         actualizarGlobo();
-        document.getElementById('vol-label').textContent = '💨 Soplando!';
+        document.getElementById('vol-label').textContent = '¡Soplando!';
     } else {
-        document.getElementById('vol-label').textContent = '🎤 Sopla...';
+        document.getElementById('vol-label').textContent = 'Sopla…';
     }
 
     animFrame = requestAnimationFrame(medirVolumen);

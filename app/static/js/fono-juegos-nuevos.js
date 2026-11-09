@@ -41,6 +41,8 @@ window.FonoJuegosNuevos = (function(){
  function progreso(p,total){$('fono-progreso-barra').style.width=Math.min(100,Math.round((p/Math.max(1,total))*100))+'%';$('fono-contador').textContent=`${p} de ${total}`;}
  function botones(items,onClick){$('fono-acciones').innerHTML='';items.forEach(([label,accion,extra=''])=>{const b=document.createElement('button');b.className='fono-gran-boton'+(extra?(' '+extra):'');b.textContent=label;b.type='button';b.addEventListener('click',()=>onClick(label,accion));$('fono-acciones').appendChild(b);});}
  function hablar(t){if(window.FonoVoz?.hablar(t))return;texto('Pide ayuda a un adulto para escuchar.');}
+ // Boca animada del fonema (app/iconos_ui.py): muestra cómo mover labios y lengua.
+ function bocaAnimada(f,tam){const n=(window.FonoBocaDeFonema||{})[f];const c=n&&(window.FonoIconos||{})[n];return c?`<svg class="fono-ico fa-siempre" viewBox="0 0 64 64" width="${tam}" height="${tam}" aria-hidden="true">${c}</svg>`:'';}
  function boca(tipo='pico'){return `<div class="fono-boca ${tipo}"><div class="fono-labios"></div></div>`;}
  function cambiarNivel(n){nivel=n;document.querySelectorAll('#fono-niveles button').forEach(b=>b.classList.toggle('activo',+b.dataset.nivel===nivel));reiniciar();}
  function cambiarFonema(f){if(!DATA[f])return;fonema=f;document.querySelectorAll('#fono-fonemas button').forEach(b=>b.classList.toggle('activo',b.textContent===f));reiniciar();}
@@ -177,7 +179,8 @@ window.FonoJuegosNuevos = (function(){
     const visualFonema = ['fonemas','pronunciacion5'].includes(modo) ? '<div id="fono-modelo-humano"></div>' : '';
     dibuja(`<div class="fono-pronuncia-card"><span class="fono-ilustracion">${item[0]}</span>${visualFonema}<p class="fono-mini-ayuda">Primero mira. Después escucha. Luego di la palabra.</p></div>`);
     if(visualFonema) window.FonoBocaReal?.pintar($('fono-modelo-humano'),fonema);
-    $('fono-palabra').textContent=(modo==='fonemas'||modo==='pronunciacion5') ? ('Letra ' + fonema) : '?';
+    if(modo==='fonemas'||modo==='pronunciacion5'){$('fono-palabra').innerHTML=bocaAnimada(fonema,84)+'<span>Letra '+fonema+'</span>';$('fono-palabra').classList.add('fono-palabra-boca');}
+    else $('fono-palabra').textContent='?';
     if(['fonemas','pronunciacion5'].includes(modo))texto(`Paso ${indice+1} de ${total}: ${PUNTOS_MODO[fonema]}`);
     let fase=0;
     function avanzarFase(){

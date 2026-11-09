@@ -2,7 +2,7 @@
 {% block contenido %}
 <section class="asig">
   <a class="asig-volver" href="/doctor/home">← Panel médico</a>
-  <h1>🎯 Asignar actividad</h1>
+  <h1>{{ icono('diana', 34) }} Asignar actividad</h1>
   <p class="asig-intro">El niño debe cumplir primero lo que asignas aquí (por intentos o por tiempo). Cuando termina, se le desbloquean sus juegos automáticos del día.</p>
 
   {% if creada_ok %}<div class="asig-ok">✓ Actividad asignada. Ya aparece primero en el camino del niño.</div>{% endif %}
@@ -22,13 +22,13 @@
       <input type="search" id="asig-buscar" class="asig-buscar" placeholder="Buscar juego…" aria-label="Buscar juego">
       <div class="asig-areas" role="group" aria-label="Filtrar por área">
         <button type="button" class="asig-area activo" data-area="">Todas</button>
-        {% for clave, a in areas.items() %}<button type="button" class="asig-area" data-area="{{ clave }}" style="--c:{{ a.color }}">{{ a.icono }} {{ a.nombre }}</button>{% endfor %}
+        {% for clave, a in areas.items() %}<button type="button" class="asig-area" data-area="{{ clave }}" style="--c:{{ a.color }}">{{ icono(a.icono, 20) }} {{ a.nombre }}</button>{% endfor %}
       </div>
       <div class="asig-juegos">
         {% for j in juegos %}
         <label class="asig-juego" data-area="{{ j.area }}" data-nombre="{{ j.actividad | lower }}" data-letras="{{ j.letras | join(',') }}" data-nativo="{{ '1' if j.nivel_nativo else '0' }}" style="--c:{{ areas[j.area].color }};--s:{{ areas[j.area].suave }}">
           <input type="radio" name="url_juego" value="{{ j.url }}" required {% if loop.first %}checked{% endif %}>
-          <span class="asig-juego-caja"><span class="asig-juego-ico">{{ j.icono }}</span><span class="asig-juego-nombre">{{ j.actividad }}</span></span>
+          <span class="asig-juego-caja"><span class="asig-juego-ico">{{ icono(j.icono, 44) }}</span><span class="asig-juego-nombre">{{ j.actividad }}</span></span>
         </label>
         {% endfor %}
       </div>
@@ -38,8 +38,8 @@
       <div class="asig-bloque">
         <span class="asig-titulo"><span class="asig-num">3</span> Meta</span>
         <div class="asig-seg" role="radiogroup">
-          <label><input type="radio" name="meta_tipo" value="intentos" checked><span>🎯 Intentos</span></label>
-          <label><input type="radio" name="meta_tipo" value="tiempo"><span>⏱️ Tiempo</span></label>
+          <label><input type="radio" name="meta_tipo" value="intentos" checked><span>{{ icono('diana', 20) }} Intentos</span></label>
+          <label><input type="radio" name="meta_tipo" value="tiempo"><span>{{ icono('reloj', 20) }} Tiempo</span></label>
         </div>
         <div class="asig-stepper">
           <button type="button" data-paso="-1" aria-label="Menos">−</button>
@@ -68,7 +68,7 @@
       <textarea name="instrucciones" maxlength="300" rows="2" placeholder="Ej.: con calma, sin forzar la voz"></textarea>
     </label>
 
-    <button class="boton-rojo asig-enviar" type="submit">🎯 Asignar actividad</button>
+    <button class="boton-rojo asig-enviar" type="submit">Asignar actividad</button>
   </form>
   {% else %}
   <p class="asig-aviso">Primero debe existir una asignación paciente-médico aceptada.</p>
@@ -85,12 +85,12 @@
   </div>
   {% for t in tareas %}
   <article class="asig-tarea {{ t.estado }}">
-    <span class="asig-tarea-ico">{{ t.icono }}</span>
+    <span class="asig-tarea-ico">{{ icono(t.icono, 40) }}</span>
     <div class="asig-tarea-info">
       <strong>{{ t.actividad }}{% if t.fonema %} · {{ t.fonema }}{% endif %}</strong>
-      <small>{{ t.paciente_nombre }} · Nivel {{ t.nivel }} · {% if t.avance.tipo == 'tiempo' %}⏱️ {{ t.avance.meta }} min{% else %}🎯 {{ t.avance.meta }} intento{{ 's' if t.avance.meta != 1 }}{% endif %}</small>
+      <small>{{ t.paciente_nombre }} · Nivel {{ t.nivel }} · {% if t.avance.tipo == 'tiempo' %}{{ t.avance.meta }} min{% else %}{{ t.avance.meta }} intento{{ 's' if t.avance.meta != 1 }}{% endif %}</small>
       <div class="asig-barra"><i style="width:{{ (t.avance.fraccion * 100) | round | int }}%"></i></div>
-      <small class="asig-avance">{% if t.estado == 'completada' %}✅ Completada{% elif t.estado == 'cancelada' %}Cancelada{% else %}{{ t.avance.texto }}{% if t.avance.tipo == 'intentos' and t.avance.segundos %} · {{ (t.avance.segundos // 60) }} min jugados{% elif t.avance.tipo == 'tiempo' and t.avance.intentos %} · {{ t.avance.intentos }} partidas{% endif %}{% endif %}</small>
+      <small class="asig-avance">{% if t.estado == 'completada' %}{{ icono('estrella', 16) }} Completada{% elif t.estado == 'cancelada' %}Cancelada{% else %}{{ t.avance.texto }}{% if t.avance.tipo == 'intentos' and t.avance.segundos %} · {{ (t.avance.segundos // 60) }} min jugados{% elif t.avance.tipo == 'tiempo' and t.avance.intentos %} · {{ t.avance.intentos }} partidas{% endif %}{% endif %}</small>
       {% if t.instrucciones %}<small>“{{ t.instrucciones }}”</small>{% endif %}
     </div>
     {% if t.estado == 'pendiente' %}<form method="post" action="/doctor/tareas/{{ t._id }}/cancelar"><button type="submit" class="asig-cancelar">Cancelar</button></form>{% endif %}
@@ -100,7 +100,7 @@
 
 <style>
 .asig{max-width:900px;margin:0 auto;padding:16px 14px 40px;color:#1f3347}
-.asig h1{margin:6px 0 4px;font-size:1.5rem}
+.asig h1{margin:6px 0 4px;font-size:1.5rem;display:flex;align-items:center;gap:10px}
 .asig-volver{color:#c62828;font-weight:700;text-decoration:none}
 .asig-intro{color:#5a6b7b;margin:0 0 12px}
 .asig-ok{background:#e7f8ee;border:2px solid #2bb673;color:#1d6b43;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
@@ -113,18 +113,18 @@
 .asig-num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#c62828;color:#fff;font-size:.85rem}
 .asig-buscar{padding:9px 12px;border:2px solid #dbe4ee;border-radius:12px;font:inherit}
 .asig-areas{display:flex;flex-wrap:wrap;gap:6px}
-.asig-area{border:2px solid var(--c,#5a6b7b);background:#fff;border-radius:999px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:.82rem}
+.asig-area{display:inline-flex;align-items:center;gap:5px;border:2px solid var(--c,#5a6b7b);background:#fff;border-radius:999px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:.82rem}
 .asig-area.activo{background:var(--c,#5a6b7b);color:#fff}
 .asig-juegos{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;max-height:340px;overflow:auto;padding:4px}
 .asig-juego input,.asig-seg input,.asig-letra input{position:absolute;opacity:0;pointer-events:none}
 .asig-juego-caja{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:16px;border:3px solid transparent;background:var(--s);cursor:pointer;text-align:center;height:100%;box-sizing:border-box}
-.asig-juego-ico{font-size:2rem}
+.asig-juego-ico{line-height:0}
 .asig-juego-nombre{font-size:.78rem;font-weight:700;line-height:1.15}
 .asig-juego input:checked+.asig-juego-caja{border-color:var(--c);background:#fff;box-shadow:0 0 0 3px var(--s)}
 .asig-juego input:focus-visible+.asig-juego-caja,.asig-seg input:focus-visible+span,.asig-letra input:focus-visible+span{outline:3px solid #2e86de;outline-offset:2px}
 .asig-dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .asig-seg{display:flex;flex-wrap:wrap;gap:6px}
-.asig-seg span{display:inline-block;padding:8px 12px;border-radius:999px;border:2px solid #dbe4ee;cursor:pointer;font-weight:700}
+.asig-seg span{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:2px solid #dbe4ee;cursor:pointer;font-weight:700}
 .asig-seg input:checked+span{background:#c62828;border-color:#c62828;color:#fff}
 .asig-stepper{display:flex;align-items:center;gap:6px;font-weight:700}
 .asig-stepper button{width:42px;height:42px;border-radius:50%;border:2px solid #dbe4ee;background:#fff;font-size:1.3rem;cursor:pointer}
@@ -143,12 +143,12 @@
 .asig-tarea{display:flex;align-items:center;gap:12px;border:2px solid #e6edf4;border-radius:16px;padding:10px 12px;margin:8px 0;background:#fff}
 .asig-tarea.completada{border-color:#bfe8cf;background:#f4fcf7}
 .asig-tarea.cancelada{opacity:.55}
-.asig-tarea-ico{font-size:1.9rem}
+.asig-tarea-ico{line-height:0}
 .asig-tarea-info{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
 .asig-tarea-info small{color:#5a6b7b}
 .asig-barra{height:10px;border-radius:6px;background:#edf1f5;overflow:hidden}
 .asig-barra i{display:block;height:100%;background:linear-gradient(90deg,#2e9fd6,#2bb673)}
-.asig-avance{font-weight:700;color:#1f3347!important}
+.asig-avance{font-weight:700;color:#1f3347!important;display:flex;align-items:center;gap:4px}
 .asig-cancelar{border:2px solid #e3b4b4;background:#fff;color:#a33;border-radius:10px;padding:6px 10px;cursor:pointer}
 @media (max-width:640px){.asig-dos{grid-template-columns:1fr}.asig-lista-cabecera{flex-direction:column;align-items:stretch}}
 </style>

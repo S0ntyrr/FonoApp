@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% from 'juegos/partials/demo_boca.html' import demo_boca %}<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -14,6 +14,9 @@
   <script src="/static/js/juego-audio-utils.js"></script>
   <script src="/static/js/articulacion-voz.js"></script>
   <script src="/static/js/articulacion-letra.js"></script>
+  <link rel="stylesheet" href="/static/css/fono-anim.css?v=2">
+  <script defer src="/iconos.js?v=2"></script>
+  <script defer src="/static/js/fono-emoji.js?v=1"></script>
 </head>
 <body>
 <div class="art-screen">
@@ -23,13 +26,12 @@
   <section class="art-step active" id="s1">
     <div class="art-card">
       <p class="art-titulo">1. Prepara la articulación</p>
-      <p class="art-ayuda">👀 Mira la boca. 👄 Sopla suave. 🔊 Escucha y repite.</p>
+      {{ demo_boca('F', 'Los dientes de arriba tocan el labio de abajo y sale aire') }}
       <details class="fono-guia-nueva"><summary>👨‍👩‍👧 Orientación para acompañantes</summary><ol class="art-list">
         <li><strong>Apoya suavemente los dientes superiores</strong> sobre el labio inferior.</li>
         <li><strong>Deja un pequeño paso para el aire</strong> entre dientes y labio.</li>
         <li><strong>Suelta el aire de forma continua</strong> y evita hacer fuerza con la garganta.</li>
       </ol></details>
-      <div style="text-align:center;font-size:3.5rem;margin-top:12px;">😬</div>
       <div class="art-alerta">La app puede reconocer palabras completas, pero no puede determinar por sí sola si el sonido de la F fue producido de manera fonéticamente correcta. Los audios grabados se guardan para revisión profesional.</div>
       <button class="art-btn" type="button" onclick="artGoStep(2)">Siguiente →</button>
     </div>
