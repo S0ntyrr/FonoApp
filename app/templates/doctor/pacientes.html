@@ -139,6 +139,10 @@
 
                         </p>
 
+                        {% if p.gravedad %}
+                        <span class="paciente-gravedad g{{ p.gravedad }}" title="Gravedad {{ p.gravedad }} de 5">{{ p.gravedad_cara }} Gravedad {{ p.gravedad }}/5</span>
+                        {% endif %}
+
 
                         <div class="paciente-stats">
 
@@ -913,4 +917,8 @@ barrasProgreso.forEach(function (barra) {
 
 </style>
 
+<style>
+.paciente-gravedad{display:inline-block;margin:2px 0 4px;padding:2px 10px;border-radius:999px;font-size:.75rem;font-weight:800;color:#fff}
+.paciente-gravedad.g1{background:#2bb673}.paciente-gravedad.g2{background:#7cc242}.paciente-gravedad.g3{background:#d79e00}.paciente-gravedad.g4{background:#f57c00}.paciente-gravedad.g5{background:#e53935}
+</style>
 {% endblock %}

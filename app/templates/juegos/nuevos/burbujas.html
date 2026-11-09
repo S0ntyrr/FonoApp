@@ -1,2 +1,5 @@
-{% set modo = 'burbujas' %}
-{% include 'juegos/nuevos/motor.html' %}
+{% set juego = 'burbujas' %}
+{% set script = 'fono-juego-burbujas.js' %}
+{% set icono_titulo %}<svg viewBox="0 0 120 48" aria-hidden="true"><defs><radialGradient id="tb" cx=".35" cy=".35"><stop offset="0" stop-color="#fff"/><stop offset=".8" stop-color="#bfe9ff" stop-opacity=".6"/><stop offset="1" stop-color="#ff9bd0"/></radialGradient></defs><circle cx="30" cy="26" r="18" fill="url(#tb)" stroke="#8fd0f5" stroke-width="2"/><circle cx="66" cy="18" r="12" fill="url(#tb)" stroke="#8fd0f5" stroke-width="2"/><circle cx="92" cy="30" r="14" fill="url(#tb)" stroke="#8fd0f5" stroke-width="2"/></svg>{% endset %}
+{% set guia %}<p><strong>Burbujas de aire.</strong> Siéntense frente al micrófono (a un palmo). El niño toma aire por la nariz y sopla largo hacia la varita. La burbuja crece solo mientras sopla con fuerza suficiente; cuando el anillo verde se completa, la burbuja sale volando. Si deja de soplar, la burbuja se desinfla despacio. Las burbujas que vuelan se pueden reventar con el dedo.</p><p>Nivel 1: 3 burbujas de 1,2 s de soplo. Nivel 2: 5 burbujas de 2 s. Nivel 3: 6 burbujas de 3 s con más fuerza.</p>{% endset %}
+{% include 'juegos/nuevos/soplo_base.html' %}

@@ -47,3 +47,96 @@ JUEGOS_CON_NIVELES = frozenset({
     "/juegos/practica/rompecabezas",  # 3x3, 4x4, 5x5 piezas
     "/juegos/fonacion/escala",        # arranca en secuencias de ritmo diferentes
 })
+
+
+# ── Personalización del plan de terapia ──────────────────────────────────────
+# Áreas por color: el médico puede asignar un "color" completo de juegos y el
+# niño reconoce cada área por su color e icono (no necesita leer).
+AREAS_TERAPIA = {
+    "respiracion":    {"nombre": "Respiración",    "color": "#2e9fd6", "suave": "#e3f4fd", "icono": "🎈"},
+    "fonacion":       {"nombre": "Fonación",       "color": "#2bb673", "suave": "#e4f7ec", "icono": "🎤"},
+    "resonancia":     {"nombre": "Resonancia",     "color": "#e9a520", "suave": "#fff4d9", "icono": "🎹"},
+    "articulacion":   {"nombre": "Articulación",   "color": "#e0528f", "suave": "#fde7f0", "icono": "👄"},
+    "praxias":        {"nombre": "Praxias",        "color": "#e5533d", "suave": "#fde9e5", "icono": "😮"},
+    "prosodia":       {"nombre": "Prosodia",       "color": "#8e6bd6", "suave": "#f0eafc", "icono": "🎶"},
+    "discriminacion": {"nombre": "Discriminación", "color": "#1fa9a4", "suave": "#e1f6f5", "icono": "👂"},
+    "practica":       {"nombre": "Práctica",       "color": "#f08a3c", "suave": "#fef0e4", "icono": "🧩"},
+}
+_AREA_POR_CATEGORIA = {
+    "Respiración": "respiracion", "Fonación": "fonacion", "Resonancia": "resonancia",
+    "Articulación": "articulacion", "Praxias": "praxias", "Prosodia": "prosodia",
+    "Discriminación": "discriminacion", "Práctica": "practica",
+}
+
+# Dibujo que ve el niño en su camino de juegos.
+ICONOS_JUEGOS = {
+    "/juegos/respiracion/globo": "🎈", "/juegos/respiracion/molino": "🌀",
+    "/juegos/respiracion/burbujas": "🫧", "/juegos/respiracion/pitillos": "☁️",
+    "/juegos/fonacion/gol": "⚽", "/juegos/fonacion/escala": "🎵",
+    "/juegos/resonancia/escaleras": "🪜", "/juegos/resonancia/piano": "🎹",
+    "/juegos/resonancia/veoveo": "👀", "/juegos/resonancia/imitacion": "🐮",
+    "/juegos/articulacion/fonemas": "👄", "/juegos/articulacion/abcd": "🔤",
+    "/juegos/articulacion/pronunciacion-5": "🎯", "/juegos/articulacion/completa-palabra": "✏️",
+    "/juegos/articulacion/moto-voz": "🏍️", "/juegos/articulacion/letra-b": "🐝",
+    "/juegos/articulacion/letra-d": "🐉", "/juegos/articulacion/letra-f": "🌸",
+    "/juegos/articulacion/letra-r": "🚗", "/juegos/prosodia/adivina-animal": "🦁",
+    "/juegos/prosodia/trabalenguas": "👅", "/juegos/prosodia/adivinanza-imagen": "❓",
+    "/juegos/prosodia/completa-cancion": "🎶", "/juegos/discriminacion/sonidos-animales": "🐶",
+    "/juegos/discriminacion/sonidos-objetos": "🔔", "/juegos/discriminacion/arrastra-sonido": "👆",
+    "/juegos/practica/rompecabezas": "🧩", "/juegos/practica/cara": "🙂",
+    "/juegos/practica/asociacion": "🔗", "/juegos/practica/praxias": "😮",
+}
+
+# Letras que el médico puede priorizar y juegos que trabajan cada letra.
+LETRAS_PLAN = ("M", "P", "S", "G", "R", "RR", "B", "D", "F")
+_SEIS = ("M", "P", "S", "G", "R", "RR")
+LETRAS_POR_JUEGO = {
+    "/juegos/articulacion/fonemas": _SEIS,
+    "/juegos/articulacion/pronunciacion-5": _SEIS,
+    "/juegos/articulacion/moto-voz": _SEIS,
+    "/juegos/practica/praxias": _SEIS + ("B", "D"),
+    "/juegos/articulacion/letra-b": ("B",),
+    "/juegos/articulacion/letra-d": ("D",),
+    "/juegos/articulacion/letra-f": ("F",),
+    "/juegos/articulacion/letra-r": ("R", "RR"),
+}
+
+# Colores favoritos para pintar el camino del niño.
+COLORES_FAVORITOS = {
+    "rojo": "#e53935", "naranja": "#f57c00", "amarillo": "#f2b400", "verde": "#2bb673",
+    "azul": "#2e86de", "morado": "#8e44ad", "rosa": "#e84393", "turquesa": "#16a6a0",
+}
+
+# Gravedad 1–5: a mayor gravedad, más juegos al día y nivel inicial más fácil
+# (más práctica con menos exigencia). El médico puede cambiar ambos valores.
+GRAVEDAD = {
+    1: {"nombre": "Muy leve",  "juegos": 3, "nivel": 3, "cara": "😄"},
+    2: {"nombre": "Leve",      "juegos": 4, "nivel": 2, "cara": "🙂"},
+    3: {"nombre": "Moderado",  "juegos": 5, "nivel": 2, "cara": "😐"},
+    4: {"nombre": "Grave",     "juegos": 6, "nivel": 1, "cara": "😟"},
+    5: {"nombre": "Muy grave", "juegos": 8, "nivel": 1, "cara": "🆘"},
+}
+
+# Todos los juegos aceptan nivel 1–3. Los de JUEGOS_CON_NIVELES cambian su
+# dificultad interna; en los demás el nivel indica cuántas veces se repite el
+# juego (rondas) antes de contar como completado.
+NIVELES_NOMBRE = {1: "Fácil", 2: "Medio", 3: "Reto"}
+
+
+def area_de(url_o_categoria: str) -> str:
+    """Clave de área para una URL del catálogo o un nombre de categoría."""
+    if url_o_categoria in _AREA_POR_CATEGORIA:
+        return _AREA_POR_CATEGORIA[url_o_categoria]
+    for cat, _nombre, url in JUEGOS_TERAPIA:
+        if url == url_o_categoria:
+            return _AREA_POR_CATEGORIA.get(cat, "practica")
+    return "practica"
+
+
+def catalogo_visual():
+    """Catálogo enriquecido para plantillas del médico y del niño."""
+    return [{
+        "categoria": cat, "actividad": nombre, "url": url, "area": area_de(cat),
+        "icono": ICONOS_JUEGOS.get(url, "🎮"), "letras": list(LETRAS_POR_JUEGO.get(url, ())),
+        "nivel_nativo": url in JUEGOS_CON_NIVELES,
+    } for cat, nombre, url in JUEGOS_TERAPIA]

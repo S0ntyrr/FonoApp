@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/css/fono-juegos-soplo.css?v=1" />
+<section class="soplo-juego" data-juego="{{ juego }}">
+  <div class="soplo-barra">
+    <a href="/juegos/respiracion" class="soplo-volver" aria-label="Volver a respiración">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#fff" stroke="#cfe3f2" stroke-width="2"/><path d="M28 14 L18 24 L28 34" fill="none" stroke="#2e6f9e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="soplo-titulo" aria-label="{{ titulo_pagina }}">{{ icono_titulo | safe }}</div>
+    <div class="soplo-niveles" role="group" aria-label="Nivel">
+      <button type="button" data-nivel="1" aria-label="Nivel fácil"><span class="punto"></span></button>
+      <button type="button" data-nivel="2" aria-label="Nivel medio"><span class="punto"></span><span class="punto"></span></button>
+      <button type="button" data-nivel="3" aria-label="Nivel reto"><span class="punto"></span><span class="punto"></span><span class="punto"></span></button>
+    </div>
+  </div>
+
+  <div class="soplo-escena" id="soplo-escena">
+    <canvas id="soplo-canvas" aria-label="{{ titulo_pagina }}"></canvas>
+    {% if juego == 'burbujas' %}<div class="soplo-contador" id="soplo-contador" aria-hidden="true"></div>{% endif %}
+  </div>
+
+  <div class="soplo-controles">
+    <div class="soplo-medidor-caja" id="soplo-medidor"></div>
+    <button type="button" class="soplo-parar" id="soplo-parar" aria-label="Terminar" hidden>
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#ef6c57"/><rect x="21" y="21" width="22" height="22" rx="4" fill="#fff"/></svg>
+    </button>
+  </div>
+
+  <details class="soplo-guia">
+    <summary>Ayuda para acompañantes</summary>
+    {{ guia | safe }}
+    <p><strong>Cómo se detecta el soplo:</strong> el juego solo avanza con aire sin voz (soplo). Si el niño habla, canta o grita, aparece un icono de "boca tachada" y no cuenta. Al empezar hay 1 segundo de silencio para medir el ruido del cuarto. Los sonidos "ffff" o "shhh" también son salida de aire y pueden contar.</p>
+    <p>No fuerces la respiración. Si se marea, pausa y descansa. El registro es para revisión del profesional; no es una calificación clínica.</p>
+  </details>
+  <p class="soplo-estado" id="soplo-estado" role="status" aria-live="polite"></p>
+</section>
+<script src="/static/js/fono-soplo-detector.js?v=1"></script>
+<script src="/static/js/fono-soplo-ui.js?v=1"></script>
+<script src="/static/js/{{ script }}?v=1"></script>
+{% endblock %}

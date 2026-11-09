@@ -414,6 +414,16 @@ widget.style.cssText = 'background:#ffffff;border:1px solid #f1d4d4;box-shadow:0
         }
     }
 
+    // Enlace completo (con nivel y letra del plan) de un juego del día.
+    function _hrefDelDia(ruta) {
+        try {
+            const mapa = JSON.parse(sessionStorage.getItem('actividades_hoy_hrefs') || localStorage.getItem('actividades_hoy_hrefs') || '{}');
+            return mapa[_normalizarRuta(ruta)] || ruta;
+        } catch (e) {
+            return ruta;
+        }
+    }
+
     function obtenerSiguienteJuego(rutaActual) {
         const limpia = (rutaActual || '').replace(/\/+$/, '') || '/';
         const idx = ORDEN_JUEGOS.indexOf(limpia);
@@ -434,7 +444,7 @@ widget.style.cssText = 'background:#ffffff;border:1px solid #f1d4d4;box-shadow:0
                 if (idxActual >= 0) {
                     const siguienteDelDia = listaHoy[idxActual + 1];
                     if (siguienteDelDia) {
-                        window.location.href = siguienteDelDia;
+                        window.location.href = _hrefDelDia(siguienteDelDia);
                         return;
                     }
                     if (!pendientes.length) {
@@ -442,7 +452,7 @@ widget.style.cssText = 'background:#ffffff;border:1px solid #f1d4d4;box-shadow:0
                     } else {
                         const siguientePendiente = pendientes.find(url => url !== rutaActual) || pendientes[0];
                         if (siguientePendiente && siguientePendiente !== rutaActual) {
-                            window.location.href = siguientePendiente;
+                            window.location.href = _hrefDelDia(siguientePendiente);
                             return;
                         }
                     }
@@ -450,7 +460,7 @@ widget.style.cssText = 'background:#ffffff;border:1px solid #f1d4d4;box-shadow:0
                     // Si no reconocemos la ruta actual, mantenemos el flujo diario
                     // y llevamos al siguiente pendiente en vez de saltar a flujo libre.
                     if (pendientes.length) {
-                        window.location.href = pendientes[0];
+                        window.location.href = _hrefDelDia(pendientes[0]);
                         return;
                     }
                     sessionStorage.setItem('flujo_juegos_modo', 'hub');
@@ -458,7 +468,7 @@ widget.style.cssText = 'background:#ffffff;border:1px solid #f1d4d4;box-shadow:0
                 if (modoFlujo === 'actividades_hoy' && listaHoy.length) {
                     const pendientesPost = listaHoy.filter(url => !completadasHoy.has(url));
                     if (pendientesPost.length) {
-                        window.location.href = pendientesPost[0];
+                        window.location.href = _hrefDelDia(pendientesPost[0]);
                         return;
                     }
                 }
@@ -595,6 +605,8 @@ btnContinuar.style.cssText = 'position:fixed;right:20px;bottom:14px;width:auto;p
     <script src="/static/js/fono-voz-natural.js?v=2"></script>
     <script src="/static/js/terminos.js"></script>
     <script src="/static/js/fono-evidencia-universal.js"></script>
+    <script>window.FONO_JUEGOS_CON_NIVELES = {{ FONO_JUEGOS_CON_NIVELES | default([]) | tojson }};</script>
+    <script src="/static/js/fono-nivel.js?v=1"></script>
     <script src="/static/js/fono-boca-real.js?v=3"></script>
     <script defer src="/static/js/fono-guia-juegos.js?v=3"></script>
 </head>

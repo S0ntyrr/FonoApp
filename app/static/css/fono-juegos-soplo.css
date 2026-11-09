@@ -1,0 +1,80 @@
+/* Juegos de soplo (burbujas, algodón): interfaz visual, pensada para niños que no leen. */
+.soplo-juego{max-width:980px;margin:0 auto;padding:10px 12px 24px;font-family:Inter,system-ui,sans-serif;color:#1d3b53}
+.soplo-barra{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.soplo-volver svg{width:46px;height:46px;display:block}
+.soplo-titulo{flex:1;display:flex;justify-content:center}
+.soplo-titulo svg{height:46px;width:auto}
+.soplo-niveles{display:flex;gap:6px}
+.soplo-niveles button{min-width:52px;height:46px;border-radius:14px;border:3px solid #cfe3f2;background:#fff;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:0 8px}
+.soplo-niveles .punto{width:11px;height:11px;border-radius:50%;background:#9cc3dd}
+.soplo-niveles button.activo{border-color:#2bb673;background:#e8f8ef}
+.soplo-niveles button.activo .punto{background:#2bb673}
+
+.soplo-escena{position:relative;width:100%;height:clamp(320px,62vh,560px);border-radius:24px;overflow:hidden;border:3px solid #b8ebfc;background:#dff4ff;box-shadow:0 8px 24px #2e6f9e22}
+.soplo-escena canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer}
+.soplo-contador{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#ffffffb3;padding:5px 8px;border-radius:16px;display:flex;gap:6px;pointer-events:none}
+.burbuja-ficha{width:22px;height:22px;border-radius:50%;border:3px solid #8fd0f5;background:#fff;box-shadow:0 1px 4px #0002}
+.burbuja-ficha.llena{background:radial-gradient(circle at 35% 35%,#fff,#9fe0ff 60%,#ff9bd0);transform:scale(1.1)}
+
+.soplo-controles{display:flex;align-items:center;gap:12px;margin-top:10px}
+.soplo-medidor-caja{flex:1}
+.soplo-parar{border:none;background:none;padding:0;cursor:pointer}
+.soplo-parar svg{width:62px;height:62px;display:block}
+
+/* Medidor de aire */
+.sui-medidor{display:flex;align-items:center;gap:10px;position:relative}
+.sui-medidor-icono .sui-cara{width:54px;height:54px;display:block;transition:transform .15s}
+.sui-medidor-icono.activo .sui-cara{transform:scale(1.12)}
+.sui-medidor-barra{flex:1;height:26px;border-radius:14px;background:#e6eef5;position:relative;overflow:hidden;box-shadow:inset 0 2px 4px #0001}
+.sui-medidor-relleno{height:100%;width:0;border-radius:14px;background:linear-gradient(90deg,#9ed6f7,#56b4ea);transition:width .08s linear}
+.sui-medidor-relleno.ok{background:linear-gradient(90deg,#7fe0a6,#2bb673)}
+.sui-medidor-meta{position:absolute;top:-2px;bottom:-2px;width:4px;background:#1d3b53;border-radius:2px;opacity:.55}
+.sui-voz{position:absolute;right:-6px;top:-62px;animation:sui-salta .5s ease infinite alternate}
+.sui-voz .sui-icono{width:64px;height:64px;filter:drop-shadow(0 3px 6px #0003)}
+@keyframes sui-salta{to{transform:translateY(-6px)}}
+
+/* Overlays */
+.sui-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#ffffffc9;backdrop-filter:blur(2px);z-index:3}
+.sui-overlay[hidden]{display:none}
+.sui-pasos{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.sui-paso{position:relative;background:#fff;border-radius:22px;padding:8px;box-shadow:0 6px 18px #2e6f9e22;border:3px solid #dcefff}
+.sui-paso .sui-cara{width:clamp(84px,18vw,130px);height:clamp(84px,18vw,130px);display:block}
+.sui-num{position:absolute;top:-12px;left:-12px;width:34px;height:34px;border-radius:50%;background:#2e9fd6;color:#fff;font-weight:800;display:grid;place-items:center;font-size:18px;border:3px solid #fff}
+.sui-flecha{font-size:30px;color:#2e9fd6}
+.sui-boton-grande{border:none;background:none;padding:0;cursor:pointer;animation:sui-late 1.2s ease-in-out infinite}
+.sui-boton-grande svg{width:clamp(84px,16vw,112px);height:auto;display:block;filter:drop-shadow(0 6px 10px #0003)}
+@keyframes sui-late{50%{transform:scale(1.08)}}
+.sui-flechas-in{animation:sui-inspira 1.6s ease-in-out infinite}
+@keyframes sui-inspira{0%{transform:translateY(10px);opacity:0}60%{opacity:1}100%{transform:translateY(-6px);opacity:0}}
+.sui-aire{animation:sui-soplo 1.2s ease-out infinite}
+@keyframes sui-soplo{0%{transform:translateX(-6px);opacity:0}40%{opacity:1}100%{transform:translateX(10px);opacity:0}}
+.sui-demo-mano{width:clamp(84px,18vw,130px);height:clamp(84px,18vw,130px);display:grid;place-items:center;background:linear-gradient(90deg,#f3dcb3,#ead0a3);border-radius:16px}
+.sui-demo-mano .sui-mano{width:60%;animation:sui-lado 1.4s ease-in-out infinite alternate}
+@keyframes sui-lado{from{transform:translateX(-22px)}to{transform:translateX(22px)}}
+.sui-silencio{position:relative;display:grid;place-items:center}
+.sui-silencio .sui-cara{width:130px;height:130px;position:relative;z-index:1}
+.sui-reloj{position:absolute;width:190px;height:190px;transform:rotate(-90deg)}
+@keyframes sui-reloj{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+.sui-final{display:flex;flex-direction:column;align-items:center;gap:14px}
+.sui-estrellas{display:flex;gap:8px}
+.sui-estrella{width:clamp(64px,14vw,96px);height:auto}
+.sui-estrella.on{animation:sui-pop .5s ease-out both}
+.sui-estrella.on:nth-child(2){animation-delay:.2s}.sui-estrella.on:nth-child(3){animation-delay:.4s}
+@keyframes sui-pop{0%{transform:scale(0) rotate(-40deg)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+.sui-guardado{min-height:28px}
+.sui-ok{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#2bb673;color:#fff;font-weight:900}
+.sui-spinner{display:inline-block;width:24px;height:24px;border-radius:50%;border:4px solid #cfe3f2;border-top-color:#2e9fd6;animation:sui-gira .8s linear infinite}
+@keyframes sui-gira{to{transform:rotate(360deg)}}
+
+.soplo-guia{margin-top:14px;background:#f5fbff;border:2px solid #dcefff;border-radius:16px;padding:10px 14px;font-size:.92rem;line-height:1.45}
+.soplo-guia summary{cursor:pointer;font-weight:700;color:#2e6f9e}
+.soplo-estado{font-size:.85rem;color:#58738a;text-align:center;margin:8px 0 0;min-height:1.2em}
+
+@media (max-width:560px){
+  .soplo-juego{padding:6px 6px 120px}
+  .soplo-escena{height:clamp(300px,58vh,520px);border-radius:18px}
+  .soplo-titulo svg{height:36px}
+  .soplo-niveles button{min-width:42px;height:40px}
+  .sui-voz{top:-56px}
+}
+@media (prefers-reduced-motion:reduce){.sui-boton-grande,.sui-flechas-in,.sui-aire,.sui-demo-mano .sui-mano,.sui-voz{animation:none}}

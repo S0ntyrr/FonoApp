@@ -65,6 +65,33 @@
         </div>
     </div>
 
+    <a href="/doctor/pacientes/{{ paciente._id }}/plan" class="plan-acceso g{{ plan_gravedad or 0 }}">
+        <span class="plan-acceso-icono">{{ plan_cara or '🧭' }}</span>
+        <span class="plan-acceso-texto">
+            <strong>Plan de terapia</strong>
+            <small>{% if plan_gravedad %}Gravedad {{ plan_gravedad }} de 5 · {{ plan_resumen }}{% else %}Sin plan: define gravedad, nivel, letras y colores{% endif %}</small>
+        </span>
+        <span class="plan-acceso-flecha">›</span>
+    </a>
+    <a href="/doctor/tareas?paciente={{ paciente.email | urlencode }}" class="plan-acceso asignar">
+        <span class="plan-acceso-icono">🎯</span>
+        <span class="plan-acceso-texto">
+            <strong>Asignar actividad</strong>
+            <small>{% if tareas_pendientes %}{{ tareas_pendientes }} pendiente{{ 's' if tareas_pendientes != 1 }}: sus juegos automáticos están bloqueados hasta cumplirla{{ 's' if tareas_pendientes != 1 }}{% else %}Una actividad por intentos o por tiempo, antes de sus juegos del día{% endif %}</small>
+        </span>
+        <span class="plan-acceso-flecha">›</span>
+    </a>
+    <style>
+    .plan-acceso{display:flex;align-items:center;gap:12px;margin:12px 0;padding:12px 14px;border-radius:16px;border:3px solid #e3e9f0;background:#fff;text-decoration:none;color:#1f3347;box-shadow:0 2px 10px #0000000d}
+    .plan-acceso:hover{transform:translateY(-1px)}
+    .plan-acceso-icono{font-size:2rem}
+    .plan-acceso-texto{flex:1;display:flex;flex-direction:column}
+    .plan-acceso-texto small{color:#5a6b7b}
+    .plan-acceso-flecha{font-size:1.6rem;color:#c62828}
+    .plan-acceso.asignar{border-color:#e0528f}
+    .plan-acceso.g1{border-color:#2bb673}.plan-acceso.g2{border-color:#7cc242}.plan-acceso.g3{border-color:#f2b400}.plan-acceso.g4{border-color:#f57c00}.plan-acceso.g5{border-color:#e53935}
+    </style>
+
 <div class="resumen-uso-doctor">
 
     <div class="uso-doctor-card">

@@ -40,7 +40,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ..database import get_db
 from ..models import PerfilPaciente, SesionApp
 from ..therapy_catalog import JUEGOS_TERAPIA, JUEGOS_CON_NIVELES
-from ..daily_recommendations import elegir_actividades
+from ..daily_recommendations import elegir_actividades, armar_plan_del_dia, normalizar_plan
+from ..therapy_catalog import AREAS_TERAPIA, COLORES_FAVORITOS, ICONOS_JUEGOS, area_de
+from ..tareas_meta import progreso_de
 from ..security import email_match_filter, require_role
 
 router = APIRouter(
@@ -164,10 +166,15 @@ async def vista_perfil_paciente(
         sesiones_por_dia[dia_str] += sesion.minutos_conectado
 
     # ── Determinar actividades del día ─────────────────────────────────────────
-    # Primero intentar obtener actividades asignadas por el médico
+    # 1) Plan de terapia del médico (gravedad, nivel, letras, colores, juegos fijos)
+    # 2) Actividades de la asignación  3) Selección diaria al azar
+    plan_doc = await db["planes_terapia"].find_one({"paciente_email": email})
+    plan_paciente = normalizar_plan(plan_doc) if plan_doc else None
     asignacion = await db["asignaciones"].find_one({"paciente_email": email, "estado": "aceptada"})
-    
-    if asignacion and asignacion.get("actividades_asignadas"):
+
+    if plan_paciente:
+        actividades_disponibles_raw = armar_plan_del_dia(plan_paciente, hoy, email)
+    elif asignacion and asignacion.get("actividades_asignadas"):
         # Usar actividades asignadas por el médico, mapeadas a juegos reales
         actividades_asignadas = asignacion.get("actividades_asignadas", [])
         actividades_disponibles_raw = []
@@ -234,12 +241,34 @@ async def vista_perfil_paciente(
         for cat, acts in categorias_dict.items()
     ]
 
+    # Camino visual para el niño: dibujo, color de área, letra y nivel.
+    camino = []
+    for act in actividades_disponibles_raw:
+        url = act.get("url", "/juegos/")
+        area = act.get("area") or area_de(url)
+        info_area = AREAS_TERAPIA.get(area, AREAS_TERAPIA["practica"])
+        camino.append({
+            "url": url, "href": act.get("href") or url, "actividad": act.get("actividad", "Juego"),
+            "icono": act.get("icono") or ICONOS_JUEGOS.get(url, "🎮"),
+            "color": info_area["color"], "suave": info_area["suave"],
+            "fonema": act.get("fonema", ""), "nivel": act.get("nivel") or 0,
+            "hecho": url.rstrip("/") in actividades_completadas_urls,
+        })
+    color_favorito = COLORES_FAVORITOS.get((plan_paciente or {}).get("color") or "", "")
+
     tareas_manuales = []
     async for tarea in db['tareas_terapeuticas'].find({
         'paciente_email': email, 'estado': 'pendiente'
     }).sort('creada_en', -1).limit(25):
         tarea['_id'] = str(tarea['_id'])
+        info_area = AREAS_TERAPIA.get(area_de(tarea.get('url_juego', '')), AREAS_TERAPIA['practica'])
+        tarea['icono'] = ICONOS_JUEGOS.get(tarea.get('url_juego', ''), '🎯')
+        tarea['color'] = info_area['color']
+        tarea['suave'] = info_area['suave']
+        tarea['avance'] = progreso_de(tarea)
         tareas_manuales.append(tarea)
+    # Las tareas del médico van primero (las más antiguas antes).
+    tareas_manuales.reverse()
 
     return templates.TemplateResponse(
         request,
@@ -255,6 +284,11 @@ async def vista_perfil_paciente(
         "tareas_manuales": tareas_manuales,
             "juegos_con_niveles": JUEGOS_CON_NIVELES,
             "actividades_completadas_urls": sorted(actividades_completadas_urls),
+            "camino": camino,
+            "bloqueado": bool(tareas_manuales),
+            "color_favorito": color_favorito,
+            "nota_familia": (plan_paciente or {}).get("nota_familia", ""),
+            "areas_terapia": AREAS_TERAPIA,
         },
     )
 

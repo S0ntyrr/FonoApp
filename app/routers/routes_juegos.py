@@ -69,7 +69,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ..database import get_db
 from ..security import require_role
 from ..time_utils import app_now, day_bounds
-from ..therapy_catalog import URLS_TERAPIA
+from ..therapy_catalog import URLS_TERAPIA, JUEGOS_CON_NIVELES
+from ..tareas_meta import cambios_por_intento, cambios_por_tiempo, progreso_de
 
 router = APIRouter(
     prefix="/juegos",
@@ -77,6 +78,8 @@ router = APIRouter(
     dependencies=[Depends(require_role(["admin", "medico", "doctor", "paciente", "emisor"]))],
 )
 templates = Jinja2Templates(directory="app/templates")
+# Lista para fono-nivel.js: estos juegos cambian su dificultad; el resto usa rondas.
+templates.env.globals['FONO_JUEGOS_CON_NIVELES'] = sorted(JUEGOS_CON_NIVELES)
 ALLOWED_AUDIO_EXTENSIONS = {".webm", ".wav", ".ogg", ".m4a", ".mp3", ".mp4"}
 MAX_AUDIO_BYTES = 4 * 1024 * 1024
 
@@ -688,11 +691,14 @@ async def guardar_resultado_juego(
         await db['evidencias_audio'].update_many({'_id': {'$in': audio_oids}}, {'$set': {
             'intento_id': str(id_intento), 'juego': juego[:100], 'categoria': categoria[:100],
         }})
+    estado_tarea = None
     if tarea_vinculada and completado:
+        # La tarea solo se completa al llegar a la meta del médico (X intentos);
+        # en metas de tiempo la partida suma intentos y el tiempo llega por pulsos.
+        cambios = cambios_por_intento(tarea_vinculada, ahora, str(id_intento))
         await db['tareas_terapeuticas'].update_one(
-            {'_id': tarea_vinculada['_id'], 'estado': 'pendiente'},
-            {'$set': {'estado': 'completada', 'completada_en': ahora,
-                      'intento_id': str(id_intento)}})
+            {'_id': tarea_vinculada['_id'], 'estado': 'pendiente'}, {'$set': cambios})
+        estado_tarea = progreso_de({**tarea_vinculada, **cambios})
 
     if not audio_url_limpia and audio_urls:
         audio_url_limpia = audio_urls[0]
@@ -785,7 +791,48 @@ async def guardar_resultado_juego(
         "audio_url": audio_url_limpia,
         "audio_transcripcion": transcripcion_limpia,
         "intento_id": str(id_intento),
+        "tarea": estado_tarea,
     }
+
+
+async def _tarea_del_paciente(db, tarea_id: str, email: str):
+    try:
+        oid = ObjectId(tarea_id)
+    except Exception:
+        return None
+    return await db['tareas_terapeuticas'].find_one({'_id': oid, 'paciente_email': email})
+
+
+@router.get("/tarea/{tarea_id}/estado", response_class=JSONResponse)
+async def estado_tarea_paciente(
+    tarea_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(require_role(["paciente"])),
+):
+    """Avance de una tarea del médico (para el indicador visual del juego)."""
+    tarea = await _tarea_del_paciente(db, tarea_id, user["email"])
+    if not tarea:
+        return JSONResponse(status_code=404, content={'detail': 'Tarea no encontrada'})
+    return progreso_de(tarea)
+
+
+@router.post("/tarea/{tarea_id}/tiempo", response_class=JSONResponse)
+async def pulso_tiempo_tarea(
+    tarea_id: str,
+    segundos: int = Form(0),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(require_role(["paciente"])),
+):
+    """Suma tiempo jugado a una tarea pendiente (máx. 30 s por pulso)."""
+    tarea = await _tarea_del_paciente(db, tarea_id, user["email"])
+    if not tarea:
+        return JSONResponse(status_code=404, content={'detail': 'Tarea no encontrada'})
+    if tarea.get('estado') != 'pendiente':
+        return progreso_de(tarea)
+    cambios = cambios_por_tiempo(tarea, app_now(), segundos)
+    await db['tareas_terapeuticas'].update_one(
+        {'_id': tarea['_id'], 'estado': 'pendiente'}, {'$set': cambios})
+    return progreso_de({**tarea, **cambios})
 
 
 @router.get("/seed-actividades", response_class=JSONResponse)

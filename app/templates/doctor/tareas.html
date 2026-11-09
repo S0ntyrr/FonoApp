@@ -1,42 +1,205 @@
 {% extends 'base.html' %}
 {% block contenido %}
-<section class="pantalla-movil" style="padding:16px;max-width:850px">
- <a class="fono-enlace" href="/doctor/home">← Panel médico</a>
- <h1>📋 Tareas personalizadas</h1>
- <p>Selecciona el juego para el paciente. Elige un nivel solamente cuando el juego tiene dificultades diferentes.</p>
- <form method="post" action="/doctor/tareas" class="fono-tareas-paciente" style="display:grid;gap:12px">
- <label>Paciente<select class="campo-texto" name="paciente_email" required>{% for correo in pacientes %}<option value="{{ correo }}">{{ correo }}</option>{% endfor %}</select></label>
- <label>Juego<select class="campo-texto" name="url_juego" id="medico-juego" required>{% for cat, juego, url in juegos %}<option value="{{ url }}" data-con-niveles="{{ '1' if url in juegos_con_niveles else '0' }}">{{ cat }} · {{ juego }}</option>{% endfor %}</select></label>
- <label>Sonido a trabajar<select class="campo-texto" name="fonema">{% for fonema in fonemas %}<option value="{{ fonema }}">{{ fonema }}</option>{% endfor %}</select></label>
- <label id="medico-nivel-grupo">Nivel<select class="campo-texto" id="medico-nivel" name="nivel"><option value="1">1 · Fácil</option><option value="2">2 · Medio</option><option value="3">3 · Reto</option></select></label>
- <small id="medico-sin-niveles" hidden>Este juego tiene una sola dificultad. Sus etapas se completan jugando.</small>
- <label>Indicaciones para la familia (opcionales, 300 caracteres)<textarea class="campo-texto" name="instrucciones" maxlength="300" rows="2" placeholder="Ejemplo: realiza el ejercicio acompañado, sin forzar la voz"></textarea></label>
- {% if pacientes %}<button class="boton-rojo" type="submit">Asignar tarea</button>{% else %}<p>Primero debe existir una asignación paciente-médico aceptada.</p>{% endif %}
- </form>
- <h2>Mis tareas asignadas</h2>
- {% for t in tareas %}
-  <article class="fono-tarea-paciente">
-    <div style="flex:1"><strong>{{ t.actividad }}</strong><small>{{ t.paciente_email }}{% if t.url_juego in juegos_con_niveles %} · Nivel {{ t.nivel }}{% endif %} · {{ t.fonema }} · {{ t.estado }}</small>{% if t.instrucciones %}<small>{{ t.instrucciones }}</small>{% endif %}</div>
-    {% if t.estado == 'pendiente' %}<form method="post" action="/doctor/tareas/{{ t._id }}/cancelar"><button type="submit" class="boton-rojo-borde">Cancelar</button></form>{% endif %}
+<section class="asig">
+  <a class="asig-volver" href="/doctor/home">← Panel médico</a>
+  <h1>🎯 Asignar actividad</h1>
+  <p class="asig-intro">El niño debe cumplir primero lo que asignas aquí (por intentos o por tiempo). Cuando termina, se le desbloquean sus juegos automáticos del día.</p>
+
+  {% if creada_ok %}<div class="asig-ok">✓ Actividad asignada. Ya aparece primero en el camino del niño.</div>{% endif %}
+
+  {% if pacientes %}
+  <form method="post" action="/doctor/tareas" class="asig-form" id="asig-form">
+    <div class="asig-fila">
+      <label class="asig-campo"><span class="asig-num">1</span> Paciente
+        <select name="paciente_email" required>
+          {% for p in pacientes %}<option value="{{ p.email }}" {% if p.email == paciente_sel %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <div class="asig-bloque">
+      <span class="asig-titulo"><span class="asig-num">2</span> Actividad</span>
+      <input type="search" id="asig-buscar" class="asig-buscar" placeholder="Buscar juego…" aria-label="Buscar juego">
+      <div class="asig-areas" role="group" aria-label="Filtrar por área">
+        <button type="button" class="asig-area activo" data-area="">Todas</button>
+        {% for clave, a in areas.items() %}<button type="button" class="asig-area" data-area="{{ clave }}" style="--c:{{ a.color }}">{{ a.icono }} {{ a.nombre }}</button>{% endfor %}
+      </div>
+      <div class="asig-juegos">
+        {% for j in juegos %}
+        <label class="asig-juego" data-area="{{ j.area }}" data-nombre="{{ j.actividad | lower }}" data-letras="{{ j.letras | join(',') }}" data-nativo="{{ '1' if j.nivel_nativo else '0' }}" style="--c:{{ areas[j.area].color }};--s:{{ areas[j.area].suave }}">
+          <input type="radio" name="url_juego" value="{{ j.url }}" required {% if loop.first %}checked{% endif %}>
+          <span class="asig-juego-caja"><span class="asig-juego-ico">{{ j.icono }}</span><span class="asig-juego-nombre">{{ j.actividad }}</span></span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="asig-dos">
+      <div class="asig-bloque">
+        <span class="asig-titulo"><span class="asig-num">3</span> Meta</span>
+        <div class="asig-seg" role="radiogroup">
+          <label><input type="radio" name="meta_tipo" value="intentos" checked><span>🎯 Intentos</span></label>
+          <label><input type="radio" name="meta_tipo" value="tiempo"><span>⏱️ Tiempo</span></label>
+        </div>
+        <div class="asig-stepper">
+          <button type="button" data-paso="-1" aria-label="Menos">−</button>
+          <input type="number" name="meta_valor" id="meta-valor" value="3" min="1" max="20" required>
+          <button type="button" data-paso="1" aria-label="Más">+</button>
+          <span id="meta-unidad">intentos</span>
+        </div>
+        <div class="asig-rapidos" id="meta-rapidos"></div>
+      </div>
+      <div class="asig-bloque">
+        <span class="asig-titulo"><span class="asig-num">4</span> Nivel</span>
+        <div class="asig-seg">
+          {% for n, nombre in niveles.items() %}<label><input type="radio" name="nivel" value="{{ n }}" {% if n == 1 %}checked{% endif %}><span>{% for _ in range(n) %}●{% endfor %} {{ nombre }}</span></label>{% endfor %}
+        </div>
+        <small class="asig-nota" id="nivel-nota"></small>
+        <div id="asig-letra-bloque">
+          <span class="asig-titulo asig-sub">Letra</span>
+          <div class="asig-letras" id="asig-letras">
+            {% for l in fonemas %}<label class="asig-letra" data-letra="{{ l }}"><input type="radio" name="fonema" value="{{ l }}"><span>{{ l }}</span></label>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <label class="asig-campo"><span class="asig-num">5</span> Indicación para la familia (opcional)
+      <textarea name="instrucciones" maxlength="300" rows="2" placeholder="Ej.: con calma, sin forzar la voz"></textarea>
+    </label>
+
+    <button class="boton-rojo asig-enviar" type="submit">🎯 Asignar actividad</button>
+  </form>
+  {% else %}
+  <p class="asig-aviso">Primero debe existir una asignación paciente-médico aceptada.</p>
+  {% endif %}
+
+  <div class="asig-lista-cabecera">
+    <h2>Actividades asignadas</h2>
+    <form method="get" action="/doctor/tareas">
+      <select name="paciente" onchange="this.form.submit()" aria-label="Filtrar por paciente">
+        <option value="">Todos los pacientes</option>
+        {% for p in pacientes %}<option value="{{ p.email }}" {% if p.email == paciente_sel %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+  {% for t in tareas %}
+  <article class="asig-tarea {{ t.estado }}">
+    <span class="asig-tarea-ico">{{ t.icono }}</span>
+    <div class="asig-tarea-info">
+      <strong>{{ t.actividad }}{% if t.fonema %} · {{ t.fonema }}{% endif %}</strong>
+      <small>{{ t.paciente_nombre }} · Nivel {{ t.nivel }} · {% if t.avance.tipo == 'tiempo' %}⏱️ {{ t.avance.meta }} min{% else %}🎯 {{ t.avance.meta }} intento{{ 's' if t.avance.meta != 1 }}{% endif %}</small>
+      <div class="asig-barra"><i style="width:{{ (t.avance.fraccion * 100) | round | int }}%"></i></div>
+      <small class="asig-avance">{% if t.estado == 'completada' %}✅ Completada{% elif t.estado == 'cancelada' %}Cancelada{% else %}{{ t.avance.texto }}{% if t.avance.tipo == 'intentos' and t.avance.segundos %} · {{ (t.avance.segundos // 60) }} min jugados{% elif t.avance.tipo == 'tiempo' and t.avance.intentos %} · {{ t.avance.intentos }} partidas{% endif %}{% endif %}</small>
+      {% if t.instrucciones %}<small>“{{ t.instrucciones }}”</small>{% endif %}
+    </div>
+    {% if t.estado == 'pendiente' %}<form method="post" action="/doctor/tareas/{{ t._id }}/cancelar"><button type="submit" class="asig-cancelar">Cancelar</button></form>{% endif %}
   </article>
- {% else %}<p>Sin tareas creadas todavía.</p>{% endfor %}
+  {% else %}<p class="asig-aviso">Sin actividades asignadas todavía.</p>{% endfor %}
 </section>
-<style>#medico-nivel-grupo[hidden],#medico-sin-niveles[hidden]{display:none!important}</style>
+
+<style>
+.asig{max-width:900px;margin:0 auto;padding:16px 14px 40px;color:#1f3347}
+.asig h1{margin:6px 0 4px;font-size:1.5rem}
+.asig-volver{color:#c62828;font-weight:700;text-decoration:none}
+.asig-intro{color:#5a6b7b;margin:0 0 12px}
+.asig-ok{background:#e7f8ee;border:2px solid #2bb673;color:#1d6b43;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
+.asig-aviso{color:#5a6b7b}
+.asig-form{display:flex;flex-direction:column;gap:12px}
+.asig-bloque,.asig-campo{border:2px solid #e6edf4;border-radius:18px;padding:12px 14px;background:#fff;display:flex;flex-direction:column;gap:8px;font-weight:800;min-width:0}
+.asig-campo select,.asig-campo textarea,.asig-lista-cabecera select{font:inherit;font-weight:500;padding:10px;border:2px solid #dbe4ee;border-radius:12px;width:100%;box-sizing:border-box}
+.asig-titulo{display:flex;align-items:center;gap:8px}
+.asig-sub{margin-top:6px;font-size:.9rem}
+.asig-num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#c62828;color:#fff;font-size:.85rem}
+.asig-buscar{padding:9px 12px;border:2px solid #dbe4ee;border-radius:12px;font:inherit}
+.asig-areas{display:flex;flex-wrap:wrap;gap:6px}
+.asig-area{border:2px solid var(--c,#5a6b7b);background:#fff;border-radius:999px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:.82rem}
+.asig-area.activo{background:var(--c,#5a6b7b);color:#fff}
+.asig-juegos{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;max-height:340px;overflow:auto;padding:4px}
+.asig-juego input,.asig-seg input,.asig-letra input{position:absolute;opacity:0;pointer-events:none}
+.asig-juego-caja{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:16px;border:3px solid transparent;background:var(--s);cursor:pointer;text-align:center;height:100%;box-sizing:border-box}
+.asig-juego-ico{font-size:2rem}
+.asig-juego-nombre{font-size:.78rem;font-weight:700;line-height:1.15}
+.asig-juego input:checked+.asig-juego-caja{border-color:var(--c);background:#fff;box-shadow:0 0 0 3px var(--s)}
+.asig-juego input:focus-visible+.asig-juego-caja,.asig-seg input:focus-visible+span,.asig-letra input:focus-visible+span{outline:3px solid #2e86de;outline-offset:2px}
+.asig-dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.asig-seg{display:flex;flex-wrap:wrap;gap:6px}
+.asig-seg span{display:inline-block;padding:8px 12px;border-radius:999px;border:2px solid #dbe4ee;cursor:pointer;font-weight:700}
+.asig-seg input:checked+span{background:#c62828;border-color:#c62828;color:#fff}
+.asig-stepper{display:flex;align-items:center;gap:6px;font-weight:700}
+.asig-stepper button{width:42px;height:42px;border-radius:50%;border:2px solid #dbe4ee;background:#fff;font-size:1.3rem;cursor:pointer}
+.asig-stepper input{width:70px;height:42px;text-align:center;font-size:1.3rem;font-weight:900;border:2px solid #dbe4ee;border-radius:12px}
+.asig-rapidos{display:flex;gap:6px;flex-wrap:wrap}
+.asig-rapidos button{border:2px solid #dbe4ee;background:#f6f9fc;border-radius:10px;padding:4px 10px;cursor:pointer;font-weight:700}
+.asig-nota{font-weight:500;color:#62758a}
+.asig-letras{display:flex;flex-wrap:wrap;gap:6px}
+.asig-letra span{display:grid;place-items:center;min-width:44px;height:44px;padding:0 6px;border-radius:12px;border:3px solid #dbe4ee;font-size:1.15rem;font-weight:900;cursor:pointer}
+.asig-letra input:checked+span{background:#e0528f;border-color:#e0528f;color:#fff}
+.asig-letra[hidden]{display:none}
+.asig-enviar{align-self:center;width:auto;padding:14px 28px;font-size:1.05rem}
+.asig-lista-cabecera{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px}
+.asig-lista-cabecera h2{margin:0;font-size:1.15rem}
+.asig-lista-cabecera form{min-width:200px}
+.asig-tarea{display:flex;align-items:center;gap:12px;border:2px solid #e6edf4;border-radius:16px;padding:10px 12px;margin:8px 0;background:#fff}
+.asig-tarea.completada{border-color:#bfe8cf;background:#f4fcf7}
+.asig-tarea.cancelada{opacity:.55}
+.asig-tarea-ico{font-size:1.9rem}
+.asig-tarea-info{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.asig-tarea-info small{color:#5a6b7b}
+.asig-barra{height:10px;border-radius:6px;background:#edf1f5;overflow:hidden}
+.asig-barra i{display:block;height:100%;background:linear-gradient(90deg,#2e9fd6,#2bb673)}
+.asig-avance{font-weight:700;color:#1f3347!important}
+.asig-cancelar{border:2px solid #e3b4b4;background:#fff;color:#a33;border-radius:10px;padding:6px 10px;cursor:pointer}
+@media (max-width:640px){.asig-dos{grid-template-columns:1fr}.asig-lista-cabecera{flex-direction:column;align-items:stretch}}
+</style>
 <script>
 (function(){
- const juego=document.getElementById('medico-juego');
- const nivel=document.getElementById('medico-nivel');
- const grupo=document.getElementById('medico-nivel-grupo');
- const sin=document.getElementById('medico-sin-niveles');
- function cambiar(){
-   const opcion=juego.selectedOptions[0];
-   const compatible=opcion?.dataset.conNiveles==='1';
-   nivel.value=compatible?nivel.value:'1';
-   nivel.disabled=!compatible;
-   grupo.hidden=!compatible;
-   sin.hidden=compatible;
- }
- juego.addEventListener('change',cambiar);cambiar();
+  const form = document.getElementById('asig-form'); if (!form) return;
+  const valor = document.getElementById('meta-valor'), unidad = document.getElementById('meta-unidad'), rapidos = document.getElementById('meta-rapidos');
+  const LIM = {{ limites | tojson }};
+  const RAPIDOS = {intentos:[1,3,5,10], tiempo:[5,10,15,20]};
+  function tipo(){ return form.querySelector('input[name=meta_tipo]:checked').value; }
+  function meta(){
+    const t = tipo(), [mn, mx] = LIM[t];
+    valor.min = mn; valor.max = mx;
+    valor.value = Math.max(mn, Math.min(mx, +valor.value || mn));
+    unidad.textContent = t === 'tiempo' ? 'minutos' : 'intentos';
+    rapidos.innerHTML = RAPIDOS[t].map(n => `<button type="button" data-n="${n}">${n}${t === 'tiempo' ? ' min' : ''}</button>`).join('');
+  }
+  rapidos.addEventListener('click', e => { if (e.target.dataset.n) valor.value = e.target.dataset.n; });
+  form.querySelectorAll('input[name=meta_tipo]').forEach(r => r.addEventListener('change', () => { valor.value = tipo() === 'tiempo' ? 10 : 3; meta(); }));
+  form.querySelectorAll('.asig-stepper button').forEach(b => b.addEventListener('click', () => { valor.value = (+valor.value || 0) + (+b.dataset.paso); meta(); }));
+
+  // Letras: solo las que el juego trabaja; sin letras se oculta el bloque.
+  const bloqueLetra = document.getElementById('asig-letra-bloque'), nota = document.getElementById('nivel-nota');
+  function juego(){
+    const sel = form.querySelector('input[name=url_juego]:checked')?.closest('.asig-juego');
+    if (!sel) return;
+    const letras = sel.dataset.letras ? sel.dataset.letras.split(',') : [];
+    bloqueLetra.hidden = !letras.length;
+    let marcada = false;
+    form.querySelectorAll('.asig-letra').forEach(l => {
+      const ok = letras.includes(l.dataset.letra); l.hidden = !ok;
+      const input = l.querySelector('input'); input.disabled = !ok;
+      if (!ok) input.checked = false; else if (input.checked) marcada = true;
+    });
+    if (letras.length && !marcada) form.querySelector(`.asig-letra[data-letra="${letras[0]}"] input`).checked = true;
+    nota.textContent = sel.dataset.nativo === '1' ? 'Este juego cambia su dificultad con el nivel.' : 'Este juego no tiene dificultad propia: usa la meta (intentos o tiempo) para dar más práctica.';
+  }
+  form.querySelectorAll('input[name=url_juego]').forEach(r => r.addEventListener('change', juego));
+
+  // Filtros por área y búsqueda
+  let area = '';
+  const buscar = document.getElementById('asig-buscar');
+  function filtrar(){
+    const q = buscar.value.trim().toLowerCase();
+    form.querySelectorAll('.asig-juego').forEach(j => { j.hidden = (area && j.dataset.area !== area) || (q && !j.dataset.nombre.includes(q)); });
+  }
+  form.querySelectorAll('.asig-area').forEach(b => b.addEventListener('click', () => {
+    area = b.dataset.area; form.querySelectorAll('.asig-area').forEach(x => x.classList.toggle('activo', x === b)); filtrar();
+  }));
+  buscar.addEventListener('input', filtrar);
+  meta(); juego();
 })();
 </script>
 {% endblock %}

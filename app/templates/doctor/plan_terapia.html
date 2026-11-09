@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block contenido %}
+<section class="plan-medico">
+  <div class="plan-cabecera">
+    <a href="/doctor/pacientes/{{ paciente._id }}" class="plan-volver">← {{ paciente.nombre or paciente.email }}</a>
+    <h1>🧭 Plan de terapia</h1>
+    <p>Define cuánta práctica necesita y qué trabaja. Los juegos del día del niño se arman solos con este plan.</p>
+  </div>
+
+  {% if guardado_ok %}<div class="plan-ok">✓ Plan guardado. El niño ya ve su nuevo camino de juegos.</div>{% endif %}
+  {% if not existe %}<div class="plan-aviso">Este paciente aún no tiene plan: hoy ve 4 juegos al azar. Guarda un plan para personalizarlo.</div>{% endif %}
+
+  <form method="post" action="/doctor/pacientes/{{ paciente._id }}/plan" id="plan-form">
+
+    <fieldset class="plan-bloque">
+      <legend><span class="plan-num">1</span> Gravedad del caso</legend>
+      <p class="plan-ayuda">A mayor gravedad, más juegos al día y nivel inicial más fácil (más práctica con menos exigencia).</p>
+      <div class="plan-gravedad">
+        {% for n, g in gravedades.items() %}
+        <label class="plan-grav g{{ n }}">
+          <input type="radio" name="gravedad" value="{{ n }}" {% if plan.gravedad == n %}checked{% endif %} data-juegos="{{ g.juegos }}" data-nivel="{{ g.nivel }}">
+          <span class="plan-grav-caja"><span class="plan-grav-cara">{{ g.cara }}</span><strong>{{ n }}</strong><small>{{ g.nombre }}</small><em>{{ g.juegos }} juegos/día</em></span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="plan-bloque plan-dos">
+      <div>
+        <legend><span class="plan-num">2</span> Nivel</legend>
+        <div class="plan-seg">
+          <label><input type="radio" name="nivel" value="0" {% if not plan.nivel %}checked{% endif %}><span>Auto · <b id="nivel-auto">{{ niveles[nivel_auto] }}</b></span></label>
+          {% for n, nombre in niveles.items() %}
+          <label><input type="radio" name="nivel" value="{{ n }}" {% if plan.nivel == n %}checked{% endif %}><span>{% for _ in range(n) %}●{% endfor %} {{ nombre }}</span></label>
+          {% endfor %}
+        </div>
+        <p class="plan-ayuda">Juegos con dificultad propia la cambian; los demás se repiten (nivel 2 = 2 rondas, nivel 3 = 3 rondas).</p>
+      </div>
+      <div>
+        <legend><span class="plan-num">3</span> Juegos por día</legend>
+        <div class="plan-cantidad">
+          <label class="plan-check"><input type="checkbox" id="cantidad-auto" {% if not plan.juegos_por_dia %}checked{% endif %}> Automático (<b id="cantidad-auto-n">{{ cantidad_auto }}</b>)</label>
+          <div class="plan-stepper">
+            <button type="button" data-paso="-1" aria-label="Menos">−</button>
+            <input type="number" name="juegos_por_dia" id="juegos-por-dia" min="1" max="12" value="{{ plan.juegos_por_dia or cantidad_auto }}">
+            <button type="button" data-paso="1" aria-label="Más">+</button>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="plan-bloque">
+      <legend><span class="plan-num">4</span> Letras a trabajar</legend>
+      <p class="plan-ayuda">Se priorizan los juegos de estas letras y cada juego abre con la letra ya elegida. Sin letras = sin prioridad.</p>
+      <div class="plan-chips">
+        {% for l in letras %}
+        <label class="plan-letra"><input type="checkbox" name="letras" value="{{ l }}" {% if l in plan.letras %}checked{% endif %}><span>{{ l }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="plan-bloque">
+      <legend><span class="plan-num">5</span> Áreas por color</legend>
+      <p class="plan-ayuda">Elige uno o varios colores para limitar los juegos a esas áreas. Sin selección = todas las áreas.</p>
+      <div class="plan-chips">
+        {% for clave, a in areas.items() %}
+        <label class="plan-area" style="--c:{{ a.color }};--s:{{ a.suave }}"><input type="checkbox" name="areas" value="{{ clave }}" {% if clave in plan.areas %}checked{% endif %}><span><i>{{ a.icono }}</i>{{ a.nombre }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="plan-bloque">
+      <legend><span class="plan-num">6</span> Color favorito del niño</legend>
+      <p class="plan-ayuda">Pinta su camino de juegos y sus botones con este color.</p>
+      <div class="plan-colores">
+        <label class="plan-color ninguno"><input type="radio" name="color" value="" {% if not plan.color %}checked{% endif %}><span title="Sin color">∅</span></label>
+        {% for nombre, hex in colores.items() %}
+        <label class="plan-color"><input type="radio" name="color" value="{{ nombre }}" {% if plan.color == nombre %}checked{% endif %}><span style="background:{{ hex }}" title="{{ nombre }}"></span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="plan-bloque">
+      <legend><span class="plan-num">7</span> Juego por juego</legend>
+      <p class="plan-ayuda"><b>Siempre</b>: sale todos los días. <b>Nunca</b>: no se recomienda. <b>Auto</b>: lo decide el plan. También puedes darle un nivel propio a cada juego.</p>
+      <div class="plan-filtro">
+        <input type="search" id="filtro-juegos" placeholder="Buscar juego…" aria-label="Buscar juego">
+      </div>
+      {% for clave, a in areas.items() %}
+      {% set del_area = juegos | selectattr('area', 'equalto', clave) | list %}
+      {% if del_area %}
+      <div class="plan-grupo" style="--c:{{ a.color }};--s:{{ a.suave }}">
+        <h3><i>{{ a.icono }}</i> {{ a.nombre }}</h3>
+        {% for j in del_area %}
+        <div class="plan-juego" data-nombre="{{ j.actividad | lower }}">
+          <span class="plan-juego-icono">{{ j.icono }}</span>
+          <div class="plan-juego-info">
+            <strong>{{ j.actividad }}</strong>
+            <small>{% if j.nivel_nativo %}Dificultad propia{% else %}Nivel = rondas{% endif %}{% if j.letras %} · {{ j.letras | join(' ') }}{% endif %}</small>
+          </div>
+          <div class="plan-modo">
+            {% for m, txt in [('auto','Auto'),('siempre','Siempre'),('nunca','Nunca')] %}
+            <label class="m-{{ m }}"><input type="radio" name="modo|{{ j.url }}" value="{{ m }}" {% if j.modo == m %}checked{% endif %}><span>{{ txt }}</span></label>
+            {% endfor %}
+          </div>
+          <select name="nivel|{{ j.url }}" class="plan-nivel-juego" aria-label="Nivel de {{ j.actividad }}">
+            <option value="0" {% if not j.nivel_juego %}selected{% endif %}>Nivel del plan</option>
+            {% for n, nombre in niveles.items() %}<option value="{{ n }}" {% if j.nivel_juego == n %}selected{% endif %}>{{ n }} · {{ nombre }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset class="plan-bloque">
+      <legend><span class="plan-num">8</span> Nota para la familia (opcional)</legend>
+      <textarea name="nota_familia" maxlength="300" rows="2" placeholder="Ej.: practicar después del almuerzo, con calma">{{ plan.nota_familia }}</textarea>
+    </fieldset>
+
+    {% if existe %}
+    <fieldset class="plan-bloque">
+      <legend>👀 Así ve hoy su camino</legend>
+      <div class="plan-previa">
+        {% for j in vista_previa %}
+        <div class="plan-previa-paso" style="--c:{{ j.area_color }};--s:{{ j.area_suave }}" title="{{ j.actividad }}">
+          <span class="ico">{{ j.icono }}</span>
+          {% if j.fonema %}<span class="letra">{{ j.fonema }}</span>{% endif %}
+          <span class="puntos">{% for _ in range(j.nivel) %}●{% endfor %}</span>
+          <small>{{ j.actividad }}</small>
+        </div>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endif %}
+
+    <div class="plan-acciones">
+      <button type="submit" class="boton-rojo">💾 Guardar plan</button>
+      <a href="/doctor/tareas?paciente={{ paciente.email | urlencode }}" class="boton-rojo-borde">🎯 Asignar actividad</a>
+    </div>
+  </form>
+  {% if existe %}
+  <form method="post" action="/doctor/pacientes/{{ paciente._id }}/plan/borrar" onsubmit="return confirm('¿Quitar el plan? El niño volverá a ver juegos al azar.')" class="plan-borrar">
+    <button type="submit">Quitar plan</button>
+  </form>
+  {% endif %}
+</section>
+
+<style>
+.plan-medico{max-width:900px;margin:0 auto;padding:16px 14px 110px;color:#1f3347}
+.plan-cabecera h1{margin:6px 0 4px;font-size:1.5rem}
+.plan-cabecera p{margin:0 0 12px;color:#5a6b7b}
+.plan-volver{color:#c62828;font-weight:700;text-decoration:none}
+.plan-ok{background:#e7f8ee;border:2px solid #2bb673;color:#1d6b43;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
+.plan-aviso{background:#fff7e0;border:2px solid #f2c14e;border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.plan-bloque{border:2px solid #e6edf4;border-radius:18px;padding:14px;margin:0 0 14px;background:#fff;min-width:0}
+.plan-bloque legend{font-weight:800;font-size:1.05rem;padding:0 6px;display:flex;align-items:center;gap:8px}
+.plan-dos{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.plan-dos legend{margin-bottom:8px}
+.plan-num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#c62828;color:#fff;font-size:.9rem}
+.plan-ayuda{margin:4px 0 10px;font-size:.88rem;color:#62758a}
+.plan-gravedad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.plan-grav input,.plan-seg input,.plan-letra input,.plan-area input,.plan-color input,.plan-modo input{position:absolute;opacity:0;pointer-events:none}
+.plan-grav-caja{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:14px;border:3px solid #e3e9f0;cursor:pointer;text-align:center;transition:transform .12s}
+.plan-grav-cara{font-size:1.8rem}
+.plan-grav strong{font-size:1.3rem}
+.plan-grav small{font-weight:700;font-size:.78rem}
+.plan-grav em{font-style:normal;font-size:.72rem;color:#6b7c8d}
+.plan-grav.g1{--g:#2bb673}.plan-grav.g2{--g:#7cc242}.plan-grav.g3{--g:#f2b400}.plan-grav.g4{--g:#f57c00}.plan-grav.g5{--g:#e53935}
+.plan-grav-caja{background:linear-gradient(#fff,#fff) padding-box}
+.plan-grav input:checked+.plan-grav-caja{border-color:var(--g);background:color-mix(in srgb,var(--g) 14%,#fff);transform:translateY(-2px)}
+.plan-grav input:focus-visible+.plan-grav-caja,.plan-seg input:focus-visible+span,.plan-letra input:focus-visible+span,.plan-area input:focus-visible+span,.plan-color input:focus-visible+span,.plan-modo input:focus-visible+span{outline:3px solid #2e86de;outline-offset:2px}
+.plan-seg{display:flex;flex-wrap:wrap;gap:6px}
+.plan-seg span{display:inline-block;padding:8px 12px;border-radius:999px;border:2px solid #dbe4ee;cursor:pointer;font-weight:600}
+.plan-seg input:checked+span{background:#c62828;border-color:#c62828;color:#fff}
+.plan-cantidad{display:flex;flex-direction:column;gap:8px}
+.plan-stepper{display:flex;align-items:center;gap:6px}
+.plan-stepper button{width:40px;height:40px;border-radius:50%;border:2px solid #dbe4ee;background:#fff;font-size:1.3rem;cursor:pointer}
+.plan-stepper input{width:64px;height:40px;text-align:center;font-size:1.2rem;font-weight:800;border:2px solid #dbe4ee;border-radius:10px}
+.plan-stepper input:disabled{background:#f3f6f9;color:#8a9aaa}
+.plan-chips{display:flex;flex-wrap:wrap;gap:8px}
+.plan-letra span{display:grid;place-items:center;min-width:52px;height:52px;padding:0 8px;border-radius:14px;border:3px solid #dbe4ee;font-size:1.35rem;font-weight:900;cursor:pointer;background:#fff}
+.plan-letra input:checked+span{background:#e0528f;border-color:#e0528f;color:#fff}
+.plan-area span{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:3px solid var(--c);background:#fff;color:#1f3347;font-weight:700;cursor:pointer}
+.plan-area i{font-style:normal;font-size:1.2rem}
+.plan-area input:checked+span{background:var(--c);color:#fff}
+.plan-colores{display:flex;flex-wrap:wrap;gap:10px}
+.plan-color span{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 2px #dbe4ee;cursor:pointer;font-weight:800;color:#8a9aaa}
+.plan-color input:checked+span{box-shadow:0 0 0 4px #1f3347}
+.plan-filtro input{width:100%;padding:10px 12px;border:2px solid #dbe4ee;border-radius:12px;margin-bottom:10px;font-size:1rem}
+.plan-grupo{border-left:6px solid var(--c);background:var(--s);border-radius:14px;padding:8px 10px;margin-bottom:10px}
+.plan-grupo h3{margin:2px 0 6px;font-size:1rem;color:#1f3347}
+.plan-grupo h3 i{font-style:normal}
+.plan-juego{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:8px 10px;margin:6px 0}
+.plan-juego-icono{font-size:1.6rem;width:38px;text-align:center}
+.plan-juego-info strong{display:block;font-size:.95rem}
+.plan-juego-info small{color:#6b7c8d;font-size:.78rem}
+.plan-modo{display:flex;border:2px solid #dbe4ee;border-radius:999px;overflow:hidden}
+.plan-modo span{display:block;padding:6px 10px;font-size:.82rem;font-weight:700;cursor:pointer}
+.plan-modo .m-auto input:checked+span{background:#5a6b7b;color:#fff}
+.plan-modo .m-siempre input:checked+span{background:#2bb673;color:#fff}
+.plan-modo .m-nunca input:checked+span{background:#e53935;color:#fff}
+.plan-nivel-juego{padding:6px;border:2px solid #dbe4ee;border-radius:10px;font-size:.85rem;max-width:140px}
+.plan-bloque textarea{width:100%;border:2px solid #dbe4ee;border-radius:12px;padding:10px;font:inherit;box-sizing:border-box}
+.plan-previa{display:flex;flex-wrap:wrap;gap:12px}
+.plan-previa-paso{position:relative;width:86px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.plan-previa-paso .ico{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--s);border:4px solid var(--c);font-size:1.8rem}
+.plan-previa-paso .letra{position:absolute;top:-4px;right:6px;background:#1f3347;color:#fff;border-radius:10px;padding:1px 6px;font-weight:900;font-size:.8rem}
+.plan-previa-paso .puntos{color:var(--c);font-size:.7rem;letter-spacing:1px}
+.plan-previa-paso small{font-size:.72rem;color:#5a6b7b;line-height:1.15}
+.plan-acciones{position:sticky;bottom:10px;display:flex;gap:10px;justify-content:center;background:#ffffffe6;padding:10px;border-radius:16px;box-shadow:0 4px 18px #0002;z-index:5}
+.plan-acciones .boton-rojo,.plan-acciones .boton-rojo-borde{width:auto;padding:12px 22px;text-decoration:none;border-radius:12px;margin:0}
+.plan-borrar{text-align:center;margin-top:14px}
+.plan-borrar button{background:none;border:none;color:#9a3b3b;text-decoration:underline;cursor:pointer}
+@media (max-width:640px){
+  .plan-dos{grid-template-columns:1fr}
+  .plan-gravedad{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+  .plan-grav-caja{padding:8px 2px}
+  .plan-grav em{display:none}
+  .plan-grav small{font-size:.66rem}
+  .plan-juego{grid-template-columns:auto 1fr;}
+  .plan-modo,.plan-nivel-juego{grid-column:1 / -1}
+  .plan-nivel-juego{max-width:none}
+  .plan-modo label{flex:1;text-align:center}
+}
+</style>
+<script>
+(function(){
+  const niveles = {1:'Fácil',2:'Medio',3:'Reto'};
+  const auto = document.getElementById('cantidad-auto');
+  const input = document.getElementById('juegos-por-dia');
+  function gravedadActual(){ return document.querySelector('input[name=gravedad]:checked'); }
+  function refrescar(){
+    const g = gravedadActual();
+    if (g){
+      document.getElementById('nivel-auto').textContent = niveles[g.dataset.nivel];
+      document.getElementById('cantidad-auto-n').textContent = g.dataset.juegos;
+      if (auto.checked) input.value = g.dataset.juegos;
+    }
+    input.disabled = auto.checked;
+    document.querySelectorAll('.plan-stepper button').forEach(b => b.disabled = auto.checked);
+  }
+  document.querySelectorAll('input[name=gravedad]').forEach(r => r.addEventListener('change', refrescar));
+  auto.addEventListener('change', refrescar);
+  document.querySelectorAll('.plan-stepper button').forEach(b => b.addEventListener('click', () => {
+    input.value = Math.max(1, Math.min(12, (+input.value || 1) + (+b.dataset.paso)));
+  }));
+  // Un input deshabilitado no se envía: el servidor lo interpreta como automático.
+  document.getElementById('filtro-juegos').addEventListener('input', e => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.plan-juego').forEach(j => j.hidden = q && !j.dataset.nombre.includes(q));
+    document.querySelectorAll('.plan-grupo').forEach(g => g.hidden = !g.querySelector('.plan-juego:not([hidden])'));
+  });
+  refrescar();
+})();
+</script>
+{% endblock %}

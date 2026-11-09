@@ -18,7 +18,14 @@ from ..security import (
     normalize_email,
 )
 from ..time_utils import app_now, day_bounds
-from ..therapy_catalog import JUEGOS_TERAPIA, URLS_TERAPIA, FONEMAS_TERAPIA, JUEGOS_CON_NIVELES
+from ..therapy_catalog import (
+    JUEGOS_TERAPIA, URLS_TERAPIA, FONEMAS_TERAPIA, JUEGOS_CON_NIVELES,
+    AREAS_TERAPIA, COLORES_FAVORITOS, GRAVEDAD, LETRAS_PLAN, NIVELES_NOMBRE, catalogo_visual,
+)
+from ..tareas_meta import validar_meta, progreso_de, LIMITES_META
+from ..daily_recommendations import (
+    armar_plan_del_dia, normalizar_plan, nivel_efectivo, cantidad_efectiva,
+)
 
 router = APIRouter(
     prefix="/doctor",
@@ -469,6 +476,20 @@ async def vista_pacientes_doctor(request: Request, db: AsyncIOMotorDatabase = De
             doc["progreso_promedio"] = progreso_promedio
             pacientes.append(doc)
 
+    if pacientes:
+        planes = {}
+        async for plan_doc in db["planes_terapia"].find(
+            {"paciente_email": {"$in": [p["email"] for p in pacientes]}}, {"paciente_email": 1, "gravedad": 1}
+        ):
+            planes[plan_doc["paciente_email"]] = plan_doc.get("gravedad")
+        for p in pacientes:
+            g = planes.get(p["email"])
+            if g in GRAVEDAD:
+                p["gravedad"] = g
+                p["gravedad_cara"] = GRAVEDAD[g]["cara"]
+        # Primero los casos más graves.
+        pacientes.sort(key=lambda p: -(p.get("gravedad") or 0))
+
     return templates.TemplateResponse(request, "doctor/pacientes.html", {
         "request": request,
         "titulo_pagina": "Mis pacientes",
@@ -757,8 +778,19 @@ async def perfil_paciente_doctor(paciente_id: str, request: Request, db: AsyncIO
     tiempo_hoy_texto = formatear_tiempo_uso(segundos_hoy)
     tiempo_mes_texto = formatear_tiempo_uso(segundos_mes)
 
+    plan_doc = await db["planes_terapia"].find_one({"paciente_email": paciente["email"]})
+    plan_info = {"tareas_pendientes": await db["tareas_terapeuticas"].count_documents(
+        {"paciente_email": paciente["email"], "medico_email": doctor_doc["email"], "estado": "pendiente"})}
+    if plan_doc:
+        plan_n = normalizar_plan(plan_doc)
+        partes = [f"{cantidad_efectiva(plan_n)} juegos/día", f"nivel {NIVELES_NOMBRE[nivel_efectivo(plan_n)].lower()}"]
+        if plan_n["letras"]:
+            partes.append("letras " + " ".join(plan_n["letras"]))
+        plan_info = {"plan_gravedad": plan_n["gravedad"], "plan_cara": GRAVEDAD[plan_n["gravedad"]]["cara"],
+                     "plan_resumen": " · ".join(partes)}
     return templates.TemplateResponse(request, "doctor/perfil_paciente.html", {
         "request": request,
+        **plan_info,
         "titulo_pagina": f"Perfil de {paciente.get('nombre', paciente['email'])}",
         "paciente": paciente,
         "perfil": perfil,
@@ -1480,29 +1512,117 @@ async def cambiar_estado_doctor(
     return RedirectResponse(url="/doctor/home", status_code=303)
 
 
+# ── Plan de terapia: gravedad 1–5, nivel, letras, colores y juegos fijos ──────
+async def _paciente_del_doctor(request: Request, db: AsyncIOMotorDatabase, paciente_id: str):
+    doctor = await _obtener_doctor_actual(request, db)
+    if not doctor:
+        return None, None
+    oid = _parse_object_id(paciente_id)
+    paciente = await db["usuarios"].find_one({"_id": oid, "rol": "paciente"}) if oid else None
+    if not paciente or paciente["email"] not in await _emails_pacientes_asignados(db, doctor["email"]):
+        return doctor, None
+    paciente["_id"] = str(paciente["_id"])
+    return doctor, paciente
+
+
+@router.get("/pacientes/{paciente_id}/plan", response_class=HTMLResponse)
+async def ver_plan_terapia(paciente_id: str, request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    doctor, paciente = await _paciente_del_doctor(request, db, paciente_id)
+    if not doctor:
+        return RedirectResponse("/auth/login", status_code=303)
+    if not paciente:
+        return RedirectResponse("/doctor/pacientes", status_code=303)
+    guardado = await db["planes_terapia"].find_one({"paciente_email": paciente["email"]})
+    plan = normalizar_plan(guardado)
+    config = {j["url"]: j for j in plan["juegos"]}
+    juegos = []
+    for j in catalogo_visual():
+        c = config.get(j["url"], {})
+        juegos.append({**j, "modo": c.get("modo", "auto"), "nivel_juego": c.get("nivel", 0)})
+    vista_previa = armar_plan_del_dia(plan, app_now(), paciente["email"])
+    return templates.TemplateResponse(request, "doctor/plan_terapia.html", {
+        "request": request, "titulo_pagina": "Plan de terapia", "paciente": paciente,
+        "plan": plan, "existe": bool(guardado), "juegos": juegos, "areas": AREAS_TERAPIA,
+        "colores": COLORES_FAVORITOS, "gravedades": GRAVEDAD, "letras": LETRAS_PLAN,
+        "niveles": NIVELES_NOMBRE, "nivel_auto": nivel_efectivo(plan),
+        "cantidad_auto": cantidad_efectiva(plan), "vista_previa": vista_previa,
+        "guardado_ok": request.query_params.get("ok") == "1",
+    })
+
+
+@router.post("/pacientes/{paciente_id}/plan", response_class=RedirectResponse)
+async def guardar_plan_terapia(paciente_id: str, request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    doctor, paciente = await _paciente_del_doctor(request, db, paciente_id)
+    if not doctor:
+        return RedirectResponse("/auth/login", status_code=303)
+    if not paciente:
+        return RedirectResponse("/doctor/pacientes", status_code=303)
+    form = await request.form()
+    juegos = []
+    for url in URLS_TERAPIA:
+        juegos.append({"url": url, "modo": form.get(f"modo|{url}", "auto"),
+                       "nivel": form.get(f"nivel|{url}", "0")})
+    plan = normalizar_plan({
+        "gravedad": form.get("gravedad"), "nivel": form.get("nivel"),
+        "juegos_por_dia": form.get("juegos_por_dia"), "letras": form.getlist("letras"),
+        "areas": form.getlist("areas"), "color": form.get("color"), "juegos": juegos,
+        "nota_familia": form.get("nota_familia", ""),
+    })
+    await db["planes_terapia"].update_one(
+        {"paciente_email": paciente["email"]},
+        {"$set": {**plan, "medico_email": doctor["email"], "actualizado_en": app_now()},
+         "$setOnInsert": {"paciente_email": paciente["email"], "creado_en": app_now()}},
+        upsert=True,
+    )
+    return RedirectResponse(f"/doctor/pacientes/{paciente_id}/plan?ok=1", status_code=303)
+
+
+@router.post("/pacientes/{paciente_id}/plan/borrar", response_class=RedirectResponse)
+async def borrar_plan_terapia(paciente_id: str, request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+    doctor, paciente = await _paciente_del_doctor(request, db, paciente_id)
+    if not doctor:
+        return RedirectResponse("/auth/login", status_code=303)
+    if paciente:
+        await db["planes_terapia"].delete_one({"paciente_email": paciente["email"]})
+    return RedirectResponse(f"/doctor/pacientes/{paciente_id}/plan", status_code=303)
+
+
 # ── Tareas personalizadas: el médico asigna juegos, niveles y fonemas ─────────
 @router.get("/tareas", response_class=HTMLResponse)
-async def listar_tareas_terapeuticas(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def listar_tareas_terapeuticas(request: Request, paciente: str = '', db: AsyncIOMotorDatabase = Depends(get_db)):
     doctor = await _obtener_doctor_actual(request, db)
     if not doctor:
         return RedirectResponse('/auth/login', status_code=303)
-    pacientes = sorted(await _emails_pacientes_asignados(db, doctor['email']))
+    emails = sorted(await _emails_pacientes_asignados(db, doctor['email']))
+    nombres = {}
+    async for u in db['usuarios'].find({'email': {'$in': emails}, 'rol': 'paciente'}, {'email': 1, 'nombre': 1}):
+        nombres[u['email']] = u.get('nombre') or u['email']
+    pacientes = [{'email': e, 'nombre': nombres.get(e, e)} for e in emails]
+    filtro = {'medico_email': doctor['email']}
+    if paciente in emails:
+        filtro['paciente_email'] = paciente
     tareas = []
-    async for tarea in db['tareas_terapeuticas'].find({'medico_email': doctor['email']}).sort('creada_en', -1).limit(150):
+    async for tarea in db['tareas_terapeuticas'].find(filtro).sort('creada_en', -1).limit(150):
         tarea['_id'] = str(tarea['_id'])
+        tarea['avance'] = progreso_de(tarea)
+        tarea['paciente_nombre'] = nombres.get(tarea['paciente_email'], tarea['paciente_email'])
+        tarea['icono'] = next((j['icono'] for j in catalogo_visual() if j['url'] == tarea.get('url_juego')), '🎯')
         tareas.append(tarea)
     return templates.TemplateResponse(request, 'doctor/tareas.html', {
-        'request': request, 'titulo_pagina': 'Tareas terapéuticas',
-        'pacientes': pacientes, 'juegos': JUEGOS_TERAPIA, 'fonemas': FONEMAS_TERAPIA,
-        'juegos_con_niveles': JUEGOS_CON_NIVELES,
-        'tareas': tareas,
+        'request': request, 'titulo_pagina': 'Asignar actividades',
+        'pacientes': pacientes, 'paciente_sel': paciente if paciente in emails else '',
+        'juegos': catalogo_visual(), 'areas': AREAS_TERAPIA, 'fonemas': LETRAS_PLAN,
+        'niveles': NIVELES_NOMBRE, 'limites': LIMITES_META,
+        'juegos_con_niveles': JUEGOS_CON_NIVELES, 'tareas': tareas,
+        'creada_ok': request.query_params.get('ok') == '1',
     })
 
 
 @router.post("/tareas", response_class=RedirectResponse)
 async def crear_tarea_terapeutica(
     request: Request, paciente_email: str = Form(...), url_juego: str = Form(...),
-    fonema: str = Form('M'), nivel: int = Form(1), instrucciones: str = Form(''),
+    fonema: str = Form(''), nivel: int = Form(1), instrucciones: str = Form(''),
+    meta_tipo: str = Form('intentos'), meta_valor: int = Form(1),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     doctor = await _obtener_doctor_actual(request, db)
@@ -1511,18 +1631,21 @@ async def crear_tarea_terapeutica(
     permitidos = await _emails_pacientes_asignados(db, doctor['email'])
     if paciente_email not in permitidos or url_juego not in URLS_TERAPIA:
         return JSONResponse(status_code=400, content={'detail': 'Paciente o juego no permitido'})
-    if fonema not in FONEMAS_TERAPIA or nivel not in (1, 2, 3):
-        return JSONResponse(status_code=400, content={'detail': 'Fonema o nivel inválido'})
-    if url_juego not in JUEGOS_CON_NIVELES:
-        nivel = 1  # No etiquetar como dificultad lo que no cambia el juego.
+    if (fonema and fonema not in LETRAS_PLAN) or nivel not in (1, 2, 3):
+        return JSONResponse(status_code=400, content={'detail': 'Letra o nivel inválido'})
+    meta = validar_meta(meta_tipo, meta_valor)
+    if not meta:
+        return JSONResponse(status_code=400, content={'detail': 'Meta inválida: 1-20 intentos o 1-60 minutos'})
     cat, nombre, _ = next(j for j in JUEGOS_TERAPIA if j[2] == url_juego)
     await db['tareas_terapeuticas'].insert_one({
         'medico_email': doctor['email'], 'paciente_email': paciente_email,
         'categoria': cat, 'actividad': nombre, 'url_juego': url_juego,
         'fonema': fonema, 'nivel': nivel, 'instrucciones': instrucciones[:300].strip(),
+        'meta_tipo': meta[0], 'meta_valor': meta[1],
+        'progreso_intentos': 0, 'progreso_segundos': 0,
         'estado': 'pendiente', 'creada_en': app_now(), 'completada_en': None,
     })
-    return RedirectResponse('/doctor/tareas', status_code=303)
+    return RedirectResponse(f'/doctor/tareas?paciente={paciente_email}&ok=1', status_code=303)
 
 
 @router.post('/tareas/{tarea_id}/cancelar', response_class=RedirectResponse)
@@ -1536,7 +1659,11 @@ async def cancelar_tarea_terapeutica(tarea_id: str, request: Request,
         await db['tareas_terapeuticas'].update_one(
             {'_id': oid, 'medico_email': doctor['email'], 'estado': 'pendiente'},
             {'$set': {'estado': 'cancelada'}})
-    return RedirectResponse('/doctor/tareas', status_code=303)
+    # Volver al mismo filtro de paciente (solo ruta local, nunca a otro dominio).
+    from urllib.parse import urlparse
+    previa = urlparse(request.headers.get('referer') or '')
+    destino = '/doctor/tareas' + (f'?{previa.query}' if previa.path == '/doctor/tareas' and previa.query else '')
+    return RedirectResponse(destino, status_code=303)
 
 
 @router.get('/grabaciones', response_class=HTMLResponse)
