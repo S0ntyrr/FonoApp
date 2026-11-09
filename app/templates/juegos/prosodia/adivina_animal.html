@@ -1,260 +1,356 @@
 {% extends "base.html" %}
 {% block contenido %}
-<section class="pantalla-movil">
+<section class="pantalla-movil aa-juego">
     <div class="juegos-header">
         <a href="/juegos/prosodia" class="btn-volver-cat">← Prosodia</a>
         <h1 class="titulo-rojo centrado juegos-titulo">🐾 Adivina el animal</h1>
-        <div class="juegos-header-spacer" aria-hidden="true"></div>
+        <div class="aa-marcador" id="aa-marcador" title="Animales adivinados">⭐ <b id="aa-aciertos">0</b>/<span id="aa-total">5</span></div>
     </div>
 
-    <div class="juego-container">
-        <div class="instruccion-card">
-            <p class="instruccion-texto">🎤 Activa tu micrófono y di el nombre del animal que ves en la imagen</p>
-            <div class="intentos-display">
-                <span class="intentos-label">Intentos restantes:</span>
-                <div class="intentos-puntos" id="intentos-puntos">
-                    <span class="punto activo">●</span>
-                    <span class="punto activo">●</span>
-                    <span class="punto activo">●</span>
-                    <span class="punto activo">●</span>
-                </div>
-            </div>
+    <!-- Escenario -->
+    <div class="aa-escena" id="aa-escena">
+        <div class="aa-nubes" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="aa-cesped" aria-hidden="true"></div>
+        <div class="aa-tarjeta" id="aa-tarjeta">
+            <div class="aa-animal" id="animal-emoji">❓</div>
+            <div class="aa-ondas" id="aa-ondas" aria-hidden="true"><i></i><i></i><i></i></div>
         </div>
-
-        <!-- Imagen del animal (oculta hasta que se activa) -->
-        <div class="animal-display" id="animal-display">
-            <div class="animal-emoji" id="animal-emoji">❓</div>
-            <p class="animal-pista" id="animal-pista">Toca "Comenzar" para ver la pista</p>
-        </div>
-
-        <!-- Pista de texto -->
-        <div class="pista-card" id="pista-card" style="display:none;">
-            <p class="pista-titulo">💡 Pista:</p>
-            <p class="pista-texto" id="pista-texto"></p>
-        </div>
-
-        <!-- Respuesta del usuario -->
-        <div class="respuesta-area" id="respuesta-area" style="display:none;">
-            <button class="btn-microfono" id="btn-mic" onclick="toggleMic()">🎤</button>
-            <p class="mic-estado" id="mic-estado">Toca para hablar</p>
-            <div class="respuesta-input-area">
-                <input type="text" id="respuesta-input" class="campo-texto" placeholder="O escribe tu respuesta..." />
-                <button class="boton-rojo" onclick="verificarRespuesta()">✓ Verificar</button>
-            </div>
-        </div>
-
-        <!-- Resultado -->
-        <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
-            <p>🎉 ¡Correcto! ¡Muy bien!</p>
-            <button class="boton-rojo ancho-completo" onclick="siguienteAnimal()">Siguiente animal</button>
-        </div>
-        <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
-            <p>❌ Intenta de nuevo</p>
-        </div>
-        <div id="resultado-perdiste" class="resultado-card perdiste" style="display:none;">
-            <p>😔 Se acabaron los intentos. El animal era: <strong id="respuesta-correcta"></strong></p>
-            <button class="boton-rojo ancho-completo" onclick="reiniciarJuego()">🔄 Volver a intentar</button>
-        </div>
-
-        <button id="btn-comenzar" class="boton-rojo ancho-completo" style="margin-top:1rem;" onclick="comenzarJuego()">▶ Comenzar</button>
+        <div class="aa-confeti" id="aa-confeti" aria-hidden="true"></div>
     </div>
+
+    <!-- Vidas -->
+    <div class="aa-vidas" id="intentos-puntos" aria-label="Intentos restantes">
+        <span class="punto activo">❤️</span><span class="punto activo">❤️</span><span class="punto activo">❤️</span><span class="punto activo">❤️</span>
+    </div>
+
+    <!-- Acciones principales -->
+    <div class="aa-acciones" id="respuesta-area" style="display:none;">
+        <button type="button" class="aa-boton aa-sonido" id="btn-sonido" onclick="sonarAnimal()">
+            <span class="aa-boton-ico">🔊</span><span>¿Cómo suena?</span>
+        </button>
+        <button type="button" class="aa-boton aa-mic" id="btn-mic" onclick="toggleMic()">
+            <span class="aa-boton-ico">🎤</span><span>Decir su nombre</span>
+        </button>
+        <button type="button" class="aa-boton aa-pista-btn" id="btn-pista" onclick="mostrarPista()">
+            <span class="aa-boton-ico">💡</span><span>Pista</span>
+        </button>
+    </div>
+    <p class="aa-estado" id="mic-estado">Mira el animal y escucha su sonido</p>
+
+    <div class="pista-card" id="pista-card" style="display:none;">
+        <p class="pista-texto" id="pista-texto"></p>
+    </div>
+
+    <!-- Escribir (para el adulto que acompaña) -->
+    <details class="aa-escribir" id="aa-escribir" style="display:none;">
+        <summary>✏️ Escribir la respuesta</summary>
+        <div class="respuesta-input-area">
+            <input type="text" id="respuesta-input" class="campo-texto" placeholder="Nombre del animal" autocomplete="off" />
+            <button class="boton-rojo" onclick="verificarRespuesta()">✓</button>
+        </div>
+    </details>
+
+    <!-- Resultados -->
+    <div id="resultado-correcto" class="resultado-card correcto" style="display:none;">
+        <p class="aa-resultado-titulo">🎉 ¡Muy bien! Es <strong id="aa-nombre-ok"></strong></p>
+        <button class="aa-boton aa-siguiente" onclick="siguienteAnimal()"><span class="aa-boton-ico">▶️</span><span>Siguiente</span></button>
+    </div>
+    <div id="resultado-incorrecto" class="resultado-card incorrecto" style="display:none;">
+        <p class="aa-resultado-titulo">🔄 <span id="aa-escuche">Casi… intenta otra vez</span></p>
+    </div>
+    <div id="resultado-perdiste" class="resultado-card perdiste" style="display:none;">
+        <p class="aa-resultado-titulo">Era: <strong id="respuesta-correcta"></strong></p>
+        <button class="aa-boton aa-escuchar-nombre" onclick="decirNombre()"><span class="aa-boton-ico">🔊</span><span>Escuchar</span></button>
+        <button class="aa-boton aa-siguiente" onclick="siguienteAnimal()"><span class="aa-boton-ico">▶️</span><span>Siguiente</span></button>
+    </div>
+    <div id="resultado-final" class="resultado-card final" style="display:none;">
+        <div class="aa-estrellas" id="aa-estrellas"></div>
+        <p class="aa-resultado-titulo">¡Adivinaste <strong id="aa-final-n"></strong> animales!</p>
+        <button class="aa-boton aa-siguiente" onclick="reiniciarJuego()"><span class="aa-boton-ico">🔄</span><span>Jugar otra vez</span></button>
+    </div>
+
+    <button id="btn-comenzar" class="aa-boton aa-comenzar" onclick="comenzarJuego()"><span class="aa-boton-ico">▶️</span><span>Comenzar</span></button>
 </section>
 
 <style>
-.juegos-header { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid #f0f0f0; }
-.juegos-header-spacer { width:70px; flex-shrink:0; }
+.aa-juego { --aa-mor:#7b1fa2; --aa-mor2:#ab47bc; }
+.juegos-header { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin-bottom:0.8rem; }
 .juegos-titulo { margin:0; font-size:1.1rem; line-height:1.2; }
-.btn-volver-cat { background:none; border:1px solid #7b1fa2; color:#7b1fa2; border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-volver-cat { background:none; border:1px solid var(--aa-mor); color:var(--aa-mor); border-radius:20px; padding:0.35rem 0.9rem; font-size:0.85rem; font-weight:600; text-decoration:none; white-space:nowrap; }
 .btn-volver-cat:hover { background:#f3e5f5; }
-.juego-container { display:flex; flex-direction:column; gap:1rem; }
-.instruccion-card { background:#f3e5f5; border-radius:12px; padding:1rem; border-left:4px solid #7b1fa2; }
-.instruccion-texto { margin:0 0 0.8rem; font-size:0.9rem; color:#4a148c; font-weight:600; }
-.intentos-display { display:flex; align-items:center; gap:0.5rem; }
-.intentos-label { font-size:0.82rem; color:#666; }
-.intentos-puntos { display:flex; gap:0.3rem; }
-.punto { font-size:1.2rem; color:#7b1fa2; transition:color 0.3s; }
-.punto.usado { color:#e0e0e0; }
-.animal-display { background:#fff; border-radius:14px; padding:2rem; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
-.animal-emoji { font-size:5rem; margin-bottom:0.5rem; }
-.animal-pista { margin:0; font-size:0.9rem; color:#888; }
-.pista-card { background:#fff8e1; border-radius:10px; padding:0.8rem 1rem; border-left:3px solid #f57c00; }
-.pista-titulo { margin:0 0 0.3rem; font-size:0.82rem; font-weight:700; color:#e65100; }
-.pista-texto { margin:0; font-size:0.9rem; color:#333; }
-.respuesta-area { display:flex; flex-direction:column; align-items:center; gap:0.7rem; }
-.btn-microfono { width:70px; height:70px; border-radius:50%; border:3px solid #7b1fa2; background:white; font-size:2rem; cursor:pointer; transition:background 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
-.btn-microfono.activo { background:#f3e5f5; animation:pulso 1s infinite; }
-@keyframes pulso { 0%,100%{box-shadow:0 0 0 0 rgba(123,31,162,0.4);} 50%{box-shadow:0 0 0 12px rgba(123,31,162,0);} }
-.mic-estado { margin:0; font-size:0.82rem; color:#888; }
-.respuesta-input-area { display:flex; gap:0.5rem; width:100%; }
+.aa-marcador { background:#fff8e1; border:2px solid #ffca28; border-radius:999px; padding:0.2rem 0.7rem; font-weight:800; color:#e65100; white-space:nowrap; display:flex; align-items:center; gap:0.25rem; }
+.aa-marcador svg { width:20px; height:20px; }
+
+.aa-escena { position:relative; height:250px; border-radius:24px; overflow:hidden; background:linear-gradient(#bbdefb 0%, #e3f2fd 62%, #c5e1a5 62%, #9ccc65 100%); box-shadow:inset 0 -6px 0 rgba(0,0,0,0.06), 0 6px 18px rgba(123,31,162,0.12); }
+.aa-cesped { position:absolute; left:0; right:0; bottom:0; height:38%; background:radial-gradient(circle at 15% 20%, #aed581 0 9px, transparent 10px), radial-gradient(circle at 70% 55%, #aed581 0 7px, transparent 8px), radial-gradient(circle at 88% 25%, #aed581 0 6px, transparent 7px); }
+.aa-nubes span { position:absolute; width:70px; height:24px; background:#fff; border-radius:20px; opacity:.85; animation:aa-nube 22s linear infinite; }
+.aa-nubes span::before { content:""; position:absolute; width:32px; height:32px; border-radius:50%; background:#fff; left:12px; top:-14px; }
+.aa-nubes span:nth-child(1) { top:22px; left:-80px; }
+.aa-nubes span:nth-child(2) { top:58px; left:-80px; animation-delay:-9s; transform:scale(.7); }
+.aa-nubes span:nth-child(3) { top:14px; left:-80px; animation-delay:-16s; transform:scale(.85); }
+@keyframes aa-nube { to { left:110%; } }
+.aa-tarjeta { position:absolute; left:50%; top:50%; width:160px; height:160px; margin:-92px 0 0 -80px; background:#fff; border-radius:50%; display:grid; place-items:center; box-shadow:0 10px 0 rgba(0,0,0,0.08), 0 14px 26px rgba(0,0,0,0.12); border:6px solid #fff; }
+.aa-tarjeta.salta { animation:aa-entra .6s cubic-bezier(.3,1.6,.5,1) both, aa-bota 2.6s ease-in-out .6s infinite; }
+.aa-tarjeta.suena { animation:aa-sacude .5s ease-in-out 2; }
+.aa-tarjeta.bien { animation:aa-salto .7s ease 2; border-color:#66bb6a; }
+.aa-tarjeta.mal { animation:aa-no .45s ease; border-color:#ef5350; }
+.aa-animal { font-size:5.5rem; line-height:1; display:grid; place-items:center; }
+.aa-animal svg { width:118px; height:118px; }
+.aa-ondas { position:absolute; inset:-6px; pointer-events:none; }
+.aa-ondas i { position:absolute; inset:0; border-radius:50%; border:4px solid var(--aa-mor2); opacity:0; }
+.aa-tarjeta.suena .aa-ondas i { animation:aa-onda 1.1s ease-out infinite; }
+.aa-tarjeta.suena .aa-ondas i:nth-child(2) { animation-delay:.35s; }
+.aa-tarjeta.suena .aa-ondas i:nth-child(3) { animation-delay:.7s; }
+@keyframes aa-onda { from { transform:scale(1); opacity:.7; } to { transform:scale(1.55); opacity:0; } }
+@keyframes aa-entra { from { transform:scale(.2) rotate(-25deg); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes aa-bota { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+@keyframes aa-sacude { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-7deg) scale(1.05); } 75% { transform:rotate(7deg) scale(1.05); } }
+@keyframes aa-salto { 0%,100% { transform:translateY(0) scale(1); } 40% { transform:translateY(-26px) scale(1.08); } }
+@keyframes aa-no { 0%,100% { transform:translateX(0); } 20%,60% { transform:translateX(-12px); } 40%,80% { transform:translateX(12px); } }
+.aa-confeti { position:absolute; inset:0; pointer-events:none; }
+.aa-confeti i { position:absolute; top:-12px; width:10px; height:14px; border-radius:3px; animation:aa-cae 1.6s ease-in forwards; }
+@keyframes aa-cae { to { transform:translateY(280px) rotate(540deg); opacity:.2; } }
+
+.aa-vidas { display:flex; justify-content:center; gap:0.45rem; margin:0.9rem 0 0.4rem; }
+.aa-vidas .punto { font-size:1.6rem; transition:transform .3s, filter .3s, opacity .3s; display:inline-flex; }
+.aa-vidas .punto svg { width:30px; height:30px; }
+.aa-vidas .punto.usado { filter:grayscale(1); opacity:.3; transform:scale(.75); }
+
+.aa-acciones { display:grid; grid-template-columns:1fr 1fr; gap:0.7rem; margin-top:0.4rem; }
+.aa-pista-btn { grid-column:1 / -1; }
+.aa-boton { display:flex; align-items:center; justify-content:center; gap:0.55rem; border:0; border-radius:20px; padding:0.85rem 1rem; font-weight:800; font-size:1rem; color:#fff; cursor:pointer; box-shadow:0 5px 0 rgba(0,0,0,0.18); transition:transform .08s, box-shadow .08s; font-family:inherit; }
+.aa-boton:active { transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,0.18); }
+.aa-boton-ico { display:inline-flex; font-size:1.5rem; line-height:1; }
+.aa-boton-ico svg { width:30px; height:30px; }
+.aa-sonido { background:linear-gradient(135deg,#ffa726,#fb8c00); }
+.aa-mic { background:linear-gradient(135deg,#ef5350,#d32f2f); }
+.aa-mic.activo { animation:aa-pulso 1s infinite; }
+@keyframes aa-pulso { 0%,100% { box-shadow:0 5px 0 rgba(0,0,0,0.18), 0 0 0 0 rgba(239,83,80,.5); } 50% { box-shadow:0 5px 0 rgba(0,0,0,0.18), 0 0 0 14px rgba(239,83,80,0); } }
+.aa-pista-btn { background:#fff; color:#6a1b9a; border:2px solid #e1bee7; box-shadow:0 4px 0 #e1bee7; padding:0.55rem; font-size:0.9rem; }
+.aa-pista-btn .aa-boton-ico svg { width:22px; height:22px; }
+.aa-siguiente, .aa-comenzar { background:linear-gradient(135deg,var(--aa-mor2),var(--aa-mor)); width:100%; }
+.aa-escuchar-nombre { background:linear-gradient(135deg,#ffa726,#fb8c00); width:100%; margin-bottom:0.6rem; }
+.aa-comenzar { margin-top:1rem; font-size:1.15rem; padding:1rem; }
+.aa-estado { text-align:center; margin:0.7rem 0 0; font-size:0.9rem; color:#6a1b9a; font-weight:600; min-height:1.3em; }
+
+.pista-card { background:#fff8e1; border-radius:16px; padding:0.7rem 1rem; border:2px dashed #ffb74d; margin-top:0.6rem; animation:aa-entra .4s ease both; }
+.pista-texto { margin:0; font-size:0.95rem; color:#5d4037; text-align:center; }
+.aa-escribir { margin-top:0.7rem; font-size:0.85rem; color:#888; }
+.aa-escribir summary { cursor:pointer; text-align:center; list-style:none; }
+.aa-escribir summary::-webkit-details-marker { display:none; }
+.respuesta-input-area { display:flex; gap:0.5rem; width:100%; margin-top:0.5rem; }
 .respuesta-input-area .campo-texto { flex:1; min-width:0; }
 .respuesta-input-area .boton-rojo { margin-top:0; white-space:nowrap; }
-.resultado-card { border-radius:12px; padding:1rem; text-align:center; }
-.resultado-card p { margin:0 0 0.8rem; font-size:1rem; font-weight:700; }
-.resultado-card.correcto { background:#e8f5e9; border:2px solid #4caf50; color:#2e7d32; }
-.resultado-card.incorrecto { background:#ffebee; border:2px solid #ef5350; color:#c62828; }
-.resultado-card.perdiste { background:#fff3e0; border:2px solid #ff9800; color:#e65100; }
+
+.resultado-card { border-radius:20px; padding:1rem; text-align:center; margin-top:0.8rem; animation:aa-entra .45s cubic-bezier(.3,1.6,.5,1) both; }
+.aa-resultado-titulo { margin:0 0 0.8rem; font-size:1.15rem; font-weight:800; display:flex; align-items:center; justify-content:center; gap:0.4rem; flex-wrap:wrap; }
+.aa-resultado-titulo svg { width:34px; height:34px; }
+.resultado-card.correcto { background:#e8f5e9; border:3px solid #66bb6a; color:#2e7d32; }
+.resultado-card.incorrecto { background:#ffebee; border:3px solid #ef9a9a; color:#c62828; }
+.resultado-card.perdiste { background:#fff3e0; border:3px solid #ffb74d; color:#e65100; }
+.resultado-card.final { background:linear-gradient(#f3e5f5,#fff); border:3px solid #ce93d8; color:#4a148c; }
+.aa-estrellas { display:flex; justify-content:center; gap:0.3rem; font-size:2.2rem; margin-bottom:0.4rem; }
+.aa-estrellas span { display:inline-flex; animation:aa-entra .5s cubic-bezier(.3,1.6,.5,1) both; }
+.aa-estrellas span:nth-child(2) { animation-delay:.2s; } .aa-estrellas span:nth-child(3) { animation-delay:.4s; }
+.aa-estrellas svg { width:46px; height:46px; }
+.aa-estrellas .apagada { filter:grayscale(1); opacity:.3; }
+
 @media (max-width: 430px) {
-    .juegos-header { gap:0.5rem; flex-wrap:wrap; }
-    .juegos-header-spacer { display:none; }
-    .juegos-titulo { font-size:0.95rem; flex:1; order:2; text-align:center; }
-    .btn-volver-cat { font-size:0.75rem; padding:0.3rem 0.7rem; }
-    .animal-display { padding:1.4rem 1rem; }
-    .animal-emoji { font-size:3.8rem; }
-    .instruccion-texto, .animal-pista, .pista-texto, .mic-estado { font-size:0.8rem; }
-    .respuesta-input-area { flex-direction:column; }
-    .respuesta-input-area .boton-rojo { width:100%; }
-    .btn-microfono { width:60px; height:60px; font-size:1.7rem; }
-    .pista-card, .instruccion-card { padding:0.8rem 0.9rem; }
-    .resultado-card p { font-size:0.95rem; }
+    .juegos-header { gap:0.4rem; }
+    .juegos-titulo { font-size:0.95rem; flex:1; text-align:center; }
+    .btn-volver-cat { font-size:0.75rem; padding:0.3rem 0.6rem; }
+    .aa-escena { height:220px; }
+    .aa-tarjeta { width:136px; height:136px; margin:-80px 0 0 -68px; }
+    .aa-animal svg { width:96px; height:96px; }
+    .aa-boton { font-size:0.9rem; padding:0.75rem 0.6rem; }
 }
+@media (prefers-reduced-motion: reduce) { .aa-tarjeta, .aa-nubes span { animation:none !important; } }
 </style>
 
+<script src="/static/js/fono-sonidos-animales.js?v=2"></script>
 <script>
 const ANIMALES = [
-    { emoji: "🐶", nombre: "perro", pista: "Es el mejor amigo del hombre, ladra y mueve la cola" },
-    { emoji: "🐱", nombre: "gato", pista: "Maúlla, ronronea y le gusta dormir mucho" },
-    { emoji: "🐸", nombre: "rana", pista: "Salta, vive cerca del agua y dice 'croac'" },
-    { emoji: "🐘", nombre: "elefante", pista: "Es muy grande, tiene trompa larga y orejas enormes" },
-    { emoji: "🦁", nombre: "león", pista: "Es el rey de la selva, tiene melena y ruge fuerte" },
-    { emoji: "🐧", nombre: "pingino", pista: "Es un pájaro que no vuela, vive en el frío y camina gracioso" },
-    { emoji: "🦊", nombre: "zorro", pista: "Es astuto, tiene cola peluda y orejas puntiagudas" },
-    { emoji: "🐢", nombre: "tortuga", pista: "Camina muy despacio y lleva su casa en la espalda" },
+    { emoji: "🐶", nombre: "perro", sonido: "perro", pista: "Ladra «guau guau» y mueve la cola" },
+    { emoji: "🐱", nombre: "gato", sonido: "gato", pista: "Dice «miau» y le gusta dormir" },
+    { emoji: "🐮", nombre: "vaca", sonido: "vaca", pista: "Dice «muuu» y nos da leche" },
+    { emoji: "🐸", nombre: "rana", sonido: "rana", pista: "Salta, vive en el agua y dice «croac»" },
+    { emoji: "🐘", nombre: "elefante", sonido: "elefante", pista: "Es enorme y tiene una trompa larga" },
+    { emoji: "🦁", nombre: "león", sonido: "leon", pista: "Es el rey de la selva y ruge «grrr»" },
+    { emoji: "🐧", nombre: "pingüino", sonido: "pinguino", pista: "No vuela, vive en el frío y camina gracioso" },
+    { emoji: "🦆", nombre: "pato", sonido: "pato", pista: "Nada en el lago y dice «cuac cuac»" },
+    { emoji: "🐷", nombre: "cerdo", sonido: "cerdo", pista: "Es rosado y dice «oink»" },
+    { emoji: "🐴", nombre: "caballo", sonido: "caballo", pista: "Corre muy rápido y relincha" },
+    { emoji: "🐔", nombre: "gallo", sonido: "gallo", pista: "Canta «quiquiriquí» en la mañana" },
+    { emoji: "🐝", nombre: "abeja", sonido: "abeja", pista: "Vuela, hace «bzzz» y fabrica miel" },
+    { emoji: "🐍", nombre: "serpiente", sonido: "serpiente", pista: "No tiene patas y hace «sss»" },
+    { emoji: "🐵", nombre: "mono", sonido: "mono", pista: "Trepa árboles y come bananos" },
 ];
+const SINONIMOS = { perro: ['perrito', 'perra'], gato: ['gatito', 'gata', 'michi'], cerdo: ['chancho', 'marrano', 'cerdito', 'puerco'], pinguino: ['pinguino', 'pingino'], gallo: ['gallina', 'pollo'], mono: ['mico', 'chango', 'monito'], caballo: ['caballito', 'yegua'], pato: ['patito'], vaca: ['vaquita', 'toro'], serpiente: ['culebra', 'vibora'] };
+const RONDAS = 5;
 
-let animalActual = null;
-let intentosRestantes = 4;
-let micActivo = false;
-let audioCtx = null;
-let micStream = null;
-let recognition = null;
-let ultimaTranscripcion = '';
-let detalleVozPromise = Promise.resolve({});
+let animalActual = null, intentosRestantes = 4, micActivo = false, recognition = null;
+let ultimaTranscripcion = '', detalleVozPromise = Promise.resolve({});
+let ronda = 0, aciertos = 0, mazo = [], registro = [], intentosAnimal = [];
 const evidenciaVozAnimal = (typeof crearCapturaActividad === 'function') ? crearCapturaActividad({ categoria: 'prosodia', juego: 'adivina_animal' }) : {
     iniciar: async () => ({}),
     detener: async (meta = {}) => ({ audioUrl: '', audioTranscripcion: meta.transcripcion || '', requiereRevisionAudio: !!(meta.transcripcion) })
 };
+const $ = id => document.getElementById(id);
 
 function normalizarTexto(valor) {
-    return (valor || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zñ0-9\s]/g, '')
-        .trim();
+    return (valor || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zñ0-9\s]/g, '').trim();
 }
+function ponerEmoji(el, emoji) { el.textContent = emoji; window.FonoEmoji?.procesar?.(el); }
+function ocultarResultados() { ['resultado-correcto', 'resultado-incorrecto', 'resultado-perdiste', 'resultado-final'].forEach(id => $(id).style.display = 'none'); }
+function animarTarjeta(clase) { const t = $('aa-tarjeta'); t.classList.remove('suena', 'bien', 'mal'); void t.offsetWidth; t.classList.add(clase); }
 
 function comenzarJuego() {
-    document.getElementById('btn-comenzar').style.display = 'none';
+    $('btn-comenzar').style.display = 'none';
+    ronda = 0; aciertos = 0; registro = [];
+    mazo = [...ANIMALES].sort(() => Math.random() - 0.5).slice(0, RONDAS);
+    $('aa-total').textContent = RONDAS; $('aa-aciertos').textContent = '0';
     siguienteAnimal();
 }
 
 function siguienteAnimal() {
-    ultimaTranscripcion = '';
-    detalleVozPromise = Promise.resolve({});
-    intentosRestantes = 4;
-    actualizarPuntos();
-    animalActual = ANIMALES[Math.floor(Math.random() * ANIMALES.length)];
-    document.getElementById('animal-emoji').textContent = animalActual.emoji;
-    document.getElementById('animal-pista').textContent = '¿Qué animal es este?';
-    document.getElementById('pista-card').style.display = 'block';
-    document.getElementById('pista-texto').textContent = animalActual.pista;
-    document.getElementById('respuesta-area').style.display = 'flex';
-    document.getElementById('resultado-correcto').style.display = 'none';
-    document.getElementById('resultado-incorrecto').style.display = 'none';
-    document.getElementById('resultado-perdiste').style.display = 'none';
-    document.getElementById('respuesta-input').value = '';
+    if (micActivo) detenerMic();
+    if (ronda >= mazo.length) return terminarJuego();
+    animalActual = mazo[ronda++];
+    ultimaTranscripcion = ''; detalleVozPromise = Promise.resolve({});
+    intentosRestantes = 4; intentosAnimal = []; actualizarPuntos();
+    ocultarResultados();
+    const t = $('aa-tarjeta'); t.className = 'aa-tarjeta'; void t.offsetWidth; t.classList.add('salta');
+    ponerEmoji($('animal-emoji'), animalActual.emoji);
+    $('pista-card').style.display = 'none';
+    $('pista-texto').textContent = animalActual.pista;
+    $('respuesta-area').style.display = 'grid';
+    $('aa-escribir').style.display = 'block';
+    $('respuesta-input').value = '';
+    $('mic-estado').textContent = '¿Qué animal es? Escucha su sonido';
+    setTimeout(sonarAnimal, 650);
 }
 
+function sonarAnimal() {
+    if (!animalActual) return;
+    window.FonoSonidosAnimales?.reproducir(animalActual.sonido);
+    const t = $('aa-tarjeta'); t.classList.remove('salta'); animarTarjeta('suena');
+    setTimeout(() => t.classList.remove('suena'), 1300);
+}
+function mostrarPista() {
+    $('pista-card').style.display = 'block';
+    window.FonoVoz?.hablar?.(animalActual.pista);
+}
+function decirNombre() { if (animalActual) window.FonoVoz?.hablar?.(animalActual.nombre); }
+
 function actualizarPuntos() {
-    const puntos = document.querySelectorAll('.punto');
-    puntos.forEach((p, i) => {
-        p.classList.toggle('usado', i >= intentosRestantes);
+    document.querySelectorAll('#intentos-puntos .punto').forEach((p, i) => p.classList.toggle('usado', i >= intentosRestantes));
+}
+
+function confeti() {
+    const c = $('aa-confeti'), colores = ['#ef5350', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc', '#ff7043'];
+    for (let i = 0; i < 28; i++) {
+        const p = document.createElement('i');
+        p.style.left = Math.random() * 100 + '%'; p.style.background = colores[i % colores.length];
+        p.style.animationDelay = (Math.random() * 0.4) + 's';
+        c.appendChild(p); setTimeout(() => p.remove(), 2200);
+    }
+}
+
+function esCorrecta(respuesta) {
+    const esperado = normalizarTexto(animalActual.nombre);
+    const opciones = [esperado, ...(SINONIMOS[esperado] || [])];
+    const palabras = respuesta.split(/\s+/);
+    return opciones.some(o => palabras.includes(o) || respuesta === o || (respuesta.length >= 4 && o.startsWith(respuesta)));
+}
+
+async function verificarRespuesta(textoVoz) {
+    const respuestaOriginal = textoVoz ?? $('respuesta-input').value;
+    const respuesta = normalizarTexto(respuestaOriginal);
+    if (!respuesta || !animalActual) return;
+    intentosAnimal.push(respuestaOriginal);
+    if (esCorrecta(respuesta)) {
+        aciertos++; $('aa-aciertos').textContent = aciertos;
+        registro.push({ animal: animalActual.nombre, ok: true, intentos: intentosAnimal.slice() });
+        ocultarResultados();
+        $('aa-nombre-ok').textContent = animalActual.nombre;
+        $('resultado-correcto').style.display = 'block';
+        $('respuesta-area').style.display = 'none'; $('aa-escribir').style.display = 'none';
+        $('mic-estado').textContent = '';
+        animarTarjeta('bien'); confeti();
+        window.FonoVoz?.hablar?.('¡Muy bien! Es ' + animalActual.nombre);
+    } else {
+        intentosRestantes--; actualizarPuntos(); animarTarjeta('mal');
+        if (intentosRestantes <= 0) {
+            registro.push({ animal: animalActual.nombre, ok: false, intentos: intentosAnimal.slice() });
+            ocultarResultados();
+            $('respuesta-correcta').textContent = animalActual.nombre;
+            $('resultado-perdiste').style.display = 'block';
+            $('respuesta-area').style.display = 'none'; $('aa-escribir').style.display = 'none';
+            $('mic-estado').textContent = '';
+        } else {
+            $('aa-escuche').textContent = textoVoz ? `Escuché «${respuestaOriginal}». ¡Otra vez!` : 'Casi… intenta otra vez';
+            $('resultado-incorrecto').style.display = 'block';
+            setTimeout(() => $('resultado-incorrecto').style.display = 'none', 1800);
+        }
+    }
+    $('respuesta-input').value = '';
+}
+
+async function terminarJuego() {
+    ocultarResultados();
+    $('respuesta-area').style.display = 'none'; $('aa-escribir').style.display = 'none';
+    $('mic-estado').textContent = '';
+    const estrellas = aciertos >= RONDAS ? 3 : aciertos >= Math.ceil(RONDAS * 0.6) ? 2 : aciertos > 0 ? 1 : 0;
+    const e = $('aa-estrellas'); e.innerHTML = '';
+    for (let i = 0; i < 3; i++) { const s = document.createElement('span'); s.textContent = '⭐'; if (i >= estrellas) s.className = 'apagada'; e.appendChild(s); }
+    window.FonoEmoji?.procesar?.(e);
+    $('aa-final-n').textContent = `${aciertos} de ${RONDAS}`;
+    $('resultado-final').style.display = 'block';
+    ponerEmoji($('animal-emoji'), '🏆'); animarTarjeta('bien'); if (aciertos) confeti();
+    const detalleVoz = await detalleVozPromise;
+    const notas = registro.map(r => `${r.ok ? '✔' : '✘'} ${r.animal}: ${r.intentos.join(' / ') || '—'}`).join(' | ');
+    guardarResultadoJuego('prosodia', 'adivina_animal', aciertos, RONDAS, aciertos > 0, aciertos * 10, 1, {
+        notas: `Adivinó ${aciertos}/${RONDAS}. ${notas}`,
+        ...detalleVoz,
     });
 }
 
-async function verificarRespuesta() {
-    const respuestaOriginal = document.getElementById('respuesta-input').value;
-    const respuesta = normalizarTexto(respuestaOriginal);
-    const animalEsperado = normalizarTexto(animalActual.nombre);
-    if (!respuesta) return;
+function reiniciarJuego() { comenzarJuego(); }
 
-    if (respuesta.includes(animalEsperado) || animalEsperado.includes(respuesta)) {
-        document.getElementById('resultado-correcto').style.display = 'block';
-        document.getElementById('resultado-incorrecto').style.display = 'none';
-        document.getElementById('respuesta-area').style.display = 'none';
-        const detalleVoz = await detalleVozPromise;
-        guardarResultadoJuego('prosodia', 'adivina_animal', 1, 1, true, 30, 1, {
-            notas: `Respuesta del paciente: ${respuestaOriginal}`,
-            ...detalleVoz,
-        });
-    } else {
-        intentosRestantes--;
-        actualizarPuntos();
-        if (intentosRestantes <= 0) {
-            document.getElementById('respuesta-correcta').textContent = animalActual.nombre;
-            document.getElementById('resultado-perdiste').style.display = 'block';
-            document.getElementById('resultado-incorrecto').style.display = 'none';
-            document.getElementById('respuesta-area').style.display = 'none';
-        } else {
-            document.getElementById('resultado-incorrecto').style.display = 'block';
-            setTimeout(() => document.getElementById('resultado-incorrecto').style.display = 'none', 1500);
-        }
-    }
-    document.getElementById('respuesta-input').value = '';
-}
-
-function reiniciarJuego() {
-    siguienteAnimal();
-}
-
-function toggleMic() {
-    if (micActivo) {
-        detenerMic();
-    } else {
-        iniciarMic();
-    }
-}
+function toggleMic() { micActivo ? detenerMic() : iniciarMic(); }
 
 async function iniciarMic() {
-    // Usar Web Speech API si está disponible
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        ultimaTranscripcion = '';
-        detalleVozPromise = evidenciaVozAnimal.iniciar().then(() => ({})).catch(() => ({}));
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        recognition = new SR();
-        recognition.lang = 'es-ES';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.onresult = (e) => {
-            const texto = e.results[0][0].transcript.toLowerCase();
-            ultimaTranscripcion = texto;
-            document.getElementById('respuesta-input').value = texto;
-            document.getElementById('mic-estado').textContent = `Escuché: "${texto}"`;
-            detenerMic();
-        };
-        recognition.onerror = () => {
-            document.getElementById('mic-estado').textContent = 'No se pudo reconocer. Escribe tu respuesta.';
-            detenerMic();
-        };
-        recognition.start();
-        micActivo = true;
-        document.getElementById('btn-mic').classList.add('activo');
-        document.getElementById('mic-estado').textContent = '🔴 Escuchando... di el nombre del animal';
-    } else {
-        document.getElementById('mic-estado').textContent = 'Micrófono no disponible. Escribe tu respuesta.';
-    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { $('mic-estado').textContent = 'Este navegador no reconoce la voz. Un adulto puede escribir abajo.'; $('aa-escribir').open = true; return; }
+    window.FonoSonidosAnimales?.detener?.();
+    ultimaTranscripcion = '';
+    detalleVozPromise = evidenciaVozAnimal.iniciar().then(() => ({})).catch(() => ({}));
+    recognition = new SR();
+    recognition.lang = 'es-ES'; recognition.continuous = false; recognition.interimResults = false; recognition.maxAlternatives = 3;
+    let resultado = null;
+    recognition.onresult = (e) => {
+        const alts = Array.from(e.results[0]).map(a => a.transcript);
+        resultado = alts.find(a => esCorrecta(normalizarTexto(a))) || alts[0] || '';
+        ultimaTranscripcion = resultado;
+    };
+    recognition.onerror = () => { $('mic-estado').textContent = 'No te escuché bien. Toca el micrófono otra vez.'; };
+    recognition.onend = () => { const r = resultado; detenerMic(); if (r) verificarRespuesta(r); };
+    try { recognition.start(); } catch (_) { return; }
+    micActivo = true;
+    $('btn-mic').classList.add('activo');
+    $('mic-estado').textContent = 'Te escucho… di el nombre del animal';
 }
 
 function detenerMic() {
+    if (!micActivo && !recognition) return;
     micActivo = false;
-    if (recognition) { recognition.stop(); recognition = null; }
+    const r = recognition; recognition = null;
+    if (r) { r.onend = null; try { r.stop(); } catch (_) {} }
     detalleVozPromise = evidenciaVozAnimal.detener({ transcripcion: ultimaTranscripcion });
-    document.getElementById('btn-mic').classList.remove('activo');
-    document.getElementById('mic-estado').textContent = 'Toca para hablar';
+    $('btn-mic').classList.remove('activo');
+    if (animalActual && $('respuesta-area').style.display !== 'none') $('mic-estado').textContent = 'Toca el micrófono para hablar';
 }
 
-document.getElementById('respuesta-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') verificarRespuesta();
-});
+$('respuesta-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificarRespuesta(); });
 </script>
 {% endblock %}

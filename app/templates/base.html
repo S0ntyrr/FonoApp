@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="/static/css/fono-guia-juegos.css?v=2" />
     <link rel="stylesheet" href="/static/css/fono-experiencia.css?v=6" />
     <link rel="stylesheet" href="/static/css/fono-terapia.css?v=2" />
-    <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=3" />
+    <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=5" />
     <link rel="stylesheet" href="/static/css/fono-panel-responsive.css?v=1" />
     <style>body { font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif; }</style>
     <script>
@@ -602,16 +602,18 @@ btnContinuar.style.cssText = 'position:fixed;right:20px;bottom:14px;width:auto;p
         setInterval(revisar, 45000);
     }
     </script>
-    <script src="/static/js/fono-voz-natural.js?v=2"></script>
+    <script src="/static/js/fono-fonemas-audio.js?v=1"></script>
+    <script src="/static/js/fono-voz-natural.js?v=3"></script>
     <script src="/static/js/terminos.js"></script>
     <script src="/static/js/fono-evidencia-universal.js"></script>
     <script>window.FONO_JUEGOS_CON_NIVELES = {{ FONO_JUEGOS_CON_NIVELES | default([]) | tojson }};</script>
     <script src="/static/js/fono-nivel.js?v=1"></script>
-    <script src="/static/js/fono-boca-real.js?v=3"></script>
-    <link rel="stylesheet" href="/static/css/fono-anim.css?v=2" />
-    <script defer src="/iconos.js?v=2"></script>
+    <script src="/static/js/fono-boca-real.js?v=4"></script>
+    <link rel="stylesheet" href="/static/css/fono-anim.css?v=3" />
+    <link rel="stylesheet" href="/static/css/fono-juegos-ui.css?v=1" />
+    <script defer src="/iconos.js?v=3"></script>
     <script defer src="/static/js/fono-emoji.js?v=1"></script>
-    <script defer src="/static/js/fono-guia-juegos.js?v=4"></script>
+    <script defer src="/static/js/fono-guia-juegos.js?v=6"></script>
 </head>
 <body class="fondo-blanco{% if request.url.path.startswith('/juegos') %} fono-ruta-juegos{% elif request.url.path.startswith('/doctor') %} fono-panel-medico{% elif request.url.path.startswith('/admin') %} fono-panel-admin{% elif request.url.path.startswith('/paciente') %} fono-panel-paciente{% endif %}">
     <div class="contenedor-principal">

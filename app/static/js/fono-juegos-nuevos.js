@@ -41,6 +41,7 @@ window.FonoJuegosNuevos = (function(){
  function progreso(p,total){$('fono-progreso-barra').style.width=Math.min(100,Math.round((p/Math.max(1,total))*100))+'%';$('fono-contador').textContent=`${p} de ${total}`;}
  function botones(items,onClick){$('fono-acciones').innerHTML='';items.forEach(([label,accion,extra=''])=>{const b=document.createElement('button');b.className='fono-gran-boton'+(extra?(' '+extra):'');b.textContent=label;b.type='button';b.addEventListener('click',()=>onClick(label,accion));$('fono-acciones').appendChild(b);});}
  function hablar(t){if(window.FonoVoz?.hablar(t))return;texto('Pide ayuda a un adulto para escuchar.');}
+ function icono(n,tam){const c=(window.FonoIconos||{})[n];return c?`<svg class="fono-ico" viewBox="0 0 64 64" width="${tam}" height="${tam}" aria-hidden="true">${c}</svg>`:'';}
  // Boca animada del fonema (app/iconos_ui.py): muestra cómo mover labios y lengua.
  function bocaAnimada(f,tam){const n=(window.FonoBocaDeFonema||{})[f];const c=n&&(window.FonoIconos||{})[n];return c?`<svg class="fono-ico fa-siempre" viewBox="0 0 64 64" width="${tam}" height="${tam}" aria-hidden="true">${c}</svg>`:'';}
  function boca(tipo='pico'){return `<div class="fono-boca ${tipo}"><div class="fono-labios"></div></div>`;}
@@ -81,8 +82,10 @@ window.FonoJuegosNuevos = (function(){
  }
  function mostrarElegirLetra(){
    progreso(0,1);$('fono-palabra').textContent='';
-   dibuja('<div class="fono-pronuncia-card"><div class="fono-letra-grande">A a RR</div><p class="fono-mini-ayuda">Elige una letra arriba para ver a una persona que la pronuncia.</p></div>');
-   texto('👆 Elige una letra.');botones([]);
+   const letras=['M','P','S','G','R','RR','A','B','C','D'];
+   dibuja(`<div class="fono-pronuncia-card fono-elige-card"><div class="fono-elige-mano animar">${icono('arrastrar',56)}</div><div class="fono-elige-letra">${letras.map(l=>`<button type="button" data-elige="${l}" aria-label="Letra ${l}">${bocaAnimada(l,64)}<span>${l}</span></button>`).join('')}</div></div>`);
+   document.querySelectorAll('[data-elige]').forEach(b=>b.addEventListener('click',()=>seleccionarPraxias('letras',b.dataset.elige)));
+   texto('👆 Toca una boca para elegir la letra.');botones([]);
  }
  function iniciarSelectorPraxias(){
    const caja=$('fono-fonemas');caja.classList.add('fono-selector-praxias');
@@ -116,7 +119,7 @@ window.FonoJuegosNuevos = (function(){
    const total=lista().length,hechos=Math.min(total,indice);
    const notas=praxiasTipo==='letras'?'Práctica del sonido '+praxiasLetra+' con modelo humano en vídeo; grabación para revisión médica.':'Movimientos de boca realizados por imitación, sin exigir grabación.';
    try{
-     await guardarResultadoJuego('practica_conmigo','praxias',hechos,total,hechos>=total,Math.round(100*hechos/Math.max(1,total)),1,{notas,requiereRevisionAudio:praxiasTipo==='letras'});
+     const audioUrl=audiosPraxias.filter(Boolean).slice(-1)[0]||'';audiosPraxias=[];await guardarResultadoJuego('practica_conmigo','praxias',hechos,total,hechos>=total,Math.round(100*hechos/Math.max(1,total)),1,{notas,requiereRevisionAudio:praxiasTipo==='letras',audioUrl});
      texto('✅ ¡Muy bien! Intento guardado.');
      botones([['🔁 Hacer otra actividad','otra']],()=>{completado=false;praxiasLetra='';seleccionarPraxias(praxiasTipo);});
    }catch(e){completado=false;texto('No se guardó. Vuelve a intentarlo.');botones([['💾 Guardar','otra']],()=>terminarPraxia());}
@@ -129,26 +132,28 @@ window.FonoJuegosNuevos = (function(){
       texto(`👀 Movimiento ${indice+1} de ${total}.`);
       botones([['✅ Ya lo hice →','hecho']],()=>siguiente());
    }else{
-     dibuja(`<div class="fono-pronuncia-card fono-humano"><div class="fono-letra-grande">${item.letter}</div><div id="fono-modelo-humano"></div><p class="fono-mini-ayuda">1. Mira el video · 2. Escucha · 3. Di la letra</p></div>`);
+     dibuja(`<div class="fono-pronuncia-card fono-humano"><div class="fono-letra-grande">${item.letter}</div><div id="fono-modelo-humano"></div><p class="fono-mini-ayuda">1. Mira la boca · 2. Escucha · 3. Di la letra</p></div>`);
      window.FonoBocaReal?.pintar($('fono-modelo-humano'),item.letter);
      $('fono-palabra').textContent='Sonido '+item.letter;
      texto('🔊 Escucha, di el sonido y graba un intento.');
-     function botonesLetra(){botones([['🔊 1. Escuchar','escucha'],['🎙️ 2. Grabar','grabar'],['✅ 3. Guardar intento','hecho']],async (_,a)=>{
-       if(a==='escucha'){if(window.FonoVoz)FonoVoz.fonema(item.letter);else hablar(item.voice);return;}
-       if(a==='grabar'){
-         if(!window.FonoEvidencia){texto('Grabación no disponible. Puedes practicar igualmente.');return;}
-         const ok=await window.FonoEvidencia.iniciar();
-         if(!ok){texto('No fue posible abrir el micrófono.');return;}
-         grabacionEnCurso=true;texto('🔴 Di el sonido '+item.letter+'. Después toca Guardar audio.');
-         botones([['⏹️ Guardar audio','stop']],async()=>{
-           const url=await window.FonoEvidencia.finalizar();grabacionEnCurso=false;
-           texto(url?'✅ Audio guardado. Ahora finaliza el intento.':'No se pudo guardar el audio. Puedes intentarlo otra vez.');
-           botonesLetra();
-         });
-         return;
-       }
-       indice=1;await terminarPraxia();
-     });}
+     let grabado=null;
+     function botonesLetra(){
+       const bs=[['🔊 1. Escuchar','escucha'],['🎙️ 2. Decir y grabar','grabar','fono-boton-mic']];
+       if(grabado) bs.push(['▶️ Escuchar mi voz','mivoz','secundario'],['✅ 3. Listo','hecho']);
+       botones(bs,async (_,a)=>{
+         if(a==='escucha'){if(window.FonoVoz)FonoVoz.fonema(item.letter);else hablar(item.voice);return;}
+         if(a==='mivoz'){try{new Audio(grabado.local).play();}catch(_){}return;}
+         if(a==='grabar'){
+           botones([]);grabacionEnCurso=true;
+           const r=await grabarConNivel(4000,'Di '+item.letter);
+           grabacionEnCurso=false;
+           if(r){grabado=r;audiosPraxias.push(r.url);texto('✅ Te grabé. Toca ▶️ para escucharte.');}
+           else texto('No fue posible usar el micrófono. Revisa el permiso del navegador.');
+           botonesLetra();return;
+         }
+         indice=1;await terminarPraxia();
+       });
+     }
      botonesLetra();
    }
  }
@@ -179,8 +184,7 @@ window.FonoJuegosNuevos = (function(){
     const visualFonema = ['fonemas','pronunciacion5'].includes(modo) ? '<div id="fono-modelo-humano"></div>' : '';
     dibuja(`<div class="fono-pronuncia-card"><span class="fono-ilustracion">${item[0]}</span>${visualFonema}<p class="fono-mini-ayuda">Primero mira. Después escucha. Luego di la palabra.</p></div>`);
     if(visualFonema) window.FonoBocaReal?.pintar($('fono-modelo-humano'),fonema);
-    if(modo==='fonemas'||modo==='pronunciacion5'){$('fono-palabra').innerHTML=bocaAnimada(fonema,84)+'<span>Letra '+fonema+'</span>';$('fono-palabra').classList.add('fono-palabra-boca');}
-    else $('fono-palabra').textContent='?';
+    $('fono-palabra').textContent=(modo==='fonemas'||modo==='pronunciacion5') ? ('Letra ' + fonema) : '?';
     if(['fonemas','pronunciacion5'].includes(modo))texto(`Paso ${indice+1} de ${total}: ${PUNTOS_MODO[fonema]}`);
     let fase=0;
     function avanzarFase(){
@@ -189,19 +193,80 @@ window.FonoJuegosNuevos = (function(){
         if (nivel===3 && modo!=='abc') {const c=$('fono-acciones');c.innerHTML='';const inp=document.createElement('input');inp.className='fono-letra-input';inp.type='text';inp.maxLength=2;inp.placeholder='Escribe la letra';inp.setAttribute('aria-label','Escribe la letra');const ok=document.createElement('button');ok.className='fono-gran-boton';ok.textContent='2. Revisar';ok.addEventListener('click',()=>{if(inp.value.trim().toUpperCase()===correcta){fase=2;avanzarFase();}else{texto('Intenta otra vez.');}});c.append(inp,ok);} else {botones(alternativas.map(a=>[a,a]),(_,a)=>{if(a===correcta){fase=2;avanzarFase();}else{texto('Esa no es. Intenta otra vez.');}});}
       } else {
         $('fono-palabra').textContent=item[1].toUpperCase();
-        texto('Ahora di la palabra.');
-        botones([
-          ['2. Escuchar otra vez','escucha'],
-          ['3. Grabar mi voz','grabar'],
-          ['4. Ya la dije','hecho']
-        ],async(_,a)=>{if(a==='escucha'){hablar(item[1]);return;}if(a==='grabar'){await grabar();texto(`Di la palabra ${item[1]} y luego toca “Ya la dije”.`);return;}siguiente();});
+        decirPalabra(item);
       }
     }
     avanzarFase();
  }
+ // ── Grabación visible: micrófono latiendo, barra de voz y parada automática ──
+ let audiosPraxias=[];
+ async function grabarConNivel(ms,etiqueta){
+   let stream;
+   try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});}catch(e){return null;}
+   const chunks=[];const rec=new MediaRecorder(stream);rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+   const C=window.AudioContext||window.webkitAudioContext;const ac=C?new C():null;let an=null;
+   if(ac){an=ac.createAnalyser();an.fftSize=512;ac.createMediaStreamSource(stream).connect(an);}
+   panelEscucha('escuchando','<span class="fono-escucha-mic">🎙️</span> '+etiqueta+' <span class="fono-nivel-voz"><i id="fono-nivel-voz"></i></span> <b id="fono-cuenta"></b> <button type="button" class="fono-parar-mini" id="fono-parar-mini">⏹️</button>');
+   rec.start();
+   const t0=performance.now();let raf=0,parar;
+   const fin=new Promise(res=>{parar=res;});
+   document.getElementById('fono-parar-mini')?.addEventListener('click',()=>parar());
+   const datos=an?new Uint8Array(an.fftSize):null;
+   (function medir(){
+     const resta=Math.max(0,ms-(performance.now()-t0));
+     const c=document.getElementById('fono-cuenta');if(c)c.textContent=Math.ceil(resta/1000);
+     if(an){an.getByteTimeDomainData(datos);let m=0;for(const v of datos)m=Math.max(m,Math.abs(v-128));const bar=document.getElementById('fono-nivel-voz');if(bar)bar.style.width=Math.min(100,m/60*100)+'%';}
+     if(resta<=0)return parar();raf=requestAnimationFrame(medir);
+   })();
+   await fin;cancelAnimationFrame(raf);
+   const blob=await new Promise(res=>{rec.onstop=()=>res(new Blob(chunks,{type:rec.mimeType||'audio/webm'}));rec.stop();});
+   stream.getTracks().forEach(t=>t.stop());try{ac&&ac.close();}catch(_){}
+   panelEscucha('','');
+   let url='';
+   try{const fd=new FormData();fd.append('audio',blob,'praxias.'+((blob.type||'').includes('ogg')?'ogg':'webm'));fd.append('categoria','practica');fd.append('juego','praxias');
+     const r=await fetch('/juegos/evidencia-audio',{method:'POST',body:fd});if(r.ok)url=(await r.json()).audio_url||'';}catch(_){}
+   return {local:URL.createObjectURL(blob),url};
+ }
+ // ── Decir la palabra: graba, transcribe y solo avanza si coincide ──
+ let voz=null, registroPalabras=[];
+ function sesionVoz(){
+   if(!voz && window.FonoArticulacion) voz=window.FonoArticulacion.crearSesionVoz({categoria:CATEGORIAS[modo],juego:NOMBRES[modo],idiomaReconocimiento:'es-ES'});
+   return voz;
+ }
+ function panelEscucha(estado,txt){
+   let p=$('fono-escucha');
+   if(!p){p=document.createElement('div');p.id='fono-escucha';p.className='fono-escucha';p.setAttribute('role','status');p.setAttribute('aria-live','polite');$('fono-acciones').before(p);}
+   p.className='fono-escucha '+estado; p.innerHTML=txt; p.hidden=!txt;
+ }
+ function decirPalabra(item){
+   let fallos=0;
+   const reg={palabra:item[1],intentos:0,logrado:false,escuchado:[]};
+   registroPalabras.push(reg);
+   texto('Toca el micrófono y di la palabra.');
+   panelEscucha('', '');
+   function mostrarBotones(){
+     const bs=[['🔊 Escuchar','escucha'],['🎙️ Decir la palabra','decir','fono-boton-mic']];
+     if(fallos>=3) bs.push(['Saltar ›','saltar','secundario fono-saltar']);
+     botones(bs,async(_,a)=>{
+       if(a==='escucha'){hablar(item[1]);return;}
+       if(a==='saltar'){panelEscucha('','');siguiente();return;}
+       const sesion=sesionVoz();
+       if(!sesion){panelEscucha('mal','Este navegador no puede escuchar palabras. El adulto puede tocar «Saltar».');fallos=3;mostrarBotones();return;}
+       botones([]);
+       reg.intentos++;
+       await sesion.reconocerPalabra({palabraEsperada:item[1],
+         alEscuchar:()=>panelEscucha('escuchando','<span class="fono-escucha-mic">🎙️</span> Te escucho… di <b>'+item[1].toUpperCase()+'</b>'),
+         alCorrecto:alt=>{reg.logrado=true;reg.escuchado.push(alt.transcript);panelEscucha('bien','✅ <b>'+alt.transcript+'</b> ¡Muy bien!');try{window.reproducirSonidoExito?.();}catch(_){} setTimeout(()=>{panelEscucha('','');siguiente();},1300);},
+         alIncorrecto:msg=>{fallos++;const m=/«(.+?)»|“(.+?)”/.exec(msg);if(m)reg.escuchado.push(m[1]||m[2]);panelEscucha('mal','🔁 '+msg);},
+         alFin:()=>{if(!reg.logrado)mostrarBotones();}
+       });
+     });
+   }
+   mostrarBotones();
+ }
  function siguiente(){indice++;if(indice>=lista().length){if(modo==='praxias')terminarPraxia();else terminar();return;}mostrarReto();}
- async function terminar(){if(completado)return;completado=true;limpiarAudio();texto('✅ ¡Muy bien! Guardando tu actividad...');botones([]);const total=(modo==='burbujas'||modo==='pitillos')?objetivo():lista().length;const pasos=(modo==='burbujas'||modo==='pitillos')?Math.min(avance,total):Math.min(indice,total);const notas=`Actividad ${modo}. Fonema ${fonema}. Nivel ${nivel}. Registro para revisión profesional; no es calificación clínica.`;try{const _=await guardarResultadoJuego(CATEGORIAS[modo],NOMBRES[modo],pasos,total,pasos>=total,Math.min(100,Math.round((pasos/Math.max(1,total))*100)),nivel,{notas,requiereRevisionAudio:true});texto('⭐ Actividad guardada.');}catch(e){completado=false;texto('No pude guardar. Inténtalo otra vez.');console.warn(e);botones([['💾 Guardar otra vez','save'],['🔁 Repetir','retry']],(_,a)=>a==='save'?terminar():reiniciar());return;} botones([['🔁 Volver a jugar','retry']],()=>reiniciar());}
- function reiniciar(){completado=false;avance=0;indice=0;limpiarAudio();const ayuda = document.querySelector('.fono-guia-nueva p');if(ayuda) ayuda.textContent='Muestra el dibujo y ayuda a escuchar. El niño puede señalar si todavía no lee. No fuerces la respiración ni la voz. La evaluación corresponde al profesional.';$('fono-palabra').textContent='';if(modo==='burbujas'||modo==='pitillos'){$('fono-consigna').textContent='👃 Toma aire y luego sopla suave.';dibuja(modo==='burbujas'?'<span class="fono-ilustracion">🫧</span>':'<div class="fono-pitillo" aria-hidden="true">🥤</div><div id="fono-copito" class="fono-copito">☁️</div><div class="fono-meta">🏁</div>');progreso(0,objetivo());botones([['▶️ Empezar','empezar']],()=>iniciarSoplo());texto('Toca empezar para jugar.');}else{$('fono-consigna').textContent=modo==='praxias'?'👄 Elige: mover la boca o practicar una letra':'👀 Mira · 👂 Escucha · 👄 Di';if(modo==='praxias'&&praxiasTipo==='letras'&&!praxiasLetra){mostrarElegirLetra();}else{mostrarReto();}}}
+ async function terminar(){if(completado)return;completado=true;limpiarAudio();texto('✅ ¡Muy bien! Guardando tu actividad...');botones([]);const total=(modo==='burbujas'||modo==='pitillos')?objetivo():lista().length;const pasos=(modo==='burbujas'||modo==='pitillos')?Math.min(avance,total):Math.min(indice,total);let detalleVoz={};if(voz){try{detalleVoz=await voz.finalizar();}catch(_){} } const logradas=registroPalabras.filter(r=>r.logrado).length; const resumen=registroPalabras.length?(' Palabras: '+registroPalabras.map(r=>`${r.palabra} ${r.logrado?'✔':'✘'} (${r.intentos} intento${r.intentos===1?'':'s'}${r.escuchado.length?', se escuchó: '+r.escuchado.join(' / '):''})`).join('; ')+`. Logradas ${logradas}/${registroPalabras.length}.`):''; const notas=`Actividad ${modo}.${['fonemas','pronunciacion5'].includes(modo)?' Fonema '+fonema+'.':''} Nivel ${nivel}.${resumen} Registro para revisión profesional; no es calificación clínica.`;try{const _=await guardarResultadoJuego(CATEGORIAS[modo],NOMBRES[modo],pasos,total,pasos>=total,Math.min(100,Math.round((pasos/Math.max(1,total))*100)),nivel,{notas,requiereRevisionAudio:true,audioUrl:detalleVoz.audioUrl||'',audioTranscripcion:detalleVoz.audioTranscripcion||''});texto('⭐ Actividad guardada.');}catch(e){completado=false;texto('No pude guardar. Inténtalo otra vez.');console.warn(e);botones([['💾 Guardar otra vez','save'],['🔁 Repetir','retry']],(_,a)=>a==='save'?terminar():reiniciar());return;} botones([['🔁 Volver a jugar','retry']],()=>reiniciar());}
+ function reiniciar(){completado=false;avance=0;indice=0;limpiarAudio();try{voz?.cancelar();}catch(_){} voz=null;registroPalabras=[];panelEscucha('','');const ayuda = document.querySelector('.fono-guia-nueva p');if(ayuda) ayuda.textContent='Muestra el dibujo y ayuda a escuchar. El niño puede señalar si todavía no lee. No fuerces la respiración ni la voz. La evaluación corresponde al profesional.';$('fono-palabra').textContent='';if(modo==='burbujas'||modo==='pitillos'){$('fono-consigna').textContent='👃 Toma aire y luego sopla suave.';dibuja(modo==='burbujas'?'<span class="fono-ilustracion">🫧</span>':'<div class="fono-pitillo" aria-hidden="true">🥤</div><div id="fono-copito" class="fono-copito">☁️</div><div class="fono-meta">🏁</div>');progreso(0,objetivo());botones([['▶️ Empezar','empezar']],()=>iniciarSoplo());texto('Toca empezar para jugar.');}else{$('fono-consigna').textContent=modo==='praxias'?'👄 Elige: mover la boca o practicar una letra':'👀 Mira · 👂 Escucha · 👄 Di';if(modo==='praxias'&&praxiasTipo==='letras'&&!praxiasLetra){mostrarElegirLetra();}else{mostrarReto();}}}
  function iniciar(m){modo=m;nivel=Math.max(1,Math.min(3,parseInt(new URLSearchParams(location.search).get('nivel')||'1',10)||1));fonema=(new URLSearchParams(location.search).get('fonema')||'M').toUpperCase();if(!DATA[fonema])fonema='M';$('fono-titulo').textContent=TITULOS[m];document.querySelectorAll('#fono-niveles button').forEach(b=>b.addEventListener('click',()=>cambiarNivel(+b.dataset.nivel)));if(['fonemas','pronunciacion5'].includes(m)){for(const f of Object.keys(DATA)){const b=document.createElement('button');b.type='button';b.textContent=f;b.addEventListener('click',()=>cambiarFonema(f));$('fono-fonemas').appendChild(b);}document.querySelectorAll('#fono-fonemas button').forEach(b=>b.classList.toggle('activo',b.textContent===fonema));}if($('fono-niveles')){$('fono-niveles').hidden=!['burbujas','pitillos'].includes(m);}if(m==='praxias'){const params=new URLSearchParams(location.search);if(params.has('fonema')&&['M','P','S','G','R','RR','A','B','C','D'].includes(fonema)){praxiasTipo='letras';praxiasLetra=fonema;}iniciarSelectorPraxias();}cambiarNivel(nivel);}
  return {iniciar};
 })();

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/css/fono-juegos-soplo.css?v=1" />
+<link rel="stylesheet" href="/static/css/fono-juegos-soplo.css?v=2" />
 <section class="soplo-juego" data-juego="{{ juego }}">
   <div class="soplo-barra">
     <a href="/juegos/respiracion" class="soplo-volver" aria-label="Volver a respiración">
@@ -34,7 +34,7 @@
   </details>
   <p class="soplo-estado" id="soplo-estado" role="status" aria-live="polite"></p>
 </section>
-<script src="/static/js/fono-soplo-detector.js?v=1"></script>
-<script src="/static/js/fono-soplo-ui.js?v=1"></script>
-<script src="/static/js/{{ script }}?v=1"></script>
+<script src="/static/js/fono-soplo-detector.js?v=2"></script>
+<script src="/static/js/fono-soplo-ui.js?v=2"></script>
+<script src="/static/js/{{ script }}?v=2"></script>
 {% endblock %}

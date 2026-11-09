@@ -22,3 +22,17 @@
 
 .fono-real-pista{margin:0!important;font-size:clamp(.93rem,2vw,1.05rem);font-weight:900;color:#174b72;text-align:center}
 .fono-real-modelo iframe{border:0}
+
+/* Video opcional: oculto si el servidor externo no responde */
+.fono-real-modelo[hidden], .fono-real-video[hidden], .fono-demo-contenedor:has(> .fono-real-modelo[hidden]) { display: none !important; }
+.fono-real-video { display: grid; justify-items: center; gap: 8px; width: 100%; }
+.fono-real-ver { display: inline-flex; align-items: center; gap: 8px; }
+.fono-real-modelo .fono-boca-demo { margin: 0 auto; }
+/* Praxias: elegir letra tocando su boca */
+.fono-pronuncia-card.fono-elige-card { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; box-sizing: border-box; }
+.fono-elige-card .fono-elige-letra { min-width: 0; max-width: 100%; }
+.fono-elige-letra { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; width: 100%; max-width: 520px; margin: 0 auto; }
+.fono-elige-letra button { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 3px solid #f0d5c4; background: #fff; border-radius: 18px; padding: 8px 4px; cursor: pointer; font: inherit; font-weight: 900; font-size: 1.2rem; color: #1f3347; }
+.fono-elige-letra button:hover, .fono-elige-letra button:focus-visible { border-color: #e0528f; transform: translateY(-2px); outline: none; }
+.fono-elige-letra .fono-ico { width: 64px; height: 64px; border-radius: 14px; }
+.fono-elige-mano { display: flex; justify-content: center; margin-bottom: 6px; }

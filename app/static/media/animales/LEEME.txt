@@ -1,0 +1,7 @@
+Sonidos reales de animales (opcional)
+
+1. Copia aquí la grabación con el nombre del animal, en minúsculas y sin tildes:
+   perro.mp3, gato.mp3, vaca.mp3, leon.mp3, pinguino.mp3, ...
+2. Agrega el nombre a lista.json, por ejemplo:  ["perro", "gato"]
+
+Los animales que no estén en la lista usan el sonido generado por la app.

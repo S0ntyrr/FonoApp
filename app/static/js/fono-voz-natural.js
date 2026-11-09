@@ -75,8 +75,11 @@
       return hablar(FALLBACK[clave]||opts.fallback||'Escucha e imita el sonido.');
    });
  }
+ // Sonido de la letra SIN vocal añadida (M = «mmm», no «ma»). Lo genera fono-fonemas-audio.js.
  function fonema(letra){
-   const ejemplos={A:'a',B:'be',C:'ca',D:'de',F:'efe',G:'ga',M:'ma',P:'pa',S:'sa',R:'ra',RR:'carro'};
+   detener();
+   if(window.FonoFonema && window.FonoFonema.reproducir(letra))return true;
+   const ejemplos={A:'a',E:'e',I:'i',O:'o',U:'u'};
    return hablar(ejemplos[String(letra||'').toUpperCase()]||String(letra||''));
  }
  window.FonoVoz={hablar,sonido,fonema,detener,fuentes:FILES};

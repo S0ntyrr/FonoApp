@@ -1,0 +1,52 @@
+/* Capa visual infantil común a todas las páginas de juegos (/juegos/*).
+ * Solo añade relieve, color y movimiento suave; no cambia el orden ni la jerarquía. */
+
+/* Botones con relieve: se "aprietan" al tocarlos */
+body.fono-ruta-juegos .boton-rojo,
+body.fono-ruta-juegos .art-btn {
+  border-radius: 18px; font-weight: 800; letter-spacing: .2px;
+  box-shadow: 0 5px 0 rgba(120, 20, 20, .28), 0 8px 16px rgba(211, 47, 47, .18);
+  transition: transform .08s, box-shadow .08s, filter .15s;
+}
+body.fono-ruta-juegos .boton-rojo:hover,
+body.fono-ruta-juegos .art-btn:hover { transform: translateY(-1px); filter: brightness(1.05); opacity: 1; }
+body.fono-ruta-juegos .boton-rojo:active,
+body.fono-ruta-juegos .art-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(120, 20, 20, .28); }
+body.fono-ruta-juegos .boton-rojo:disabled { box-shadow: none; transform: none; filter: none; }
+body.fono-ruta-juegos .boton-rojo-borde,
+body.fono-ruta-juegos .art-btn-sec {
+  border-radius: 18px; font-weight: 700; box-shadow: 0 4px 0 #f3c7c7; transition: transform .08s, box-shadow .08s;
+}
+body.fono-ruta-juegos .boton-rojo-borde:active,
+body.fono-ruta-juegos .art-btn-sec:active { transform: translateY(3px); box-shadow: 0 1px 0 #f3c7c7; }
+
+/* Tarjetas de juegos: entran una a una y el dibujo se mueve al pasar */
+@keyframes fono-ui-entra { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+body.fono-ruta-juegos .juegos-grid > .juego-card { animation: fono-ui-entra .45s cubic-bezier(.25, 1.3, .5, 1) both; }
+body.fono-ruta-juegos .juegos-grid > .juego-card:nth-child(2) { animation-delay: .05s; }
+body.fono-ruta-juegos .juegos-grid > .juego-card:nth-child(3) { animation-delay: .1s; }
+body.fono-ruta-juegos .juegos-grid > .juego-card:nth-child(4) { animation-delay: .15s; }
+body.fono-ruta-juegos .juegos-grid > .juego-card:nth-child(5) { animation-delay: .2s; }
+body.fono-ruta-juegos .juegos-grid > .juego-card:nth-child(n+6) { animation-delay: .25s; }
+body.fono-ruta-juegos .juego-card .juego-icono { transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .05); }
+body.fono-ruta-juegos .juego-card:hover .juego-icono,
+body.fono-ruta-juegos .juego-card:focus-visible .juego-icono { transform: scale(1.12) rotate(-6deg); }
+body.fono-ruta-juegos .juego-card:active { transform: scale(.98); }
+body.fono-ruta-juegos .juego-card .juego-flecha { transition: transform .2s; }
+body.fono-ruta-juegos .juego-card:hover .juego-flecha { transform: translateX(4px); }
+
+/* Tarjetas dentro de los juegos */
+body.fono-ruta-juegos .art-card,
+body.fono-ruta-juegos .instruccion-card { border-radius: 20px; animation: fono-ui-entra .4s ease both; }
+body.fono-ruta-juegos .resultado-card { border-radius: 20px; animation: fono-ui-entra .4s cubic-bezier(.25, 1.4, .5, 1) both; }
+
+/* Botón de volver más fácil de tocar */
+body.fono-ruta-juegos .btn-volver-cat { min-height: 38px; display: inline-flex; align-items: center; border-width: 2px; border-radius: 999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  body.fono-ruta-juegos .juegos-grid > .juego-card,
+  body.fono-ruta-juegos .art-card,
+  body.fono-ruta-juegos .instruccion-card,
+  body.fono-ruta-juegos .resultado-card { animation: none; }
+  body.fono-ruta-juegos .juego-card:hover .juego-icono { transform: none; }
+}

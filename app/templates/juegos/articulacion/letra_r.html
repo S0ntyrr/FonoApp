@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="/static/css/estilos.css">
   <script>window.FONOAPP_ES_PACIENTE = {{ 'true' if request.session.get('user', {}).get('rol') == 'paciente' else 'false' }};</script>
   <script src="/static/js/fono-evidencia-universal.js"></script>
-  <script src="/static/js/fono-boca-real.js?v=1"></script>
-  <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=1">
+  <script src="/static/js/fono-boca-real.js?v=4"></script>
+  <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=5">
   <link rel="stylesheet" href="/static/css/fono-terapia.css">
   <script src="/static/js/juego-audio-utils.js"></script>
   <script src="/static/js/articulacion-voz.js"></script>
@@ -200,11 +200,12 @@
       .complete-grid{grid-template-columns:1fr;}
     }
   </style>
-  <link rel="stylesheet" href="/static/css/fono-anim.css?v=2">
-  <script defer src="/iconos.js?v=2"></script>
+  <link rel="stylesheet" href="/static/css/fono-anim.css?v=3">
+  <link rel="stylesheet" href="/static/css/fono-juegos-ui.css?v=1">
+  <script defer src="/iconos.js?v=3"></script>
   <script defer src="/static/js/fono-emoji.js?v=1"></script>
 </head>
-<body>
+<body class="fono-ruta-juegos">
 <div class="fono-demo-contenedor"><div data-real-fonema="r"></div></div>
 <div class="screen">
   <h1 class="cat">Articulación · Letra R</h1>

@@ -56,3 +56,19 @@
 .fono-boca-demo-letra { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: #e0528f; color: #fff; font-weight: 900; font-size: 1.3rem; }
 .fono-palabra-boca { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .fono-palabra-boca svg { border-radius: 14px; box-shadow: 0 3px 10px #0001; }
+
+/* Panel «te escucho» (decir la palabra / grabar) */
+.fono-escucha { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 10px auto; max-width: 520px; padding: 12px 14px; border-radius: 18px; font-weight: 800; font-size: 1.05rem; color: #1f3347; background: #f1f6fb; border: 3px solid #dbe8f2; }
+.fono-escucha[hidden] { display: none; }
+.fono-escucha.escuchando { background: #fff3f3; border-color: #ef9a9a; }
+.fono-escucha.bien { background: #e7f8ee; border-color: #2bb673; color: #1d6b43; font-size: 1.2rem; }
+.fono-escucha.mal { background: #fff8e6; border-color: #f2c14e; font-weight: 700; font-size: .95rem; }
+.fono-escucha-mic { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #e53935; animation: fono-mic-late 1s ease-in-out infinite; }
+.fono-nivel-voz { display: inline-block; width: 90px; height: 12px; border-radius: 6px; background: #f3d1d1; overflow: hidden; }
+.fono-nivel-voz i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #2bb673, #f2b400); transition: width .08s; }
+.fono-parar-mini { border: none; background: #fff; border-radius: 12px; padding: 4px 8px; font-size: 1.1rem; cursor: pointer; box-shadow: 0 2px 6px #0002; }
+.fono-boton-mic { background: linear-gradient(135deg, #e53935, #c62828) !important; color: #fff !important; border-color: transparent !important; }
+.fono-saltar { font-size: .85rem !important; opacity: .8; }
+@keyframes fono-mic-late { 0%, 100% { box-shadow: 0 0 0 0 #e5393566; } 50% { box-shadow: 0 0 0 10px #e5393500; } }
+/* Íconos sobre botones de color: en blanco para que se vean */
+.fono-gran-boton:not(.secundario):not(.fono-saltar) .fono-emoji[data-icono="altavoz"] :is(path, g) { fill: #fff; stroke: #fff; }

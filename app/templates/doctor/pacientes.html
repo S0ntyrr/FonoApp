@@ -1,924 +1,166 @@
 {% extends "base.html" %}
 
 {% block contenido %}
-
-<section class="pantalla-movil pacientes-page">
-
-    <!-- ==========================================
-         ENCABEZADO
-    =========================================== -->
-
-    <div class="panel-header">
-
-        <a href="/doctor/home" class="btn-volver-panel">
-            ← Volver
-        </a>
-
-        <h1 class="titulo-rojo">
-            👥 Mis pacientes
-        </h1>
-
-        <a
-            href="/doctor/pacientes/nuevo"
-            class="btn-nuevo-header"
-            title="Agregar paciente"
-        >
-            + Nuevo
-        </a>
-
+{% set colores_avatar = ['#2e86de','#8e44ad','#16a6a0','#f57c00','#e84393','#2bb673','#5a67d8','#d35400'] %}
+{% set graves = pacientes | selectattr('gravedad') | selectattr('gravedad', 'ge', 4) | list %}
+{% set sin_actividad = pacientes | rejectattr('total_juegos') | list %}
+{% set prom = ((pacientes | sum(attribute='progreso_promedio')) / (pacientes | length)) | round | int if pacientes else 0 %}
+<section class="mp">
+  <header class="mp-hero">
+    <div class="mp-hero-top">
+      <a href="/doctor/home" class="mp-volver">← Panel</a>
+      <a href="/doctor/pacientes/nuevo" class="mp-nuevo">{{ icono('persona', 20) }} Nuevo paciente</a>
     </div>
+    <div class="mp-hero-titulo">
+      <span class="mp-hero-ico">{{ icono('personas', 46) }}</span>
+      <div><h1>Mis pacientes</h1><p>Sigue su avance y asigna actividades.</p></div>
+    </div>
+    <div class="mp-resumen">
+      <div class="mp-dato"><strong>{{ pacientes | length }}</strong><span>Pacientes</span></div>
+      <div class="mp-dato grave"><strong>{{ graves | length }}</strong><span>Casos graves</span></div>
+      <div class="mp-dato quieto"><strong>{{ sin_actividad | length }}</strong><span>Sin actividad</span></div>
+      <div class="mp-dato"><strong>{{ prom }}%</strong><span>Avance promedio</span></div>
+    </div>
+  </header>
 
+  {% if request.query_params.get("mensaje") == "paciente_creado" %}
+    <div class="mp-ok">{{ icono('ok', 22) }} Paciente creado correctamente.</div>
+  {% endif %}
 
-    <!-- ==========================================
-         BOTÓN PRINCIPAL
-    =========================================== -->
+  {% if pacientes %}
+  <div class="mp-herramientas">
+    <label class="mp-buscar">{{ icono('lupa', 22) }}<input type="search" id="buscarPaciente" placeholder="Buscar por nombre o correo…" autocomplete="off" aria-label="Buscar paciente"></label>
+    <div class="mp-filtros" role="group" aria-label="Filtrar">
+      <button type="button" class="activo" data-filtro="todos">Todos</button>
+      <button type="button" data-filtro="graves">Graves</button>
+      <button type="button" data-filtro="quietos">Sin actividad</button>
+    </div>
+  </div>
 
-    <a
-        href="/doctor/pacientes/nuevo"
-        class="btn-nuevo-paciente"
-    >
-        <span class="btn-nuevo-icono">＋</span>
-
-        <span>
-            <strong>Agregar nuevo paciente</strong>
-            <small>
-                Crear y asignar un paciente
-            </small>
-        </span>
-
-        <span class="btn-nuevo-flecha">
-            ›
-        </span>
-    </a>
-
-
-    <!-- ==========================================
-         MENSAJES
-    =========================================== -->
-
-    {% if request.query_params.get("mensaje") == "paciente_creado" %}
-
-        <div class="mensaje-exito">
-            ✓ Paciente creado correctamente.
+  <div class="mp-lista" id="mp-lista">
+    {% for p in pacientes %}
+    {% set progreso = p.progreso_promedio or 0 %}
+    {% set color = colores_avatar[(p.email | length + (p.nombre or '') | length) % colores_avatar | length] %}
+    {% set tono = '#9fb3c4' if progreso == 0 else ('#f57c00' if progreso < 40 else ('#2e86de' if progreso < 70 else '#2bb673')) %}
+    <article class="mp-card g{{ p.gravedad or 0 }}" data-nombre="{{ (p.nombre or '') | lower }}" data-email="{{ (p.email or '') | lower }}"
+             data-grave="{{ '1' if (p.gravedad or 0) >= 4 else '0' }}" data-quieto="{{ '0' if p.total_juegos else '1' }}">
+      <a class="mp-card-link" href="/doctor/pacientes/{{ p._id }}" aria-label="Ver perfil de {{ p.nombre or p.email }}"></a>
+      <div class="mp-avatar" style="--a:{{ color }}">{{ (p.nombre or p.email)[0] | upper }}</div>
+      <div class="mp-info">
+        <h2>{{ p.nombre or "Sin nombre" }}</h2>
+        <p class="mp-email">{{ p.email }}</p>
+        <div class="mp-chips">
+          {% if p.gravedad %}<span class="mp-grav g{{ p.gravedad }}">{{ icono(p.gravedad_cara, 16) }} Gravedad {{ p.gravedad }}/5</span>
+          {% else %}<span class="mp-grav sin">Sin plan</span>{% endif %}
+          <span class="mp-chip">{{ icono('estrella', 15) }} {{ p.juegos_completados or 0 }} completados</span>
+          <span class="mp-chip">{{ icono('grafica', 15) }} {{ p.total_juegos or 0 }} intentos</span>
         </div>
-
-    {% endif %}
-
-
-    <!-- ==========================================
-         LISTA DE PACIENTES
-    =========================================== -->
-
-    {% if pacientes %}
-
-        <div class="buscador-pacientes">
-    <span class="buscador-icono">🔎</span>
-
-    <input
-        type="text"
-        id="buscarPaciente"
-        class="buscador-input"
-        placeholder="Buscar por nombre o correo..."
-        autocomplete="off"
-    />
-</div>
-
-        <div class="contador-pacientes">
-
-            {{ pacientes|length }}
-
-            {% if pacientes|length == 1 %}
-                paciente registrado
-            {% else %}
-                pacientes registrados
-            {% endif %}
-
-        </div>
-
-
-        <div class="lista-pacientes-doctor">
-
-            {% for p in pacientes %}
-
-                <a
-    href="/doctor/pacientes/{{ p._id }}"
-    class="paciente-card"
-    data-nombre="{{ (p.nombre or '') | lower }}"
-    data-email="{{ (p.email or '') | lower }}"
->
-
-                    <!-- Avatar -->
-
-                    <div class="paciente-avatar">
-
-                        {{
-                            (p.nombre or p.email)[0]
-                            | upper
-                        }}
-
-                    </div>
-
-
-                    <!-- Información -->
-
-                    <div class="paciente-info">
-
-                        <p class="paciente-nombre">
-
-                            {{
-                                p.nombre
-                                or "Sin nombre"
-                            }}
-
-                        </p>
-
-
-                        <p class="paciente-email">
-
-                            {{ p.email }}
-
-                        </p>
-
-                        {% if p.gravedad %}
-                        <span class="paciente-gravedad g{{ p.gravedad }}" title="Gravedad {{ p.gravedad }} de 5">{{ icono(p.gravedad_cara, 16) }} Gravedad {{ p.gravedad }}/5</span>
-                        {% endif %}
-
-
-                        <div class="paciente-stats">
-
-                            <span class="stat-mini">
-
-                                🎮
-                                {{
-                                    p.juegos_completados
-                                    or 0
-                                }}
-                                completados
-
-                            </span>
-
-
-                            <span class="stat-mini">
-
-                                📊
-                                {{
-                                    p.total_juegos
-                                    or 0
-                                }}
-                                intentos
-
-                            </span>
-
-                        </div>
-
-                        {% set total = p.total_juegos or 0 %}
-                        {% set completados = p.juegos_completados or 0 %}
-                        {% set progreso = p.progreso_promedio or 0 %}
-
-                        <div class="paciente-progreso">
-                            <div class="paciente-progreso-header">
-                                <span>Progreso registrado</span>
-                                <strong>{{ progreso }}%</strong>
-                            </div>
-
-                            <div class="paciente-progreso-barra">
-                                <div
-                                    class="paciente-progreso-relleno"
-                                    data-progreso="{{ progreso }}"
-                                ></div>
-                            </div>
-                        </div>
-
-                    </div>
-
-
-                    <!-- Flecha -->
-
-                    <span class="paciente-flecha">
-                        ›
-                    </span>
-
-                </a>
-
-            {% endfor %}
-
-        </div>
-
-
-    {% else %}
-
-
-        <!-- ==========================================
-             ESTADO VACÍO
-        =========================================== -->
-
-        <div class="actividad-vacia">
-
-            <div class="estado-vacio-icono">
-                👥
-            </div>
-
-            <h2>
-                Aún no tienes pacientes
-            </h2>
-
-            <p>
-                Puedes crear tu primer paciente
-                usando el botón de abajo.
-            </p>
-
-
-            <a
-                href="/doctor/pacientes/nuevo"
-                class="btn-crear-vacio"
-            >
-                + Crear mi primer paciente
-            </a>
-
-        </div>
-
-
-    {% endif %}
-
+      </div>
+      <div class="mp-anillo" style="--p:{{ progreso }};--t:{{ tono }}" role="img" aria-label="Avance {{ progreso }}%">
+        <span>{{ progreso }}<small>%</small></span>
+      </div>
+      <div class="mp-acciones">
+        <a href="/doctor/pacientes/{{ p._id }}/plan">{{ icono('mapa', 18) }} Plan</a>
+        <a href="/doctor/tareas?paciente={{ p.email | urlencode }}">{{ icono('diana', 18) }} Asignar</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="mp-vacio-filtro" id="mp-vacio" hidden>No hay pacientes con ese filtro.</p>
+  {% else %}
+  <div class="mp-vacio">
+    {{ icono('personas', 80) }}
+    <h2>Aún no tienes pacientes</h2>
+    <p>Crea tu primer paciente para asignarle actividades.</p>
+    <a href="/doctor/pacientes/nuevo" class="mp-nuevo grande">{{ icono('persona', 22) }} Crear mi primer paciente</a>
+  </div>
+  {% endif %}
 </section>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const barrasProgreso = document.querySelectorAll(
-    '.paciente-progreso-relleno'
-);
-
-barrasProgreso.forEach(function (barra) {
-    const progreso = Number(
-        barra.dataset.progreso || 0
-    );
-
-    const porcentajeSeguro = Math.max(
-        0,
-        Math.min(100, progreso)
-    );
-
-    barra.style.width = porcentajeSeguro + '%';
-});
-
-    const input = document.getElementById('buscarPaciente');
-    const tarjetas = document.querySelectorAll('.paciente-card');
-
-    if (!input) {
-        return;
-    }
-
-    input.addEventListener('input', function () {
-        const termino = input.value
-            .trim()
-            .toLowerCase();
-
-        tarjetas.forEach(function (tarjeta) {
-            const nombre = tarjeta.dataset.nombre || '';
-            const email = tarjeta.dataset.email || '';
-
-            const coincide =
-                nombre.includes(termino) ||
-                email.includes(termino);
-
-            tarjeta.style.display = coincide
-                ? 'flex'
-                : 'none';
-        });
+  const input = document.getElementById('buscarPaciente');
+  const tarjetas = Array.from(document.querySelectorAll('.mp-card'));
+  const vacio = document.getElementById('mp-vacio');
+  let filtro = 'todos';
+  function aplicar() {
+    const q = (input ? input.value : '').trim().toLowerCase();
+    let visibles = 0;
+    tarjetas.forEach(t => {
+      const okTexto = !q || t.dataset.nombre.includes(q) || t.dataset.email.includes(q);
+      const okFiltro = filtro === 'todos' || (filtro === 'graves' && t.dataset.grave === '1') || (filtro === 'quietos' && t.dataset.quieto === '1');
+      t.hidden = !(okTexto && okFiltro);
+      if (!t.hidden) visibles++;
     });
+    if (vacio) vacio.hidden = visibles > 0;
+  }
+  if (input) input.addEventListener('input', aplicar);
+  document.querySelectorAll('.mp-filtros button').forEach(b => b.addEventListener('click', () => {
+    filtro = b.dataset.filtro;
+    document.querySelectorAll('.mp-filtros button').forEach(x => x.classList.toggle('activo', x === b));
+    aplicar();
+  }));
 });
 </script>
 
 <style>
-
-.paciente-progreso {
-    margin-top: 0.55rem;
+.mp { max-width: 1100px; margin: 0 auto; padding: 14px 14px 40px; color: #1f3347; box-sizing: border-box; }
+.mp-hero { background: linear-gradient(135deg, #2b4c7e 0%, #5a67d8 55%, #8e6bd6 100%); color: #fff; border-radius: 24px; padding: 16px 18px 18px; box-shadow: 0 10px 28px #3b4fa033; position: relative; overflow: hidden; }
+.mp-hero::after { content: ""; position: absolute; width: 220px; height: 220px; border-radius: 50%; background: #ffffff14; right: -60px; top: -80px; }
+.mp-hero-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; position: relative; z-index: 1; }
+.mp-volver { color: #fff; text-decoration: none; font-weight: 700; opacity: .9; }
+.mp-nuevo { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #2b4c7e; text-decoration: none; font-weight: 800; padding: 9px 14px; border-radius: 999px; box-shadow: 0 4px 12px #0002; }
+.mp-nuevo.grande { background: #5a67d8; color: #fff; padding: 12px 20px; }
+.mp-hero-titulo { display: flex; align-items: center; gap: 12px; margin: 14px 0 12px; position: relative; z-index: 1; }
+.mp-hero-ico { display: grid; place-items: center; width: 64px; height: 64px; background: #ffffff; border-radius: 18px; }
+.mp-hero h1 { margin: 0; font-size: 1.6rem; color: #fff; }
+.mp-hero p { margin: 2px 0 0; opacity: .85; }
+.mp-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; position: relative; z-index: 1; }
+.mp-dato { background: #ffffff1f; border: 1px solid #ffffff33; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; }
+.mp-dato strong { font-size: 1.45rem; line-height: 1.1; }
+.mp-dato span { font-size: .75rem; opacity: .9; }
+.mp-dato.grave strong { color: #ffd0c4; }
+.mp-dato.quieto strong { color: #ffe9a8; }
+.mp-ok { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 10px 14px; border-radius: 14px; background: #e7f8ee; border: 2px solid #2bb673; color: #1d6b43; font-weight: 700; }
+.mp-herramientas { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 16px 0 12px; }
+.mp-buscar { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid #e3e9f2; border-radius: 16px; padding: 4px 12px; }
+.mp-buscar input { border: none; outline: none; flex: 1; font: inherit; padding: 8px 0; background: transparent; min-width: 0; }
+.mp-buscar:focus-within { border-color: #5a67d8; }
+.mp-filtros { display: flex; gap: 6px; }
+.mp-filtros button { border: 2px solid #e3e9f2; background: #fff; border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 700; color: #5a6b7b; cursor: pointer; }
+.mp-filtros button.activo { background: #2b4c7e; border-color: #2b4c7e; color: #fff; }
+.mp-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+.mp-card { position: relative; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "av info anillo" "acc acc acc"; gap: 10px 12px; align-items: center;
+  background: #fff; border-radius: 20px; padding: 14px; border: 1px solid #e8eef5; border-left: 6px solid #cfd8e2; box-shadow: 0 4px 16px #1f334712; transition: transform .15s, box-shadow .15s; }
+.mp-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px #1f33471f; }
+.mp-card[hidden] { display: none; }
+.mp-card.g1 { border-left-color: #2bb673; } .mp-card.g2 { border-left-color: #7cc242; } .mp-card.g3 { border-left-color: #f2b400; } .mp-card.g4 { border-left-color: #f57c00; } .mp-card.g5 { border-left-color: #e53935; }
+.mp-card-link { position: absolute; inset: 0; border-radius: 20px; z-index: 1; }
+.mp-card-link:focus-visible { outline: 3px solid #5a67d8; outline-offset: 2px; }
+.mp-avatar { grid-area: av; width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; font-size: 1.4rem; font-weight: 900; color: #fff;
+  background: linear-gradient(135deg, var(--a), color-mix(in srgb, var(--a) 70%, #000)); box-shadow: 0 4px 10px color-mix(in srgb, var(--a) 40%, transparent); }
+.mp-info { grid-area: info; min-width: 0; }
+.mp-info h2 { margin: 0; font-size: 1.05rem; }
+.mp-email { margin: 1px 0 6px; font-size: .8rem; color: #6b7c8d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.mp-chip, .mp-grav { display: inline-flex; align-items: center; gap: 4px; font-size: .74rem; font-weight: 700; border-radius: 999px; padding: 3px 9px; background: #f2f5f9; color: #4a5b6c; }
+.mp-grav { color: #fff; }
+.mp-grav.g1 { background: #2bb673; } .mp-grav.g2 { background: #7cc242; } .mp-grav.g3 { background: #d79e00; } .mp-grav.g4 { background: #f57c00; } .mp-grav.g5 { background: #e53935; }
+.mp-grav.sin { background: #eef1f6; color: #7a8a9a; }
+.mp-anillo { grid-area: anillo; width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(closest-side, #fff 76%, transparent 78%), conic-gradient(var(--t) calc(var(--p) * 1%), #edf1f6 0); }
+.mp-anillo span { font-weight: 900; font-size: 1rem; color: #1f3347; }
+.mp-anillo small { font-size: .65rem; }
+.mp-acciones { grid-area: acc; display: flex; gap: 8px; border-top: 1px dashed #e3e9f2; padding-top: 10px; position: relative; z-index: 2; }
+.mp-acciones a { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; font-weight: 800; font-size: .85rem; color: #2b4c7e; background: #f1f4fb; border-radius: 12px; padding: 8px; }
+.mp-acciones a:hover { background: #e3e9fb; }
+.mp-vacio, .mp-vacio-filtro { text-align: center; color: #5a6b7b; padding: 30px 10px; }
+.mp-vacio h2 { margin: 10px 0 4px; }
+@media (max-width: 560px) {
+  .mp { padding: 10px 10px 30px; }
+  .mp-resumen { grid-template-columns: repeat(2, 1fr); }
+  .mp-lista { grid-template-columns: 1fr; }
+  .mp-filtros { width: 100%; } .mp-filtros button { flex: 1; padding: 8px 4px; font-size: .82rem; white-space: nowrap; }
 }
-
-.paciente-progreso-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.3rem;
-    gap: 0.5rem;
-}
-
-.paciente-progreso-header span {
-    font-size: 0.7rem;
-    color: #888;
-    font-weight: 600;
-}
-
-.paciente-progreso-header strong {
-    font-size: 0.72rem;
-    color: #c62828;
-    font-weight: 800;
-}
-
-.paciente-progreso-barra {
-    width: 100%;
-    height: 7px;
-    background: #f2e5e5;
-    border-radius: 20px;
-    overflow: hidden;
-}
-
-.paciente-progreso-relleno {
-    width: 0;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        #d32f2f,
-        #ef5350
-    );
-    border-radius: 20px;
-    transition: width 0.5s ease;
-}
-
-.buscador-pacientes {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: #ffffff;
-    border: 1px solid #f0dede;
-    border-radius: 14px;
-    padding: 0.7rem 0.9rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 3px 10px rgba(180, 40, 40, 0.07);
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-.buscador-pacientes:focus-within {
-    border-color: #e57373;
-    box-shadow: 0 5px 14px rgba(198, 40, 40, 0.12);
-}
-
-.buscador-icono {
-    font-size: 1rem;
-    opacity: 0.7;
-}
-
-.buscador-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 0.85rem;
-    color: #333;
-    min-width: 0;
-}
-
-.buscador-input::placeholder {
-    color: #aaa;
-}
-
-/* ==========================================
-   CONTENEDOR
-========================================== */
-
-.pacientes-page {
-    padding-top: 1rem;
-}
-
-
-/* ==========================================
-   HEADER
-========================================== */
-
-.panel-header {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 0.5rem;
-
-    margin-bottom: 1.2rem;
-
-    padding-bottom: 0.8rem;
-
-    border-bottom: 1px solid #f0f0f0;
-
-}
-
-
-.panel-header .titulo-rojo {
-
-    margin: 0;
-
-    font-size: 1.15rem;
-
-    text-align: center;
-
-}
-
-
-/* ==========================================
-   BOTÓN VOLVER
-========================================== */
-
-.btn-volver-panel {
-
-    background: white;
-
-    border: 1px solid #d32f2f;
-
-    color: #d32f2f;
-
-    border-radius: 20px;
-
-    padding: 0.35rem 0.8rem;
-
-    font-size: 0.82rem;
-
-    font-weight: 600;
-
-    text-decoration: none;
-
-    white-space: nowrap;
-
-}
-
-
-.btn-volver-panel:hover {
-
-    background: #fff5f5;
-
-}
-
-
-/* ==========================================
-   BOTÓN NUEVO HEADER
-========================================== */
-
-.btn-nuevo-header {
-
-    background: #d32f2f;
-
-    color: white;
-
-    padding: 0.4rem 0.8rem;
-
-    border-radius: 20px;
-
-    text-decoration: none;
-
-    font-size: 0.8rem;
-
-    font-weight: 700;
-
-    white-space: nowrap;
-
-}
-
-
-.btn-nuevo-header:hover {
-
-    background: #b71c1c;
-
-}
-
-
-/* ==========================================
-   BOTÓN PRINCIPAL NUEVO PACIENTE
-========================================== */
-
-.btn-nuevo-paciente {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 0.8rem;
-
-    width: 100%;
-
-    box-sizing: border-box;
-
-    background: linear-gradient(
-        135deg,
-        #d32f2f,
-        #b71c1c
-    );
-
-    color: white;
-
-    padding: 1rem;
-
-    border-radius: 14px;
-
-    text-decoration: none;
-
-    margin-bottom: 1.2rem;
-
-    box-shadow:
-        0 4px 14px
-        rgba(211, 47, 47, 0.25);
-
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease;
-
-}
-
-
-.btn-nuevo-paciente:hover {
-
-    transform: translateY(-2px);
-
-    box-shadow:
-        0 7px 20px
-        rgba(211, 47, 47, 0.35);
-
-}
-
-
-.btn-nuevo-icono {
-
-    width: 44px;
-
-    height: 44px;
-
-    border-radius: 50%;
-
-    background: rgba(255,255,255,0.2);
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    font-size: 1.8rem;
-
-    flex-shrink: 0;
-
-}
-
-
-.btn-nuevo-paciente span:nth-child(2) {
-
-    display: flex;
-
-    flex-direction: column;
-
-    flex: 1;
-
-}
-
-
-.btn-nuevo-paciente strong {
-
-    font-size: 0.95rem;
-
-}
-
-
-.btn-nuevo-paciente small {
-
-    margin-top: 0.15rem;
-
-    opacity: 0.85;
-
-}
-
-
-.btn-nuevo-flecha {
-
-    font-size: 2rem;
-
-}
-
-
-/* ==========================================
-   CONTADOR
-========================================== */
-
-.contador-pacientes {
-
-    font-size: 0.78rem;
-
-    color: #777;
-
-    margin-bottom: 0.7rem;
-
-}
-
-
-/* ==========================================
-   LISTA
-========================================== */
-
-.lista-pacientes-doctor {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 0.7rem;
-
-}
-
-
-/* ==========================================
-   TARJETA PACIENTE
-========================================== */
-
-.paciente-card {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 0.9rem;
-
-    padding: 0.9rem 1rem;
-
-    background: #fff;
-
-    border-radius: 14px;
-
-    text-decoration: none;
-
-    color: #1a1a1a;
-
-    box-shadow:
-        0 2px 8px
-        rgba(0,0,0,0.06);
-
-    border: 1px solid #eeeeee;
-
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease;
-
-}
-
-
-.paciente-card:hover {
-
-    transform: translateX(3px);
-
-    box-shadow:
-        0 5px 16px
-        rgba(0,0,0,0.10);
-
-    border-color: #ffcdd2;
-
-}
-
-
-/* ==========================================
-   AVATAR
-========================================== */
-
-.paciente-avatar {
-
-    width: 48px;
-
-    height: 48px;
-
-    border-radius: 50%;
-
-    background:
-        linear-gradient(
-            135deg,
-            #d32f2f,
-            #b71c1c
-        );
-
-    color: white;
-
-    font-size: 1.25rem;
-
-    font-weight: 700;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    flex-shrink: 0;
-
-}
-
-
-/* ==========================================
-   INFORMACIÓN
-========================================== */
-
-.paciente-info {
-
-    flex: 1;
-
-    min-width: 0;
-
-}
-
-
-.paciente-nombre {
-
-    margin: 0;
-
-    font-size: 0.95rem;
-
-    font-weight: 700;
-
-    color: #1a1a1a;
-
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-}
-
-
-.paciente-email {
-
-    margin:
-        0.15rem
-        0
-        0.45rem;
-
-    font-size: 0.76rem;
-
-    color: #888;
-
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-}
-
-
-/* ==========================================
-   ESTADÍSTICAS
-========================================== */
-
-.paciente-stats {
-
-    display: flex;
-
-    gap: 0.4rem;
-
-    flex-wrap: wrap;
-
-}
-
-
-.stat-mini {
-
-    font-size: 0.68rem;
-
-    color: #666;
-
-    background: #f5f5f5;
-
-    padding:
-        0.2rem
-        0.45rem;
-
-    border-radius: 12px;
-
-}
-
-
-/* ==========================================
-   FLECHA
-========================================== */
-
-.paciente-flecha {
-
-    font-size: 1.7rem;
-
-    color: #d0d0d0;
-
-}
-
-
-/* ==========================================
-   ESTADO VACÍO
-========================================== */
-
-.actividad-vacia {
-
-    margin-top: 2rem;
-
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 2rem 1.2rem;
-
-    text-align: center;
-
-    box-shadow:
-        0 2px 10px
-        rgba(0,0,0,0.05);
-
-}
-
-
-.estado-vacio-icono {
-
-    font-size: 3rem;
-
-    margin-bottom: 0.8rem;
-
-}
-
-
-.actividad-vacia h2 {
-
-    margin: 0 0 0.5rem;
-
-    font-size: 1.05rem;
-
-    color: #333;
-
-}
-
-
-.actividad-vacia p {
-
-    margin: 0 0 1.2rem;
-
-    color: #777;
-
-    font-size: 0.88rem;
-
-    line-height: 1.5;
-
-}
-
-
-.btn-crear-vacio {
-
-    display: inline-block;
-
-    background: #d32f2f;
-
-    color: white;
-
-    padding:
-        0.7rem
-        1.2rem;
-
-    border-radius: 10px;
-
-    text-decoration: none;
-
-    font-weight: 700;
-
-    font-size: 0.85rem;
-
-}
-
-
-.btn-crear-vacio:hover {
-
-    background: #b71c1c;
-
-}
-
-
-/* ==========================================
-   MENSAJE DE ÉXITO
-========================================== */
-
-.mensaje-exito {
-
-    background: #e8f5e9;
-
-    color: #2e7d32;
-
-    border:
-        1px solid
-        #c8e6c9;
-
-    padding: 0.8rem;
-
-    border-radius: 10px;
-
-    font-size: 0.85rem;
-
-    margin-bottom: 1rem;
-
-}
-
-</style>
-
-<style>
-.paciente-gravedad{display:inline-flex;align-items:center;gap:4px;margin:2px 0 4px;padding:2px 10px;border-radius:999px;font-size:.75rem;font-weight:800;color:#fff}
-.paciente-gravedad.g1{background:#2bb673}.paciente-gravedad.g2{background:#7cc242}.paciente-gravedad.g3{background:#d79e00}.paciente-gravedad.g4{background:#f57c00}.paciente-gravedad.g5{background:#e53935}
 </style>
 {% endblock %}

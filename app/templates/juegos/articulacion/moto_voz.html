@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block contenido %}
 <link rel="stylesheet" href="/static/css/articulacion-juego.css">
-<script src="/static/js/articulacion-voz.js"></script>
+<script src="/static/js/articulacion-voz.js?v=2"></script>
 
 <section class="pantalla-movil" style="max-width:780px;margin:0 auto;">
   <div class="juegos-header">
@@ -32,7 +32,7 @@
       <div class="art-meta">🏁</div>
     </div>
 
-    <button id="moto-mic" type="button" class="art-mic">🎤</button><button id="moto-intente" type="button" class="art-btn-sec" style="margin:8px">✅ Lo intenté</button>
+    <button id="moto-mic" type="button" class="art-mic" aria-label="Decir la palabra">🎤</button><button id="moto-saltar" type="button" class="art-btn-sec moto-saltar" hidden>Saltar ›</button>
     <div id="moto-fb" class="art-feedback info">Pulsa el micrófono y di la palabra completa.</div>
 
     <div class="art-progreso">
@@ -53,6 +53,11 @@
 
 <style>
 .juegos-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid #f0f0f0}
+.art-moto.moto-error{animation:moto-sacude .5s ease}
+@keyframes moto-sacude{20%,60%{transform:translateX(-10px) rotate(-8deg)}40%,80%{transform:translateX(10px) rotate(8deg)}}
+.art-feedback.error{font-weight:800;font-size:1.02rem;border-width:3px}
+.moto-saltar{font-size:.85rem;opacity:.8;margin:8px}
+.moto-saltar[hidden]{display:none}
 .btn-volver-cat{background:none;border:1px solid #e63946;color:#e63946;border-radius:20px;padding:.35rem .9rem;font-size:.85rem;font-weight:600;text-decoration:none;white-space:nowrap}
 </style>
 
@@ -76,6 +81,14 @@ const sesionMotoVoz = FonoArticulacion.crearSesionVoz({categoria:'articulacion',
 let motoIndice = 0;
 let motoGuardando = false;
 let reconocidasMoto=0;
+let fallosMoto=0;
+const registroMoto=[];   // por palabra: intentos y lo que se escuchó (mismo orden que el audio)
+function registroActual(){const r=RETOS_MOTO_VOZ[motoIndice];if(!r)return null;let x=registroMoto.find(e=>e.palabra===r.palabra);if(!x){x={palabra:r.palabra,intentos:0,logrado:false,escuchado:[]};registroMoto.push(x);}return x;}
+function errorMoto(){
+  const m=document.getElementById('moto-vehiculo');m.classList.remove('moto-error');void m.offsetWidth;m.classList.add('moto-error');
+  try{const c=new (window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.setValueAtTime(220,c.currentTime);o.frequency.exponentialRampToValueAtTime(110,c.currentTime+.35);g.gain.setValueAtTime(.08,c.currentTime);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.4);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.42);}catch(_){}
+  try{navigator.vibrate&&navigator.vibrate(150);}catch(_){}
+}
 
 function mostrarMotoFb(tipo,texto){
   const fb=document.getElementById('moto-fb');
@@ -117,11 +130,17 @@ function reconocerMotoVoz(){
       mostrarMotoFb('info',`Escuchando… di “${reto.palabra.toUpperCase()}”.`);
     },
     alCorrecto:(coincidencia)=>{
-      motoIndice+=1;reconocidasMoto++;
-      mostrarMotoFb('ok',`✅ Palabra reconocida: “${coincidencia.transcript}”.`);
+      const reg=registroActual();if(reg){reg.intentos++;reg.logrado=true;reg.escuchado.push(coincidencia.transcript);}
+      motoIndice+=1;reconocidasMoto++;fallosMoto=0;document.getElementById('moto-saltar').hidden=true;
+      mostrarMotoFb('ok',`✅ ¡Muy bien! “${coincidencia.transcript}”`);
       setTimeout(actualizarMotoVoz,450);
     },
-    alIncorrecto:(mensaje)=>mostrarMotoFb('error',mensaje),
+    alIncorrecto:(mensaje)=>{
+      const reg=registroActual();if(reg){reg.intentos++;const m=/“(.+?)”/.exec(mensaje);if(m&&!/[A-ZÁÉÍÓÚÑ]{2,}/.test(m[1]))reg.escuchado.push(m[1]);}
+      fallosMoto++;errorMoto();
+      mostrarMotoFb('error','❌ '+mensaje);
+      if(fallosMoto>=3)document.getElementById('moto-saltar').hidden=false;
+    },
     alFin:()=>{
       btn.classList.remove('escuchando');
       btn.textContent='🎤';
@@ -138,7 +157,7 @@ async function finalizarMotoVoz(){
     await FonoArticulacion.guardarResultado({
       categoria:'articulacion', juego:'moto_voz', pasoCompletado:1, totalPasos:1,
       completado:true, puntos:40, nivel:nivelMoto,
-      notas:'Reto por fonema '+fonemaMoto+'. Palabras practicadas '+motoIndice+', reconocidas por texto '+reconocidasMoto+'. Los intentos manuales necesitan revisión clínica.',
+      notas:'Reto por fonema '+fonemaMoto+'. Palabras reconocidas '+reconocidasMoto+' de '+RETOS_MOTO_VOZ.length+'. Detalle (mismo orden que el audio): '+registroMoto.map(r=>`${r.palabra} ${r.logrado?'✔':'✘ saltada'} (${r.intentos} intento${r.intentos===1?'':'s'}${r.escuchado.length?', se escuchó: '+r.escuchado.join(' / '):''})`).join('; ')+'. Revisión clínica del audio recomendada.',
       requiereRevisionAudio:true,
       ...detalle
     });
@@ -166,9 +185,10 @@ document.getElementById('moto-ejemplo').addEventListener('click',()=>{
   if(reto) sesionMotoVoz.hablar(reto.palabra,{rate:.8});
 });
 document.getElementById('moto-mic').addEventListener('click',reconocerMotoVoz);
-document.getElementById('moto-intente').addEventListener('click',()=>{
+document.getElementById('moto-saltar').addEventListener('click',()=>{
   if(motoGuardando||sesionMotoVoz.estaReconociendo()||motoIndice>=RETOS_MOTO_VOZ.length)return;
-  motoIndice++;mostrarMotoFb('info','⭐ ¡Buen intento! Seguimos. El doctor puede escuchar tu voz.');
+  registroActual();motoIndice++;fallosMoto=0;document.getElementById('moto-saltar').hidden=true;
+  mostrarMotoFb('info','Seguimos con la siguiente palabra. El doctor escuchará la grabación.');
   setTimeout(actualizarMotoVoz,250);
 });
 window.addEventListener('beforeunload',()=>sesionMotoVoz.cancelar());

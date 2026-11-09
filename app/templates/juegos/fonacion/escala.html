@@ -33,9 +33,13 @@
         </div>
     </div>
 
-    <!-- Indicador de nota actual -->
+    <!-- Indicador de nota actual + escuchar -->
     <div class="nota-actual" id="nota-actual">
         <span id="nota-nombre">DO</span>
+    </div>
+    <div class="escala-escuchar">
+        <button type="button" class="escala-btn-escuchar" onclick="escucharNotaActual()" aria-label="Escuchar la nota">{{ icono('altavoz', 30) }}<span>Nota</span></button>
+        <button type="button" class="escala-btn-escuchar grande" id="btn-escuchar-escala" onclick="escucharEscala()" aria-label="Escuchar la escala completa">{{ icono('notas', 34) }}<span>Escuchar escala</span></button>
     </div>
 
     <!-- Indicador de fase (INHALA / canta) -->
@@ -188,8 +192,16 @@
     margin-top: 0.5rem;
 }
 .oculto { display: none !important; }
+
+.escala-escuchar { display: flex; justify-content: center; gap: 10px; margin: 0.4rem 0 0.6rem; }
+.escala-btn-escuchar { display: inline-flex; align-items: center; gap: 8px; border: 2px solid #b8e1f7; background: #fff; color: #1d3b53; font: inherit; font-weight: 800; border-radius: 999px; padding: 6px 14px 6px 8px; cursor: pointer; box-shadow: 0 3px 10px #2e6f9e1f; }
+.escala-btn-escuchar.grande { background: #f0eafc; color: #4b2f9e; border-color: #c9b8f0; }
+.escala-btn-escuchar.sonando { animation: escala-late 0.8s ease-in-out infinite; }
+.nota-dot.suena { background: #8e6bd6 !important; color: #fff !important; transform: scale(1.18); }
+@keyframes escala-late { 50% { transform: scale(1.06); } }
 </style>
 
+<script src="/static/js/fono-nota-organica.js?v=1"></script>
 <script>
 const NOTAS = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI', 'DO'];
 const FRECUENCIAS = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
@@ -355,16 +367,52 @@ function actualizarNotaActual() {
     reproducirNota(notaActual);
 }
 
-function reproducirNota(idx) {
+// Duración de la nota guía: 0,8 s originales + 3 s más para poder sostenerla cantando.
+const DURACION_NOTA = 3.8;
+// En «Escuchar escala» cada nota dura 1,1 s y la última se sostiene 3 s más.
+const DURACION_NOTA_ESCALA = 1.1;
+let reproduciendoHasta = 0;
+
+function contextoSonido() {
+    if (!audioCtxSonido) audioCtxSonido = crearContextoAudioFono();
+    if (audioCtxSonido.state === 'suspended') audioCtxSonido.resume();
+    return audioCtxSonido;
+}
+
+function reproducirNota(idx, duracion = DURACION_NOTA) {
     try {
-        if (!audioCtxSonido) audioCtxSonido = crearContextoAudioFono();
-        crearTonoFono(audioCtxSonido, {
-            frequency: FRECUENCIAS[idx],
-            duration: 0.8,
-            volumeBase: 0.28,
-            type: 'sine'
-        });
+        const ctxS = contextoSonido();
+        const fin = tocarNotaOrganica(ctxS, FRECUENCIAS[idx], duracion);
+        reproduciendoHasta = Math.max(reproduciendoHasta, performance.now() + (fin - ctxS.currentTime) * 1000);
     } catch(e) {}
+}
+
+function escucharNotaActual() { reproducirNota(notaActual); }
+
+function secuenciaIndices() {
+    return (NIVELES[nivelActual].secuencia === ESCALA_DESC) ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+}
+
+function escucharEscala() {
+    try {
+        const ctxS = contextoSonido();
+        let t = ctxS.currentTime + 0.05;
+        const orden = secuenciaIndices();
+        const btn = document.getElementById('btn-escuchar-escala');
+        btn.classList.add('sonando');
+        orden.forEach((idx, i) => {
+            const dur = DURACION_NOTA_ESCALA + (i === orden.length - 1 ? 3 : 0);
+            tocarNotaOrganica(ctxS, FRECUENCIAS[idx], dur, t);
+            const espera = (t - ctxS.currentTime) * 1000;
+            setTimeout(() => {
+                document.querySelectorAll('.nota-dot').forEach((d, k) => d.classList.toggle('suena', k === idx));
+            }, espera);
+            t += dur - 0.05;
+        });
+        const total = (t - ctxS.currentTime) * 1000;
+        reproduciendoHasta = Math.max(reproduciendoHasta, performance.now() + total);
+        setTimeout(() => { btn.classList.remove('sonando'); document.querySelectorAll('.nota-dot').forEach(d => d.classList.remove('suena')); }, total);
+    } catch (e) {}
 }
 
 // ─── Micrófono ────────────────────────────────────────────────────────────────
@@ -418,11 +466,12 @@ function mostrarFaseInhala() {
     document.getElementById('fase-texto-escala').innerHTML = '<span class="fase-inhala">INHALA</span><span class="fase-espera">(prepárate)</span>';
     timerInhala = setTimeout(() => {
         timerInhala = null;
+        if (performance.now() < reproduciendoHasta) { mostrarFaseInhala(); return; }
         faseEscala = 'canta';
         const notaObjetivo = NOTAS[notaActual] || 'DO';
         const secuencia = NIVELES[nivelActual].secuencia || ESCALA_ASC;
         document.getElementById('fase-texto-escala').innerHTML = `<span class="fase-canta">🎵 CANTA: ${notaObjetivo}</span><span class="fase-guia">Secuencia: ${secuencia}</span>`;
-    }, 2000);
+    }, Math.max(2000, reproduciendoHasta - performance.now() + 200));
 }
 
 function medirVozEscala() {
@@ -432,7 +481,8 @@ function medirVozEscala() {
     const promedio = dataArray.reduce((a,b) => a+b, 0) / dataArray.length;
     const volPct = Math.min(100, (promedio / 128) * 100);
 
-    if (faseEscala === 'canta' && volPct > 20) {
+    const sonandoGuia = performance.now() < reproduciendoHasta;
+    if (faseEscala === 'canta' && volPct > 20 && !sonandoGuia) {
         // Avanzar nota
         if (!timerAvance) {
             timerAvance = setTimeout(() => {

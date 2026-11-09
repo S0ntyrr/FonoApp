@@ -5,9 +5,9 @@
 (()=>{
  'use strict';
  const juegos={
-  'respiracion/globo':{i:'globo',nombre:'Globo',demo:'/static/img/soplo-boca.gif',pasos:[['lupa','Mira el globo.'],['soplar','Mira cómo soplar.'],['globo','Sopla suave: el globo crece.']]},
-  'respiracion/molino':{i:'molino',nombre:'Molino de Pepe',demo:'/static/img/molino-demostracion.gif',pasos:[['lupa','Mira el molino.'],['molino','Mira cómo gira.'],['soplar','Sopla suave para hacerlo girar.']]},
-  'fonacion/gol':{i:'gol',nombre:'¡Haz un gol!',pasos:[['gol','Mira la pelota.'],['boca_g','Di «gol» con voz suave.'],['trofeo','¡Haz que llegue a la meta!']]},
+  'respiracion/globo':{i:'globo',nombre:'Globo',pasos:[['inspirar','Toma aire por la nariz.'],['soplar','Sopla fuerte y largo.'],['globo','El globo crece. Si te cansas, respira y sigue.']]},
+  'respiracion/molino':{i:'molino',nombre:'Molino de Pepe',pasos:[['inspirar','Toma aire por la nariz.'],['soplar','Sopla al molino.'],['molino','Mientras más soplas, más rápido gira.']]},
+  'fonacion/gol':{i:'gol',nombre:'¡Haz un gol!',pasos:[['arrastrar','Mueve el dedo para apuntar.'],['boca_o','Di GOOOOOOL largo y fuerte.'],['gol','Más largo y fuerte = tiro más alto.']]},
   'fonacion/escala':{i:'escala',nombre:'Escala musical',pasos:[['oreja','Escucha la nota.'],['boca_m','Haz el sonido de M como en mamá.'],['escala','Sigue la música con tu voz.']]},
   'resonancia/escaleras':{i:'escaleras',nombre:'Sube la pelota',pasos:[['oreja','Escucha el sonido.'],['boca_m','Haz el sonido de M como en mamá.'],['escaleras','Mira cómo sube la pelota.']]},
   'articulacion/letra-b':{i:'letra_b',nombre:'Letra B',pasos:[['boca_b','Mira los labios.'],['oreja','Escucha el sonido «b».'],['letra_b','Di «b» y después «abeja».']]},

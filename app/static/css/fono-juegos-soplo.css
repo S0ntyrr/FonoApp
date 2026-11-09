@@ -78,3 +78,66 @@
   .sui-voz{top:-56px}
 }
 @media (prefers-reduced-motion:reduce){.sui-boton-grande,.sui-flechas-in,.sui-aire,.sui-demo-mano .sui-mano,.sui-voz{animation:none}}
+
+/* Demostración animada del globo (paso 3 de la pantalla de inicio) */
+.demo-globo{width:clamp(84px,18vw,130px);height:clamp(84px,18vw,130px);display:grid;place-items:center;background:#f3fbff;border-radius:16px}
+.demo-globo svg{width:100%;height:100%}
+.demo-globo .dg-globo{transform-box:fill-box;transform-origin:30% 95%;animation:dg-infla 2.6s ease-in-out infinite}
+.demo-globo .dg-aire path{stroke-dasharray:4 4;animation:dg-aire .5s linear infinite}
+.demo-globo .dg-mej{animation:dg-mej 2.6s ease-in-out infinite}
+@keyframes dg-infla{0%{transform:scale(.35)}70%{transform:scale(1)}85%,100%{transform:scale(1);opacity:1}}
+@keyframes dg-aire{to{stroke-dashoffset:-8}}
+@keyframes dg-mej{0%,100%{opacity:.4}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.demo-globo *{animation:none!important}}
+.globo-respira{position:absolute;z-index:2;transform:translate(-50%,-100%) scale(.6);opacity:0;transition:all .3s;background:#fff;border-radius:22px;padding:6px;box-shadow:0 6px 16px #2e6f9e33;pointer-events:none}
+.globo-respira::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-10px;border:10px solid transparent;border-top-color:#fff;border-bottom:0}
+.globo-respira .sui-cara{width:clamp(64px,16vw,90px);height:clamp(64px,16vw,90px);display:block}
+.globo-respira.ver{opacity:1;transform:translate(-50%,-100%) scale(1);animation:gr-late 1.4s ease-in-out infinite}
+@keyframes gr-late{50%{transform:translate(-50%,-104%) scale(1.06)}}
+
+/* ── Molino de Pepe ── */
+.mol-hud{position:absolute;inset:8px 8px auto 8px;display:flex;flex-direction:column;gap:6px;z-index:2;pointer-events:none}
+.mol-hud[hidden]{display:none}
+.mol-ciclo{align-self:center;display:flex;align-items:center;gap:4px;background:#ffffffd9;border-radius:18px;padding:4px 8px;box-shadow:0 3px 10px #2e6f9e22}
+.mol-ciclo i{font-style:normal;font-weight:900;color:#9fb3c4}
+.mol-fase{display:flex;flex-direction:column;align-items:center;opacity:.45;transition:all .25s;border-radius:12px;padding:2px 4px}
+.mol-fase .sui-cara{width:clamp(34px,8vw,46px);height:clamp(34px,8vw,46px)}
+.mol-fase b{font-size:.7rem;color:#1d3b53}
+.mol-fase.activa{opacity:1;background:#e3f4fd;transform:scale(1.12)}
+.mol-fase[data-f="out"].activa{background:#e7f8ee}
+.mol-marcador{display:flex;justify-content:space-between;align-items:center}
+.mol-vueltas,.mol-reloj{display:flex;align-items:center;gap:6px;background:#ffffffd9;border-radius:16px;padding:4px 10px;box-shadow:0 3px 10px #2e6f9e22}
+.mol-vueltas svg{width:34px;height:34px}
+.mol-vueltas strong,.mol-reloj strong{font-size:1.5rem;color:#1d3b53;font-weight:900}
+.mol-vueltas small{font-weight:800;color:#58738a;font-size:1rem}
+.mol-reloj svg{width:34px;height:34px}
+.mol-reloj[hidden]{display:none}
+.mol-estrellas .sui-estrella{width:28px}
+.mol-modos{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:0 10px}
+.mol-modos button{display:flex;flex-direction:column;align-items:center;gap:4px;width:clamp(100px,26vw,150px);padding:12px 8px;border:3px solid #dcefff;background:#fff;border-radius:22px;cursor:pointer;font:inherit;box-shadow:0 6px 16px #2e6f9e22;transition:transform .15s}
+.mol-modos button:hover,.mol-modos button:focus-visible{transform:translateY(-3px);border-color:#2e9fd6;outline:none}
+.mol-modos svg{width:clamp(56px,14vw,80px);height:clamp(56px,14vw,80px)}
+.mol-modos b{font-size:1.05rem;color:#1d3b53}
+.mol-modos small{font-size:.72rem;color:#58738a}
+.mol-mensaje,.mol-medida{display:flex;flex-direction:column;align-items:center;gap:14px}
+.mol-medida{background:#fff;border-radius:22px;padding:16px;box-shadow:0 8px 22px #2e6f9e22;width:min(92%,380px)}
+.mol-medida-fila{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;width:100%}
+.mol-medida-fila svg{width:44px;height:44px}
+.mol-medida-fila b{font-size:.85rem;color:#1d3b53}
+.mol-medida-fila strong{font-size:1.4rem;color:#1d3b53}
+.mol-barra{height:16px;background:#e6eef5;border-radius:9px;overflow:hidden;margin-top:4px}
+.mol-barra i{display:block;height:100%;border-radius:9px;transition:width 1s ease}
+
+/* ── ¡Haz un gol! ── */
+.gol-titulo{gap:10px;align-items:center}
+.gol-marcador{display:flex;gap:5px}
+.gol-ficha{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #cfe3f2}
+.gol-ficha.gol{background:#2bb673;border-color:#1d8a52}
+.gol-ficha.atajada,.gol-ficha.fuera{background:#ef6c57;border-color:#c2412f}
+.gol-escena{border-color:#9fd38d;background:#4caf50}
+.gol-pista{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;margin:0;font-weight:700;color:#1d3b53;flex-wrap:wrap}
+.gol-pista b{color:#e53935;letter-spacing:1px}
+.gol-pasos .sui-paso{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 10px}
+.gol-paso-ico svg{width:clamp(70px,16vw,100px);height:clamp(70px,16vw,100px);display:block}
+.gol-pasos b{font-size:.9rem;color:#1d3b53}
+.gol-grito{color:#e53935!important;letter-spacing:1px}
