@@ -66,6 +66,29 @@ def normalizar_plan(datos: dict | None) -> dict:
         "color": color,
         "juegos": juegos,
         "nota_familia": str(datos.get("nota_familia") or "")[:300].strip(),
+        "microfono": normalizar_microfono(datos.get("microfono")),
+    }
+
+
+def normalizar_microfono(datos: dict | None) -> dict:
+    """Ajustes del micrófono para los juegos de soplo (respiración).
+
+    lugar: "tranquilo" | "ruidoso"  (ruidoso = el juego se adapta y muestra la mano de ayuda)
+    ayuda_adulto: el adulto puede mantener un botón mientras ve soplar al niño (queda registrado)
+    exigencia: -1 más fácil, 0 normal, 1 más exigente
+    """
+    datos = dict(datos or {})
+    try:
+        exigencia = int(datos.get("exigencia") or 0)
+    except (TypeError, ValueError):
+        exigencia = 0
+    ayuda = datos.get("ayuda_adulto", True)
+    if isinstance(ayuda, str):
+        ayuda = ayuda.lower() not in ("0", "false", "no", "")
+    return {
+        "lugar": "ruidoso" if datos.get("lugar") == "ruidoso" else "tranquilo",
+        "ayuda_adulto": bool(ayuda),
+        "exigencia": max(-1, min(1, exigencia)),
     }
 
 

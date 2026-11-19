@@ -203,6 +203,7 @@ window.FonoJuegosNuevos = (function(){
  async function grabarConNivel(ms,etiqueta){
    let stream;
    try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});}catch(e){return null;}
+   try{window.FonoMic?.montar();window.FonoMic?.observarStream(stream);}catch(_){}
    const chunks=[];const rec=new MediaRecorder(stream);rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
    const C=window.AudioContext||window.webkitAudioContext;const ac=C?new C():null;let an=null;
    if(ac){an=ac.createAnalyser();an.fftSize=512;ac.createMediaStreamSource(stream).connect(an);}

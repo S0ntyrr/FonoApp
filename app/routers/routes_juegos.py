@@ -899,6 +899,21 @@ async def anuncio_activo(
     return {"anuncio": anuncio}
 
 
+@router.get('/ajustes-microfono')
+@router.get('/respiracion/ajustes-microfono')
+async def ajustes_microfono(
+    user: dict = Depends(require_role(["admin", "medico", "doctor", "paciente", "emisor"])),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """Ajustes del micrófono que el profesional definió en el plan del niño (todos los juegos con micrófono)."""
+    from ..daily_recommendations import normalizar_microfono
+    mic = normalizar_microfono(None)
+    if user.get("rol") == "paciente":
+        plan = await db["planes_terapia"].find_one({"paciente_email": user.get("email")}, {"microfono": 1})
+        mic = normalizar_microfono((plan or {}).get("microfono"))
+    return JSONResponse({"ruidoso": mic["lugar"] == "ruidoso", "ayuda": mic["ayuda_adulto"], "exigencia": mic["exigencia"]})
+
+
 # Páginas nuevas compatibles con las rutas originales.
 @router.get('/respiracion/burbujas', response_class=HTMLResponse)
 async def juego_burbujas(request: Request):

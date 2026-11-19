@@ -328,13 +328,18 @@ async function iniciarMic() {
     recognition = new SR();
     recognition.lang = 'es-ES'; recognition.continuous = false; recognition.interimResults = false; recognition.maxAlternatives = 3;
     let resultado = null;
+    const animalDelIntento = animalActual;
+    const intento = window.FonoMic ? window.FonoMic.vigilarIntento({
+        palabra: animalActual.nombre,
+        alValidar() { if (animalActual !== animalDelIntento) return; detenerMic(); verificarRespuesta(`${animalDelIntento.nombre} (validado por el adulto)`); },
+    }) : null;
     recognition.onresult = (e) => {
         const alts = Array.from(e.results[0]).map(a => a.transcript);
         resultado = alts.find(a => esCorrecta(normalizarTexto(a))) || alts[0] || '';
         ultimaTranscripcion = resultado;
     };
-    recognition.onerror = () => { $('mic-estado').textContent = 'No te escuché bien. Toca el micrófono otra vez.'; };
-    recognition.onend = () => { const r = resultado; detenerMic(); if (r) verificarRespuesta(r); };
+    recognition.onerror = (e) => { if (e && e.error === 'aborted') return; window.FonoMic?.fallo(e && e.error === 'no-speech' ? 'no-speech' : 'error'); $('mic-estado').textContent = 'No te escuché bien. Toca el micrófono otra vez.'; };
+    recognition.onend = () => { const r = resultado; detenerMic(); if (r) { const ok = esCorrecta(normalizarTexto(r)); intento?.terminar(ok); if (!ok) window.FonoMic?.fallo('no-coincide'); verificarRespuesta(r); } else intento?.terminar(false); };
     try { recognition.start(); } catch (_) { return; }
     micActivo = true;
     $('btn-mic').classList.add('activo');
@@ -351,6 +356,7 @@ function detenerMic() {
     if (animalActual && $('respuesta-area').style.display !== 'none') $('mic-estado').textContent = 'Toca el micrófono para hablar';
 }
 
+window.FonoMic?.montar();
 $('respuesta-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificarRespuesta(); });
 </script>
 {% endblock %}

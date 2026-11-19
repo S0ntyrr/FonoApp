@@ -56,14 +56,19 @@
       mejor = Math.max(mejor, r / Math.sqrt(r0 * e + 1e-12));
     }
     const sobre = db - audio.ruido;
-    const voz = sobre > 10 && mejor > 0.55;
+    const margen = Math.max(5, 10 + ajustesGol.exigencia * 3);
+    const voz = sobre > margen && mejor > 0.55;
+    // El ruido del lugar se sigue midiendo cuando el niño no habla (se adapta si sube o baja)
+    const casi = !voz && mejor > 0.55 && sobre > 2.5;
+    if (!voz && !casi) { audio.ruido += (db - audio.ruido) * (db < audio.ruido ? 0.06 : 0.004); audio.ruido = Math.max(-80, Math.min(-15, audio.ruido)); }
+    if (casi) { audio.casiMs = (audio.casiMs || 0) + 16; if (audio.casiMs > 1500) { audio.casiMs = 0; window.FonoMic?.pistaCerca(); } } else audio.casiMs = 0;
     // «o»: energía grave (250–1100 Hz) domina sobre la aguda (1100–3500 Hz)
     const hz = ctx.sampleRate / an.fftSize;
     let baja = 0, alta = 0;
     for (let i = Math.floor(250 / hz); i < Math.floor(1100 / hz); i++) baja += Math.pow(10, f[i] / 10);
     for (let i = Math.floor(1100 / hz); i < Math.floor(3500 / hz); i++) alta += Math.pow(10, f[i] / 10);
     const o = voz && baja / (alta + 1e-12) > 3;
-    return { voz, nivel: Math.max(0, Math.min(1, (sobre - 10) / 28)), o };
+    return { voz, nivel: Math.max(0, Math.min(1, (sobre - margen) / 28)), o };
   }
 
   // ── Reconocimiento de la palabra «gol» ──
@@ -87,7 +92,9 @@
     try { rec.start(); } catch (_) { recErr = 'no-inicia'; }
   }
   function detenerReconocimiento() { try { rec && rec.abort(); } catch (_) {} rec = null; }
-  const usaPalabra = () => !!rec && !recErr;
+  const usaPalabra = () => !!rec && !recErr && !ajustesGol.ruidoso;   // en lugar ruidoso no se exige el reconocedor
+  let ajustesGol = { ruidoso: false, ayuda: true, exigencia: 0 };
+  window.FonoMic?.ajustes().then(a => { ajustesGol = a; });
 
   // ── Juego ──
   function iniciar() {
@@ -143,7 +150,8 @@
   async function empezar() {
     fase = 'preparando';
     escena.querySelector('.sui-overlay')?.remove();
-    estadoAdulto('Pidiendo el micrófono… silencio un momento.');
+    estadoAdulto('Pidiendo el micrófono… escuchando el lugar (no hace falta silencio).');
+    window.FonoMic?.montar();
     const ok = await iniciarAudio();
     iniciarReconocimiento();
     window.FonoEvidencia?.iniciar?.();
@@ -195,6 +203,8 @@
       let valido, motivo;
       if (escuchoGol >= vozDesde - 500) {
         valido = true; motivo = 'palabra «gol» reconocida';
+      } else if (ajustesGol.ruidoso && durVoz >= 0.5 && fraccionO >= 0.45) {
+        valido = true; motivo = 'voz sostenida con O (lugar ruidoso)';
       } else if (usaPalabra() && recOk) {
         valido = false; motivo = 'no se reconoció «gol»';
       } else {
@@ -204,7 +214,17 @@
       if (simVoz || (!audio && !rec)) { valido = true; motivo = 'simulado'; }
       if (potencia < 0.12) { valido = false; motivo = 'muy corto'; }
       historial.push({ potencia: +potencia.toFixed(2), duracion: +durVoz.toFixed(1), o: +fraccionO.toFixed(2), pico: +picoVoz.toFixed(2), valido, motivo });
-      if (!valido) { avisoDiGol(); fase = 'apuntando'; potencia = 0; return; }
+      if (!valido) {
+        avisoDiGol(); window.FonoMic?.fallo('no-coincide');
+        // El adulto puede validar este «GOOOL» si el celular no lo entendió por el ruido
+        const potGuardada = potencia, entrada = historial[historial.length - 1];
+        window.FonoMic?.vigilarIntento({ palabra: 'GOOOL', alValidar() {
+          if (fase !== 'apuntando' || tiro || potGuardada < 0.12) return;
+          entrada.valido = true; entrada.motivo = 'validado por el adulto';
+          potencia = potGuardada; fase = 'validando'; patear();
+        } })?.terminar(false);
+        fase = 'apuntando'; potencia = 0; return;
+      }
       patear();
     };
     // Esperar un momento el resultado del reconocedor

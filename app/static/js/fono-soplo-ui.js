@@ -120,5 +120,204 @@ window.FonoSoploUI = (function () {
     } catch (e) {}
   }
 
-  return { pantallaInicio, pantallaSilencio, pantallaFinal, ocultarOverlay, medidor, sonido, estrellas, icons: { PLAY, STOP, REPETIR, MANO, SOPLA, INSPIRA, HABLA_NO } };
+  /* ── Preparar el micrófono (sirve con ruido, sin pedir silencio) ───────────── */
+  // Celular con el micrófono marcado abajo y el aire llegando de cerca
+  const TELEFONO = `
+    <svg viewBox="0 0 160 170" class="sui-telefono" aria-hidden="true">
+      <rect x="62" y="8" width="66" height="128" rx="12" fill="#2f3b4c"/>
+      <rect x="67" y="18" width="56" height="100" rx="5" fill="#bfe3ff"/>
+      <circle cx="95" cy="68" r="16" fill="#fff" opacity=".85"/><path d="M89 60 L103 68 L89 76Z" fill="#2bb673"/>
+      <g class="sui-mic"><circle cx="95" cy="127" r="11" fill="none" stroke="#ffca28" stroke-width="4"/><circle cx="95" cy="127" r="3.5" fill="#ffca28"/></g>
+      <g class="sui-aire" stroke="#2e9fd6" stroke-width="5" fill="none" stroke-linecap="round">
+        <path d="M10 118 Q40 112 76 124"/><path d="M14 138 Q44 140 78 131"/><path d="M22 100 Q48 98 74 116"/>
+      </g>
+      <text x="95" y="162" text-anchor="middle" font-size="15" font-weight="800" fill="#2e6f9e">¡aquí!</text>
+    </svg>`;
+  const OREJA = `
+    <svg viewBox="0 0 120 120" class="sui-oreja" aria-hidden="true">
+      <path d="M40 46 Q40 18 66 18 Q92 18 92 46 Q92 62 78 72 Q70 78 70 90 Q70 104 56 104 Q44 104 42 92" fill="#ffd9b8" stroke="#e8a77a" stroke-width="4" stroke-linecap="round"/>
+      <path d="M56 48 Q56 34 66 34 Q78 34 78 46 Q78 56 68 60" fill="none" stroke="#e8a77a" stroke-width="4" stroke-linecap="round"/>
+      <g class="sui-ondas-oir" stroke="#7a5cc7" stroke-width="4" fill="none" stroke-linecap="round"><path d="M100 40 Q108 52 100 64"/><path d="M108 32 Q120 52 108 72"/></g>
+    </svg>`;
+  const ANILLO = `<svg viewBox="0 0 120 120" class="sui-anillo" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="#e3eef7" stroke-width="12"/><circle class="sui-anillo-arco" cx="60" cy="60" r="52" fill="none" stroke="#2bb673" stroke-width="12" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/></svg>`;
+
+  // Ajustes del profesional para este niño (plan de terapia)
+  const ajustesPromesa = fetch('/juegos/respiracion/ajustes-microfono', { credentials: 'same-origin' })
+    .then(r => r.ok ? r.json() : {}).catch(() => ({}))
+    .then(a => ({ ruidoso: !!a.ruidoso, ayuda: a.ayuda !== false, exigencia: +a.exigencia || 0 }));
+  const LS_EXIG = 'fono_soplo_exigencia_adulto';
+  const exigenciaAdulto = () => { try { const v = sessionStorage.getItem(LS_EXIG); return v == null ? null : +v; } catch (e) { return null; } };
+  const hablar = t => { try { window.FonoVoz?.hablar?.(t); } catch (e) {} };
+  const adulto = t => { const el = document.getElementById('soplo-estado'); if (el) el.textContent = t; };
+  const espera = ms => new Promise(r => setTimeout(r, ms));
+
+  async function aplicarAjustes(det) {
+    const a = await ajustesPromesa;
+    const ex = exigenciaAdulto();
+    det.ajustar({ ruidoso: a.ruidoso, exigencia: ex == null ? a.exigencia : ex });
+    return a;
+  }
+
+  /* Reemplaza "pantallaSilencio + calibrar". Devuelve { ok, ajustes }. */
+  async function preparar(escena, det, { probarSoplo = true } = {}) {
+    actual = det;
+    const a = await aplicarAjustes(det);
+    sincronizarPanel(a);
+    if (!det.estado.listo) { ocultarOverlay(escena); return { ok: false, ajustes: a }; }
+    // 1. Escuchar el lugar: no hace falta silencio
+    overlay(escena, `<div class="sui-prep">${OREJA}<div class="sui-puntos-oir"><span></span><span></span><span></span></div></div>`, 'sui-calibra');
+    adulto('Escuchando el lugar… no hace falta silencio.');
+    const reciente = det.estado.tienePrueba;
+    await det.calibrar(reciente ? 800 : 1200);
+    if (reciente || !probarSoplo) { ocultarOverlay(escena); return { ok: true, ajustes: a }; }
+    // 2. Soplo de prueba cerca del micrófono
+    const el = overlay(escena, `
+      <div class="sui-prep sui-prueba">
+        <div class="sui-prueba-fig">${ANILLO}<div class="sui-prueba-tel">${TELEFONO}</div></div>
+        <div class="sui-prueba-cara">${SOPLA}</div>
+        <div class="sui-cerca" hidden>${CERCA}</div>
+      </div>`, 'sui-calibra sui-probando');
+    adulto('Que el niño sople una vez cerca del micrófono (abajo del celular). Así el juego aprende cómo sopla.');
+    hablar('Sopla aquí, cerquita');
+    const arco = el.querySelector('.sui-anillo-arco'), cerca = el.querySelector('.sui-cerca'), fig = el.querySelector('.sui-prueba-fig');
+    let sinAire = 0, avisado = false;
+    const r = await det.calibrarSoplo({
+      onProgreso(p, soplando) {
+        arco.style.strokeDashoffset = String(100 - p * 100);
+        fig.classList.toggle('activo', soplando);
+        sinAire = soplando ? 0 : sinAire + 1;
+        if (!avisado && sinAire > 200) { avisado = true; cerca.hidden = false; hablar('Más cerquita'); }
+      }
+    });
+    if (r.ok) {
+      el.innerHTML = `<div class="sui-prep sui-listo">${estrellas(3, 3)}</div>`;
+      sonido('meta'); hablar('¡Muy bien!');
+      adulto(`Listo: el juego ya conoce su soplo (${r.sobreDb} dB sobre el ruido).`);
+      await espera(1100);
+    } else {
+      adulto(a.ayuda ? 'No se detectó el soplo de prueba. Se usa el ajuste estándar; si cuesta, abra «Adulto» y use la mano de ayuda.' : 'No se detectó el soplo de prueba. Se usa el ajuste estándar.');
+      if (a.ayuda) mostrarAyuda(true);
+      await espera(400);
+    }
+    ocultarOverlay(escena);
+    return { ok: r.ok, ajustes: a };
+  }
+
+  /* Pista para el niño durante el juego: "¡más cerquita!" cuando sopla pero no llega */
+  const CERCA = `<svg viewBox="0 0 140 90" class="sui-cerca-svg" aria-hidden="true">
+      <rect x="92" y="6" width="34" height="66" rx="7" fill="#2f3b4c"/><rect x="96" y="12" width="26" height="48" rx="3" fill="#bfe3ff"/><circle cx="109" cy="66" r="4" fill="#ffca28"/>
+      <path d="M14 46 L70 46" stroke="#ff7043" stroke-width="9" stroke-linecap="round"/><path d="M58 30 L80 46 L58 62" fill="none" stroke="#ff7043" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  let actual = null;
+  function vigilarPistas(escena) {
+    let burbuja = escena.querySelector('.sui-pista-cerca');
+    if (!burbuja) { burbuja = document.createElement('div'); burbuja.className = 'sui-pista-cerca'; burbuja.hidden = true; burbuja.innerHTML = CERCA; escena.appendChild(burbuja); }
+    let casiMs = 0, visibleHasta = 0, ult = performance.now(), ultimaVez = 0;
+    (function tick(t) {
+      const dt = Math.min(60, t - ult); ult = t;
+      const st = actual?.estado; const ov = escena.querySelector('.sui-overlay');
+      const jugando = st && st.listo && (!ov || ov.hidden);
+      if (jugando && st.casi && !st.soplando) casiMs += dt; else casiMs = Math.max(0, casiMs - dt * 2);
+      if (casiMs > 1100 && t > visibleHasta && t - ultimaVez > 6000) { visibleHasta = t + 2400; ultimaVez = t; casiMs = 0; hablar('¡Más cerquita!'); }
+      burbuja.hidden = !(jugando && t < visibleHasta);
+      requestAnimationFrame(tick);
+    })(ult);
+  }
+
+  /* ── Panel para el adulto y mano de ayuda ─────────────────────────────── */
+  let panelListo = false, ajustesActuales = null;
+  function montarPanel() {
+    if (panelListo || !window.FonoSoplo) return; panelListo = true;   // solo en juegos con detector de soplo
+    const barra = document.querySelector('.soplo-barra'), controles = document.querySelector('.soplo-controles');
+    if (!barra || !controles) return;
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'sui-adulto-btn'; btn.setAttribute('aria-label', 'Ajustes para el adulto');
+    btn.innerHTML = `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#fff" stroke="#cfe3f2" stroke-width="2"/><path d="M14 18h20M14 30h20" stroke="#2e6f9e" stroke-width="4" stroke-linecap="round"/><circle cx="20" cy="18" r="4.5" fill="#ffca28" stroke="#2e6f9e" stroke-width="2.5"/><circle cx="29" cy="30" r="4.5" fill="#2bb673" stroke="#2e6f9e" stroke-width="2.5"/></svg><span>Adulto</span>`;
+    barra.appendChild(btn);
+    const panel = document.createElement('div');
+    panel.className = 'sui-panel'; panel.hidden = true; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Ajustes del micrófono');
+    panel.innerHTML = `
+      <div class="sui-panel-cab"><strong>Micrófono</strong><button type="button" class="sui-panel-x" aria-label="Cerrar">✕</button></div>
+      <div class="sui-panel-fila"><span>Ruido del lugar</span><div class="sui-ruido"><i></i></div><b class="sui-ruido-txt">—</b></div>
+      <div class="sui-panel-fila"><span>Soplo ahora</span><div class="sui-ruido sui-soplo-vivo"><i></i><em class="sui-umbral-marca"></em></div><b class="sui-soplo-txt">—</b></div>
+      <p class="sui-panel-sub">¿Le cuesta que detecte el soplo?</p>
+      <div class="sui-seg" role="group">
+        <button type="button" data-ex="-1">Más fácil</button><button type="button" data-ex="0">Normal</button><button type="button" data-ex="1">Más exigente</button>
+      </div>
+      <div class="sui-panel-acciones">
+        <button type="button" class="sui-recalibrar">Probar su soplo otra vez</button>
+        <label class="sui-ayuda-check"><input type="checkbox"> Mostrar mano de ayuda</label>
+      </div>
+      <p class="sui-panel-nota"></p>`;
+    barra.parentElement.insertBefore(panel, barra.nextSibling);
+    const ayudaBtn = document.createElement('button');
+    ayudaBtn.type = 'button'; ayudaBtn.className = 'sui-ayuda-btn'; ayudaBtn.hidden = true;
+    ayudaBtn.setAttribute('aria-label', 'Ayuda del adulto: mantener presionado mientras el niño sopla');
+    ayudaBtn.innerHTML = `${MANO}<span>Mantén mientras sopla</span>`;
+    controles.appendChild(ayudaBtn);
+    const on = () => { actual?.ayuda(true); ayudaBtn.classList.add('activo'); };
+    const off = () => { actual?.ayuda(false); ayudaBtn.classList.remove('activo'); };
+    ayudaBtn.addEventListener('pointerdown', e => { e.preventDefault(); ayudaBtn.setPointerCapture?.(e.pointerId); on(); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => ayudaBtn.addEventListener(ev, off));
+    ayudaBtn.addEventListener('contextmenu', e => e.preventDefault());
+
+    const abrir = v => { panel.hidden = !v; btn.classList.toggle('activo', v); };
+    btn.addEventListener('click', () => abrir(panel.hidden));
+    panel.querySelector('.sui-panel-x').addEventListener('click', () => abrir(false));
+    panel.querySelectorAll('[data-ex]').forEach(b => b.addEventListener('click', () => {
+      const v = +b.dataset.ex;
+      try { sessionStorage.setItem(LS_EXIG, String(v)); } catch (e) {}
+      actual?.ajustar({ exigencia: v }); marcarExig(v);
+    }));
+    panel.querySelector('.sui-recalibrar').addEventListener('click', async () => {
+      if (!actual?.estado?.listo) { panel.querySelector('.sui-panel-nota').textContent = 'Primero toque el botón verde para empezar el juego.'; return; }
+      actual.olvidarPrueba(); abrir(false);
+      await preparar(document.getElementById('soplo-escena'), actual);
+    });
+    const chk = panel.querySelector('.sui-ayuda-check input');
+    chk.addEventListener('change', () => mostrarAyuda(chk.checked));
+    function marcarExig(v) { panel.querySelectorAll('[data-ex]').forEach(b => b.classList.toggle('activo', +b.dataset.ex === v)); }
+    montarPanel.marcarExig = marcarExig; montarPanel.chk = chk; montarPanel.panel = panel; montarPanel.ayudaBtn = ayudaBtn;
+
+    const barraR = panel.querySelector('.sui-ruido i'), txtR = panel.querySelector('.sui-ruido-txt');
+    const barraS = panel.querySelector('.sui-soplo-vivo i'), marca = panel.querySelector('.sui-umbral-marca'), txtS = panel.querySelector('.sui-soplo-txt');
+    const pct = d => Math.max(0, Math.min(100, (d + 80) / 70 * 100));
+    (function vivo() {
+      if (!panel.hidden && actual?.estado?.listo) {
+        const st = actual.estado;
+        barraR.style.width = pct(st.ruidoDb) + '%'; barraR.dataset.n = st.nivelRuido;
+        txtR.textContent = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto' }[st.nivelRuido];
+        barraS.style.width = pct(st.db) + '%'; marca.style.left = pct(st.umbralDb) + '%';
+        barraS.classList.toggle('ok', st.soplando);
+        txtS.textContent = st.voz ? 'Voz' : st.asistido ? 'Ayuda' : st.soplando ? 'Soplo' : st.casi ? 'Casi' : '—';
+      }
+      requestAnimationFrame(vivo);
+    })();
+  }
+  function mostrarAyuda(v) {
+    montarPanel();
+    if (!montarPanel.ayudaBtn) return;
+    const permitido = ajustesActuales ? ajustesActuales.ayuda : true;
+    montarPanel.ayudaBtn.hidden = !(v && permitido);
+    if (montarPanel.chk) montarPanel.chk.checked = !!(v && permitido);
+  }
+  function sincronizarPanel(a) {
+    ajustesActuales = a; montarPanel();
+    const ex = exigenciaAdulto();
+    montarPanel.marcarExig?.(ex == null ? a.exigencia : ex);
+    const lbl = montarPanel.panel?.querySelector('.sui-ayuda-check');
+    if (lbl) lbl.hidden = !a.ayuda;
+    const nota = montarPanel.panel?.querySelector('.sui-panel-nota');
+    if (nota) nota.textContent = (a.ruidoso ? 'El profesional marcó este niño como «lugar con ruido». ' : '') + (a.ayuda ? 'La ayuda del adulto queda registrada para el profesional.' : 'El profesional desactivó la ayuda del adulto.');
+    if (a.ruidoso && a.ayuda) mostrarAyuda(true);
+  }
+
+  function alCargar() {
+    montarPanel();
+    ajustesPromesa.then(sincronizarPanel);
+    const escena = document.getElementById('soplo-escena'); if (escena) vigilarPistas(escena);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', alCargar); else alCargar();
+
+  return { pantallaInicio, pantallaSilencio, pantallaFinal, ocultarOverlay, medidor, sonido, estrellas, preparar, mostrarAyuda, ajustes: () => ajustesPromesa, icons: { PLAY, STOP, REPETIR, MANO, SOPLA, INSPIRA, HABLA_NO, TELEFONO } };
 })();

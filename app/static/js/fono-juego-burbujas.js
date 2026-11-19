@@ -57,9 +57,7 @@
     det = FonoSoplo.crear({ onCuadro: () => {} });
     const ok = await det.iniciar();
     if (!ok) estadoAdulto('No se pudo usar el micrófono. Revisa los permisos (para probar: mantén la barra espaciadora).');
-    else estadoAdulto('Silencio un momento… midiendo el ruido del cuarto.');
-    FonoSoploUI.pantallaSilencio(escena, 1300);
-    await det.calibrar(1300);
+    await FonoSoploUI.preparar(escena, det);
     window.FonoEvidencia?.iniciar?.();
     FonoSoploUI.ocultarOverlay(escena);
     $('#soplo-parar').hidden = false;

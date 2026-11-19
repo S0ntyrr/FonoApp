@@ -1569,6 +1569,8 @@ async def guardar_plan_terapia(paciente_id: str, request: Request, db: AsyncIOMo
         "juegos_por_dia": form.get("juegos_por_dia"), "letras": form.getlist("letras"),
         "areas": form.getlist("areas"), "color": form.get("color"), "juegos": juegos,
         "nota_familia": form.get("nota_familia", ""),
+        "microfono": {"lugar": form.get("mic_lugar"), "ayuda_adulto": form.get("mic_ayuda", "1"),
+                      "exigencia": form.get("mic_exigencia")},
     })
     await db["planes_terapia"].update_one(
         {"paciente_email": paciente["email"]},

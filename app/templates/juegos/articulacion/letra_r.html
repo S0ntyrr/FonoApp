@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="/static/css/fono-boca-real.css?v=5">
   <link rel="stylesheet" href="/static/css/fono-terapia.css">
   <script src="/static/js/juego-audio-utils.js"></script>
-  <script src="/static/js/articulacion-voz.js"></script>
+  <script src="/static/js/fono-mic-ayuda.js?v=1"></script>
+  <script src="/static/js/articulacion-voz.js?v=3"></script>
 
   <style>
     :root{
@@ -205,7 +206,7 @@
   <script defer src="/iconos.js?v=3"></script>
   <script defer src="/static/js/fono-emoji.js?v=1"></script>
 </head>
-<body class="fono-ruta-juegos">
+<body class="fono-ruta-juegos" data-fono-mic>
 <div class="fono-demo-contenedor"><div data-real-fonema="r"></div></div>
 <div class="screen">
   <h1 class="cat">Articulación · Letra R</h1>
@@ -340,6 +341,7 @@ async function iniciarOReanudarGrabacionR() {
     }
   });
 
+  try { window.FonoMic?.observarStream(streamGrabacionR); window.FonoMic?.montar(); } catch (_) {}
   chunksGrabacionR = [];
   mediaRecorderR = new MediaRecorder(streamGrabacionR);
 
@@ -593,6 +595,16 @@ async function reconocerPalabraCompleta({ palabraEsperada, alEscuchar, alCorrect
   reconocimientoEnCursoR = true;
   const rec = new SR();
   recognitionR = rec;
+  let resuelto = false;
+  const intento = window.FonoMic ? window.FonoMic.vigilarIntento({
+    palabra: palabraEsperada,
+    alValidar() {
+      if (resuelto) return; resuelto = true;
+      transcripcionesR.push(`${palabraEsperada}:[validado por el adulto]`);
+      try { if (recognitionR === rec) rec.abort(); } catch (_) {}
+      alCorrecto({ transcript: `${palabraEsperada} (validado por el adulto)`, confidence: 1, validadoAdulto: true });
+    },
+  }) : null;
   rec.lang = 'es-ES';
   rec.continuous = false;
   rec.interimResults = false;
@@ -609,10 +621,13 @@ async function reconocerPalabraCompleta({ palabraEsperada, alEscuchar, alCorrect
       transcripcionesR.push(`${palabraEsperada}:${principal}`);
     }
 
+    if (resuelto) return;
     if (coincidencia) {
+      resuelto = true; intento?.terminar(true);
       ultimaTranscripcionR = coincidencia.transcript;
       alCorrecto(coincidencia);
     } else {
+      window.FonoMic?.fallo('no-coincide');
       alIncorrecto(
         principal
           ? `Se escuchó: “${principal}”. Intenta otra vez diciendo la palabra completa “${palabraEsperada.toUpperCase()}”.`
@@ -623,6 +638,8 @@ async function reconocerPalabraCompleta({ palabraEsperada, alEscuchar, alCorrect
 
   rec.onerror = (event) => {
     const codigo = event && event.error ? event.error : 'error';
+    if (resuelto || codigo === 'aborted') return;
+    window.FonoMic?.fallo(codigo === 'no-speech' ? 'no-speech' : 'error');
     if (codigo === 'no-speech') {
       alIncorrecto('No se detectó una palabra. Inténtalo de nuevo y habla cerca del micrófono.');
     } else {
@@ -637,6 +654,7 @@ async function reconocerPalabraCompleta({ palabraEsperada, alEscuchar, alCorrect
 
     reconocimientoEnCursoR = false;
     recognitionR = null;
+    if (!resuelto) intento?.terminar(false);
     if (typeof alFin === 'function') alFin();
   };
 
@@ -831,7 +849,7 @@ async function finalizarLetraR() {
   fd.append('audio_transcripcion', detalle.audioTranscripcion || transcripcionCompleta);
   fd.append('audio_url', detalle.audioUrl || '');
   fd.append('requiere_revision_audio', 'true');
-  fd.append('notas', 'Palabras completas reconocidas por Web Speech API. La pronunciación fonética de la R requiere revisión profesional del audio.');
+  fd.append('notas', ['Palabras completas reconocidas por Web Speech API. La pronunciación fonética de la R requiere revisión profesional del audio.', window.FonoMic ? window.FonoMic.resumen() : ''].filter(Boolean).join(' '));
 
   try {
     if (window.FonoEvidencia) await window.FonoEvidencia.enriquecer(fd);

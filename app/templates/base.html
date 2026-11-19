@@ -162,6 +162,7 @@ async function subirEvidenciaAudio(blob, categoria, juego) {
             if (mediaRecorder && mediaRecorder.state === 'recording') return true;
             chunks = [];
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            try { window.FonoMic?.observarStream(stream); window.FonoMic?.montar(); } catch (_) {}
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) chunks.push(event.data);
@@ -314,7 +315,18 @@ widget.style.cssText = 'background:#ffffff;border:1px solid #f1d4d4;box-shadow:0
         formData.append('puntos', puntos);
         formData.append('nivel', nivel);
         formData.append('ruta', window.location.pathname || '');
-        formData.append('notas', detalles.notas || '');
+        let notasFinal = detalles.notas || '';
+        // Juegos de soplo: cómo estaba el micrófono y cuánto ayudó el adulto (para el profesional)
+        if (categoria === 'respiracion' && window.FonoSoplo && typeof window.FonoSoplo.resumen === 'function') {
+            const mic = window.FonoSoplo.resumen();
+            if (mic && !notasFinal.includes('Micrófono:')) notasFinal = (notasFinal ? notasFinal + ' ' : '') + mic;
+        }
+        // Resto de juegos con micrófono: ruido del lugar y validaciones del adulto
+        if (window.FonoMic && typeof window.FonoMic.resumen === 'function' && !notasFinal.includes('Micrófono:')) {
+            const mic = window.FonoMic.resumen();
+            if (mic) notasFinal = (notasFinal ? notasFinal + ' ' : '') + mic;
+        }
+        formData.append('notas', notasFinal);
         formData.append('audio_transcripcion', detalles.audioTranscripcion || '');
         formData.append('audio_url', detalles.audioUrl || '');
         formData.append('requiere_revision_audio', detalles.requiereRevisionAudio ? 'true' : 'false');
@@ -614,6 +626,7 @@ btnContinuar.style.cssText = 'position:fixed;right:20px;bottom:14px;width:auto;p
     <script defer src="/iconos.js?v=3"></script>
     <script defer src="/static/js/fono-emoji.js?v=1"></script>
     <script defer src="/static/js/fono-guia-juegos.js?v=6"></script>
+    {% if request.url.path.startswith('/juegos') %}<script src="/static/js/fono-mic-ayuda.js?v=1"></script>{% endif %}
 </head>
 <body class="fondo-blanco{% if request.url.path.startswith('/juegos') %} fono-ruta-juegos{% elif request.url.path.startswith('/doctor') %} fono-panel-medico{% elif request.url.path.startswith('/admin') %} fono-panel-admin{% elif request.url.path.startswith('/paciente') %} fono-panel-paciente{% endif %}">
     <div class="contenedor-principal">

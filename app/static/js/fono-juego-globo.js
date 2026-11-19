@@ -13,7 +13,7 @@
     2: { msSoplo: 7500, minimo: 0.30 },
     3: { msSoplo: 10000, minimo: 0.38 },
   };
-  const DETECTOR = { minDbSobreRuido: 12, msActivar: 180 };   // más exigente que burbujas
+  const DETECTOR = { minDbSobreRuido: 12, msActivar: 180, fraccionUmbral: 0.52 };   // más exigente que burbujas
   const $ = s => document.querySelector(s);
   const COLORES = ['#e53935', '#2e86de', '#8e44ad', '#2bb673', '#f57c00', '#e84393'];
 
@@ -67,9 +67,8 @@
     estadoAdulto('Pidiendo el micrófono…');
     det = FonoSoplo.crear({ config: DETECTOR });
     const ok = await det.iniciar();
-    estadoAdulto(ok ? 'Silencio un momento… midiendo el ruido del cuarto.' : 'No se pudo usar el micrófono. Revisa los permisos (para probar: barra espaciadora = soplar).');
-    FonoSoploUI.pantallaSilencio(escena, 1300);
-    await det.calibrar(1300);
+    if (!ok) estadoAdulto('No se pudo usar el micrófono. Revisa los permisos (para probar: barra espaciadora = soplar).');
+    await FonoSoploUI.preparar(escena, det);
     window.FonoEvidencia?.iniciar?.();
     FonoSoploUI.ocultarOverlay(escena);
     $('#soplo-parar').hidden = false;

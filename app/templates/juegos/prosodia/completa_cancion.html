@@ -158,6 +158,7 @@ function volverSelector() {
     document.getElementById('resultado-final').style.display = 'none';
 }
 
+window.FonoMic?.montar();
 function toggleMic() {
     if (micActivo) { detenerMic(); } else { iniciarMic(); }
 }
@@ -176,7 +177,12 @@ async function iniciarMic() {
             ultimaTranscripcion = texto;
             document.getElementById('mic-estado').textContent = `🎵 "${texto}"`;
         };
-        recognition.onerror = () => { detenerMic(); };
+        recognition.onerror = (e) => {
+            // Con ruido el navegador corta por «no-speech»: se sigue escuchando y se ayuda al niño
+            if (e && (e.error === 'no-speech' || e.error === 'aborted')) { if (e.error === 'no-speech') window.FonoMic?.fallo('no-speech'); return; }
+            detenerMic();
+        };
+        recognition.onend = () => { if (micActivo && recognition) { try { recognition.start(); } catch (_) {} } };
         recognition.start();
         micActivo = true;
         document.getElementById('btn-mic').classList.add('activo');

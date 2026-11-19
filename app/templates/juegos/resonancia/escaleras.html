@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block contenido %}
+<script>window.FONO_USA_MICROFONO = true;</script>
 <section class="pantalla-movil">
     <h1 class="titulo-rojo centrado">Sube la pelota</h1>
 
@@ -149,7 +150,7 @@ const ctx = canvas.getContext('2d');
 let posPersonaje = 0; // 0 a 1
 let nivelRes = 1; // 1=subir, 2=bajar
 let puntosRes = 0;
-let audioCtxR = null, analyserR = null, micStreamR = null, micActivoR = false, animFrameR = null;
+let vozRes = null, tonoSuaveRes = 0, micActivoR = false, animFrameR = null;
 let pitchActual = 0;
 let animResFrame = null;
 const evidenciaVozEscaleras = (typeof crearCapturaActividad === 'function')
@@ -223,53 +224,42 @@ function toggleMicRes() {
 }
 
 async function iniciarMicRes() {
-    try {
-        micStreamR = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtxR = crearContextoAudioFono();
-        const source = audioCtxR.createMediaStreamSource(micStreamR);
-        analyserR = audioCtxR.createAnalyser();
-        analyserR.fftSize = 2048;
-        source.connect(analyserR);
-        detalleVozEscalerasPromise = evidenciaVozEscaleras.iniciar().then(() => ({})).catch(() => ({}));
-        micActivoR = true;
-        document.getElementById('btn-mic-res').classList.add('activo');
-        document.getElementById('mic-estado-res').textContent = '🔴 Activo - ¡Canta!';
-        medirPitchRes();
-    } catch(e) {
+    // Detector de VOZ: ignora el ruido del lugar y mide el tono real de la voz (no el pico más fuerte)
+    vozRes = FonoVozNivel.crear();
+    const ok = await vozRes.iniciar();
+    if (!ok) {
+        vozRes.detener(); vozRes = null;
         document.getElementById('mic-estado-res').textContent = '❌ Sin acceso al micrófono';
+        return;
     }
+    detalleVozEscalerasPromise = evidenciaVozEscaleras.iniciar().then(() => ({})).catch(() => ({}));
+    micActivoR = true;
+    document.getElementById('btn-mic-res').classList.add('activo');
+    document.getElementById('mic-estado-res').textContent = '🔴 Activo - ¡Canta!';
+    medirPitchRes();
 }
 
 function detenerMicRes() {
     micActivoR = false;
     detalleVozEscalerasPromise = evidenciaVozEscaleras.detener({ transcripcion: '' });
-    if (micStreamR) { micStreamR.getTracks().forEach(t => t.stop()); micStreamR = null; }
-    if (audioCtxR) { audioCtxR.close(); audioCtxR = null; }
+    if (vozRes) { vozRes.detener(); vozRes = null; }
     if (animFrameR) { cancelAnimationFrame(animFrameR); animFrameR = null; }
     document.getElementById('btn-mic-res').classList.remove('activo');
     document.getElementById('mic-estado-res').textContent = 'Toca para activar el micrófono';
 }
 
 function medirPitchRes() {
-    if (!micActivoR) return;
-    const dataArray = new Uint8Array(analyserR.frequencyBinCount);
-    analyserR.getByteFrequencyData(dataArray);
+    if (!micActivoR || !vozRes) return;
+    const st = vozRes.estado;
+    const est = document.getElementById('mic-estado-res');
+    if (est) est.textContent = st.voz ? '🎵 ¡Así! Sigue cantando…' : (st.casi ? '🔊 Un poco más fuerte, cerca del celular' : '🔴 Activo - ¡Canta!');
 
-    // Calcular volumen y frecuencia dominante
-    const promedio = dataArray.reduce((a,b) => a+b, 0) / dataArray.length;
-    const volPct = Math.min(100, (promedio / 128) * 100);
+    if (st.voz && st.pitchHz > 0) {
+        tonoSuaveRes = tonoSuaveRes ? tonoSuaveRes + (st.pitchHz - tonoSuaveRes) * 0.25 : st.pitchHz;
+        const freq = tonoSuaveRes;
 
-    if (volPct > 10) {
-        // Encontrar frecuencia dominante
-        let maxIdx = 0, maxVal = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-            if (dataArray[i] > maxVal) { maxVal = dataArray[i]; maxIdx = i; }
-        }
-        const sampleRate = audioCtxR.sampleRate;
-        const freq = maxIdx * sampleRate / analyserR.fftSize;
-
-        // Mapear frecuencia a posición (80Hz=bajo, 800Hz=alto)
-        const freqNorm = Math.max(0, Math.min(1, (freq - 80) / 720));
+        // Mapear el tono a posición, en el rango de la voz de un niño (≈170 Hz grave … 520 Hz agudo)
+        const freqNorm = Math.max(0, Math.min(1, (freq - 170) / 350));
         pitchActual = freqNorm;
 
         // Actualizar marcador de tono

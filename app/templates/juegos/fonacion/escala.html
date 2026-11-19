@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block contenido %}
+<script>window.FONO_USA_MICROFONO = true;</script>
 <section class="pantalla-movil">
     <h1 class="titulo-rojo centrado">Fonación</h1>
 
@@ -258,7 +259,7 @@ const nivelTareaEscala = Number(new URLSearchParams(location.search).get('nivel'
 let nivelActual = [1,2,3].includes(nivelTareaEscala) ? (nivelTareaEscala-1)*2 : 0;
 let notaActual = 0;
 let faseEscala = 'inhala'; // inhala, canta
-let audioCtxE = null, analyserE = null, micStreamE = null, micActivoE = false, animFrameE = null;
+let vozEscala = null, vozMsEscala = 0, ultimoCuadroEscala = 0, micActivoE = false, animFrameE = null;
 let notasCompletadas = 0;
 let timerInhala = null;
 let timerAvance = null;
@@ -422,29 +423,26 @@ function toggleMicEscala() {
 }
 
 async function iniciarMicEscala() {
-    try {
-        micStreamE = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtxE = crearContextoAudioFono();
-        const source = audioCtxE.createMediaStreamSource(micStreamE);
-        analyserE = audioCtxE.createAnalyser();
-        analyserE.fftSize = 2048;
-        source.connect(analyserE);
-        detalleVozEscalaPromise = evidenciaVozEscala.iniciar().then(() => ({})).catch(() => ({}));
-        micActivoE = true;
-        document.getElementById('btn-mic-escala').classList.add('activo');
-        document.getElementById('mic-estado-escala').textContent = '🔴 Activo - ¡Canta!';
-        mostrarFaseInhala();
-        medirVozEscala();
-    } catch(e) {
+    // Detector de VOZ: se adapta al ruido del lugar y no avanza con ruido (solo con voz cantada)
+    vozEscala = FonoVozNivel.crear();
+    const ok = await vozEscala.iniciar();
+    if (!ok) {
+        vozEscala.detener(); vozEscala = null;
         document.getElementById('mic-estado-escala').textContent = '❌ Sin acceso al micrófono';
+        return;
     }
+    detalleVozEscalaPromise = evidenciaVozEscala.iniciar().then(() => ({})).catch(() => ({}));
+    micActivoE = true; vozMsEscala = 0; ultimoCuadroEscala = performance.now();
+    document.getElementById('btn-mic-escala').classList.add('activo');
+    document.getElementById('mic-estado-escala').textContent = '🔴 Activo - ¡Canta!';
+    mostrarFaseInhala();
+    medirVozEscala();
 }
 
 function detenerMicEscala() {
     micActivoE = false;
     detalleVozEscalaPromise = evidenciaVozEscala.detener({ transcripcion: '' });
-    if (micStreamE) { micStreamE.getTracks().forEach(t => t.stop()); micStreamE = null; }
-    if (audioCtxE) { audioCtxE.close(); audioCtxE = null; }
+    if (vozEscala) { vozEscala.detener(); vozEscala = null; }
     if (animFrameE) { cancelAnimationFrame(animFrameE); animFrameE = null; }
     if (timerInhala) { clearTimeout(timerInhala); timerInhala = null; }
     if (timerAvance) { clearTimeout(timerAvance); timerAvance = null; }
@@ -475,26 +473,24 @@ function mostrarFaseInhala() {
 }
 
 function medirVozEscala() {
-    if (!micActivoE) return;
-    const dataArray = new Uint8Array(analyserE.frequencyBinCount);
-    analyserE.getByteFrequencyData(dataArray);
-    const promedio = dataArray.reduce((a,b) => a+b, 0) / dataArray.length;
-    const volPct = Math.min(100, (promedio / 128) * 100);
-
-    const sonandoGuia = performance.now() < reproduciendoHasta;
-    if (faseEscala === 'canta' && volPct > 20 && !sonandoGuia) {
-        // Avanzar nota
-        if (!timerAvance) {
-            timerAvance = setTimeout(() => {
-                timerAvance = null;
-                notaActual++;
-                if (notaActual >= NOTAS.length) {
-                    completarEscala();
-                } else {
-                    actualizarNotaActual();
-                    mostrarFaseInhala();
-                }
-            }, 1200);
+    if (!micActivoE || !vozEscala) return;
+    const ahora = performance.now(), dt = Math.min(80, ahora - ultimoCuadroEscala); ultimoCuadroEscala = ahora;
+    const st = vozEscala.estado;
+    const sonandoGuia = ahora < reproduciendoHasta;
+    // La nota cuenta con 1.2 s de voz cantada sostenida (el ruido del salón no cuenta)
+    if (faseEscala === 'canta' && !sonandoGuia && st.voz) vozMsEscala += dt;
+    else if (faseEscala !== 'canta') vozMsEscala = 0;
+    const est = document.getElementById('mic-estado-escala');
+    if (faseEscala === 'canta' && est) est.textContent = st.voz ? '🎵 ¡Así! Sigue cantando…' : (st.casi ? '🔊 Un poco más fuerte, cerca del celular' : '🔴 Activo - ¡Canta!');
+    if (faseEscala === 'canta' && vozMsEscala >= 1200) {
+        vozMsEscala = 0;
+        notaActual++;
+        if (notaActual >= NOTAS.length) {
+            completarEscala();
+            return;
+        } else {
+            actualizarNotaActual();
+            mostrarFaseInhala();
         }
     }
 
@@ -516,7 +512,7 @@ function completarEscala() {
 async function registrarResultadoEscala() {
     const detalleVoz = await detalleVozEscalaPromise;
     guardarResultadoJuego('fonacion', 'escala', nivelActual + 1, NIVELES.length, true, 80 + (nivelActual * 10), 1, {
-        notas: 'Actividad realizada con micrófono.',
+        notas: 'Actividad realizada con micrófono (cada nota cuenta con 1.2 s de voz cantada sostenida).',
         requiereRevisionAudio: true,
         ...detalleVoz,
     });

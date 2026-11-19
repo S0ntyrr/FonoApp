@@ -113,6 +113,8 @@
     let finalizada = false;
     let detalleFinal = { audioUrl: '', audioTranscripcion: '', requiereRevisionAudio: false };
     const transcripciones = [];
+    let intentoAdulto = null;   // validación «Lo dijo bien» del adulto (FonoMic)
+    try { window.FonoMic?.montar(); } catch (_) {}
 
     async function iniciarOReanudarGrabacion() {
       if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -135,6 +137,7 @@
         },
       });
 
+      try { window.FonoMic?.observarStream(stream); } catch (_) {}
       chunks = [];
       mediaRecorder = new MediaRecorder(stream);
       mediaRecorder.ondataavailable = (event) => {
@@ -192,6 +195,18 @@
       reconocimientoEnCurso = true;
       const rec = new SR();
       recognition = rec;
+      let resuelto = false;
+      intentoAdulto?.cancelar();
+      intentoAdulto = window.FonoMic ? window.FonoMic.vigilarIntento({
+        palabra: palabraEsperada,
+        alValidar(info) {
+          if (resuelto) return;
+          resuelto = true;
+          transcripciones.push(`${palabraEsperada}:[validado por el adulto]`);
+          try { if (recognition === rec) rec.abort(); } catch (_) {}
+          if (typeof alCorrecto === 'function') alCorrecto({ transcript: `${palabraEsperada} (validado por el adulto)`, confidence: 1, validadoAdulto: true });
+        },
+      }) : null;
       rec.lang = config.idiomaReconocimiento || 'es-ES';
       rec.continuous = false;
       rec.interimResults = false;
@@ -206,9 +221,13 @@
 
         if (principal) transcripciones.push(`${palabraEsperada}:${principal}`);
 
+        if (resuelto) return;
         if (coincidencia) {
+          resuelto = true;
+          intentoAdulto?.terminar(true);
           if (typeof alCorrecto === 'function') alCorrecto(coincidencia);
         } else if (typeof alIncorrecto === 'function') {
+          window.FonoMic?.fallo('no-coincide');
           alIncorrecto(
             principal
               ? `Se escuchó: “${principal}”. Intenta otra vez diciendo la palabra completa “${String(palabraEsperada).toUpperCase()}”.`
@@ -218,6 +237,8 @@
       };
 
       rec.onerror = (event) => {
+        if (resuelto || (event && event.error === 'aborted')) return;
+        window.FonoMic?.fallo(event && event.error === 'no-speech' ? 'no-speech' : 'error');
         if (typeof alIncorrecto === 'function') {
           alIncorrecto(mensajeErrorReconocimiento(event && event.error ? event.error : 'error'));
         }
@@ -227,6 +248,7 @@
         pausarGrabacion();
         reconocimientoEnCurso = false;
         recognition = null;
+        if (!resuelto) intentoAdulto?.terminar(false);   // el adulto aún puede validar unos segundos
         if (typeof alFin === 'function') alFin();
       };
 
@@ -298,6 +320,7 @@
     }
 
     function cancelar() {
+      intentoAdulto?.cancelar(); intentoAdulto = null;
       try {
         if (recognition) recognition.abort();
       } catch (_) {}
@@ -335,7 +358,9 @@
     fd.append('puntos', String(config.puntos ?? 0));
     fd.append('nivel', String(config.nivel ?? 1));
     fd.append('ruta', window.location.pathname || '');
-    fd.append('notas', config.notas || '');
+    let notas = config.notas || '';
+    if (window.FonoMic && !notas.includes('Micrófono:')) { const mic = window.FonoMic.resumen(); if (mic) notas = (notas ? notas + ' ' : '') + mic; }
+    fd.append('notas', notas);
     fd.append('audio_transcripcion', config.audioTranscripcion || '');
     fd.append('audio_url', config.audioUrl || '');
     fd.append('requiere_revision_audio', config.requiereRevisionAudio ? 'true' : 'false');

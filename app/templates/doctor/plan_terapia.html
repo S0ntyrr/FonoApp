@@ -114,8 +114,38 @@
       {% endfor %}
     </fieldset>
 
+    <fieldset class="plan-bloque plan-mic">
+      <legend><span class="plan-num">8</span> {{ icono('microfono', 26) }} Micrófono (todos los juegos con voz o soplo)</legend>
+      <p class="plan-ayuda">Los juegos se adaptan solos al ruido del lugar (soplo de prueba en respiración; voz cantada en escala, escaleras y gol). Si el niño no se acerca, sale un dibujo «¡acércate y habla fuerte!». Aquí decide cuánto exigir y si el adulto puede ayudar.</p>
+      <div class="plan-mic-grid">
+        <div>
+          <strong class="plan-mic-tit">¿Dónde suele jugar?</strong>
+          <div class="plan-seg">
+            <label><input type="radio" name="mic_lugar" value="tranquilo" {% if plan.microfono.lugar != 'ruidoso' %}checked{% endif %}><span>{{ icono('casa', 20) }} Lugar tranquilo</span></label>
+            <label><input type="radio" name="mic_lugar" value="ruidoso" {% if plan.microfono.lugar == 'ruidoso' %}checked{% endif %}><span>{{ icono('altavoz', 20) }} Con ruido (colegio, sala con niños)</span></label>
+          </div>
+        </div>
+        <div>
+          <strong class="plan-mic-tit">Exigencia (soplo y voz)</strong>
+          <div class="plan-seg">
+            {% for v, txt in [(-1, 'Más fácil'), (0, 'Normal'), (1, 'Más exigente')] %}
+            <label><input type="radio" name="mic_exigencia" value="{{ v }}" {% if plan.microfono.exigencia == v %}checked{% endif %}><span>{{ txt }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <strong class="plan-mic-tit">Ayuda del adulto</strong>
+          <div class="plan-seg">
+            <label><input type="radio" name="mic_ayuda" value="1" {% if plan.microfono.ayuda_adulto %}checked{% endif %}><span>Permitida</span></label>
+            <label><input type="radio" name="mic_ayuda" value="0" {% if not plan.microfono.ayuda_adulto %}checked{% endif %}><span>No</span></label>
+          </div>
+          <small class="plan-ayuda">Respiración: mano que el adulto mantiene mientras ve soplar. Juegos de palabras: botón verde «Lo dijo bien» si el niño lo dijo bien y el celular no entendió por el ruido. En los resultados verá qué fue asistido.</small>
+        </div>
+      </div>
+    </fieldset>
+
     <fieldset class="plan-bloque">
-      <legend><span class="plan-num">8</span> Nota para la familia (opcional)</legend>
+      <legend><span class="plan-num">9</span> Nota para la familia (opcional)</legend>
       <textarea name="nota_familia" maxlength="300" rows="2" placeholder="Ej.: practicar después del almuerzo, con calma">{{ plan.nota_familia }}</textarea>
     </fieldset>
 
@@ -172,6 +202,9 @@
 .plan-grav input:checked+.plan-grav-caja{border-color:var(--g);background:color-mix(in srgb,var(--g) 14%,#fff);transform:translateY(-2px)}
 .plan-grav input:focus-visible+.plan-grav-caja,.plan-seg input:focus-visible+span,.plan-letra input:focus-visible+span,.plan-area input:focus-visible+span,.plan-color input:focus-visible+span,.plan-modo input:focus-visible+span{outline:3px solid #2e86de;outline-offset:2px}
 .plan-seg{display:flex;flex-wrap:wrap;gap:6px}
+.plan-mic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.plan-mic-tit{display:block;margin:0 0 6px;color:#253653;font-size:.92rem}
+.plan-seg span svg{vertical-align:-4px}
 .plan-seg span{display:inline-block;padding:8px 12px;border-radius:999px;border:2px solid #dbe4ee;cursor:pointer;font-weight:600}
 .plan-seg input:checked+span{background:#c62828;border-color:#c62828;color:#fff}
 .plan-cantidad{display:flex;flex-direction:column;gap:8px}

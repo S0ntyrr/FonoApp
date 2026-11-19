@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block contenido %}
+<script>window.FONO_USA_MICROFONO = true;</script>
 <link rel="stylesheet" href="/static/css/fono-juegos-soplo.css?v=2" />
 <section class="soplo-juego gol-juego">
   <div class="soplo-barra">
@@ -31,5 +32,5 @@
   <p class="soplo-estado" id="gol-estado" role="status" aria-live="polite"></p>
 </section>
 <script src="/static/js/fono-soplo-ui.js?v=2"></script>
-<script src="/static/js/fono-juego-gol.js?v=1"></script>
+<script src="/static/js/fono-juego-gol.js?v=2"></script>
 {% endblock %}

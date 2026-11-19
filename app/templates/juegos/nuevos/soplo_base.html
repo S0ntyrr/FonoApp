@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block contenido %}
-<link rel="stylesheet" href="/static/css/fono-juegos-soplo.css?v=2" />
+<link rel="stylesheet" href="/static/css/fono-juegos-soplo.css?v=3" />
 <section class="soplo-juego" data-juego="{{ juego }}">
   <div class="soplo-barra">
     <a href="/juegos/respiracion" class="soplo-volver" aria-label="Volver a respiración">
@@ -29,12 +29,13 @@
   <details class="soplo-guia">
     <summary>Ayuda para acompañantes</summary>
     {{ guia | safe }}
-    <p><strong>Cómo se detecta el soplo:</strong> el juego solo avanza con aire sin voz (soplo). Si el niño habla, canta o grita, aparece un icono de "boca tachada" y no cuenta. Al empezar hay 1 segundo de silencio para medir el ruido del cuarto. Los sonidos "ffff" o "shhh" también son salida de aire y pueden contar.</p>
+    <p><strong>Cómo se detecta el soplo:</strong> el juego avanza con aire sin voz. No hace falta silencio: al empezar escucha el lugar y luego pide <em>un soplo de prueba</em> cerca del micrófono (casi siempre está abajo del celular o tablet). Así aprende cómo sopla este niño en este lugar, y durante el juego se adapta si el ruido sube o baja. Si el niño habla o grita cerca, aparece la boca tachada y no cuenta; las voces de fondo no bloquean.</p>
+    <p><strong>Si hay mucho ruido:</strong> pida que sople a 3–5 cm del micrófono (mejor con un pitillo apuntando a él). En el botón <em>Adulto</em> puede ver el ruido del lugar, poner «Más fácil», repetir el soplo de prueba o mostrar la <em>mano de ayuda</em>: manténgala presionada mientras ve al niño soplar. Lo asistido queda registrado para el profesional.</p>
     <p>No fuerces la respiración. Si se marea, pausa y descansa. El registro es para revisión del profesional; no es una calificación clínica.</p>
   </details>
   <p class="soplo-estado" id="soplo-estado" role="status" aria-live="polite"></p>
 </section>
-<script src="/static/js/fono-soplo-detector.js?v=2"></script>
-<script src="/static/js/fono-soplo-ui.js?v=2"></script>
-<script src="/static/js/{{ script }}?v=2"></script>
+<script src="/static/js/fono-soplo-detector.js?v=3"></script>
+<script src="/static/js/fono-soplo-ui.js?v=3"></script>
+<script src="/static/js/{{ script }}?v=3"></script>
 {% endblock %}

@@ -87,9 +87,8 @@
     vueltas = 0; angulo = 0; omega = 0; misionIdx = 0; misionesOk = 0;
     det = FonoSoplo.crear({ config: { minDbSobreRuido: 10 } });
     const ok = await det.iniciar();
-    estadoAdulto(ok ? 'Silencio un momento… midiendo el ruido del cuarto.' : 'No se pudo usar el micrófono (para probar: barra espaciadora = soplar).');
-    FonoSoploUI.pantallaSilencio(escena, 1300);
-    await det.calibrar(1300);
+    if (!ok) estadoAdulto('No se pudo usar el micrófono (para probar: barra espaciadora = soplar).');
+    await FonoSoploUI.preparar(escena, det);
     window.FonoEvidencia?.iniciar?.();
     FonoSoploUI.ocultarOverlay(escena);
     hud.hidden = false; $('#soplo-parar').hidden = false;
